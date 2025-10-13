@@ -4,6 +4,7 @@
 #include <atomic>
 #include <thread>
 #include "msp/MspFrame.hpp"
+#include "msp/MspSessionManager.hpp"
 
 namespace fcbridge::msp
 {

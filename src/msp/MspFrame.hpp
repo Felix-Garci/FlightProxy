@@ -30,11 +30,10 @@ namespace fcbridge::msp
         bool isRequest = true;        // true = solicitud, false = respuesta
         std::vector<uint8_t> payload; // datos crudos
         uint8_t result = 0;           // código de resultado (solo en respuestas)
-        uint8_t crc = 0;              // CRC8 del frame
     };
 
     // Utilidades de codificación/decodificación
-    ParseStatus decode(std::span<const uint8_t> stream, MspFrame &out, size_t &consumed);
+    ParseStatus decode(std::span<const uint8_t> stream, MspFrame &out);
     void encode(const MspFrame &in, std::vector<uint8_t> &out);
 
     // Helpers comunes

@@ -2,7 +2,10 @@
 #include <cstdint>
 #include <optional>
 #include "msp/MspFrame.hpp"
+#include "msp/MspCodes.hpp"
 #include "rc/RcTypes.hpp"
+#include "rc/RcChannels.hpp"
+#include "state/StateModel.hpp"
 
 namespace fcbridge::rc
 {
@@ -41,9 +44,9 @@ namespace fcbridge::msp
         state::StateModel *st_ = nullptr;
 
         // Helpers internos para mapear comandos a acciones
-        MspFrame makeAck(uint8_t cmd);
-        MspFrame makeError(uint8_t cmd, uint8_t code);
-        MspFrame makeStatusPayload(uint8_t cmd, const rc::RcSnapshot &snap);
+        MspFrame makeAck(uint16_t cmd);
+        MspFrame makeError(uint16_t cmd, uint16_t code);
+        MspFrame makeStatusPayload(const rc::RcSnapshot &snap);
     };
 
 } // namespace fcbridge::msp
