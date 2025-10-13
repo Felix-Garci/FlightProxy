@@ -1,8 +1,10 @@
 #pragma once
 #include <cstdint>
-#include <mutex>
-#include <chrono>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "RcTypes.hpp"
+#include "utils/MutexGuard.hpp"
 
 namespace fcbridge::rc
 {
@@ -10,7 +12,8 @@ namespace fcbridge::rc
     class RcChannels
     {
     public:
-        RcChannels() = default;
+        RcChannels();
+        ~RcChannels();
 
         void init(const RcLimits &limits, const RcSample &defaults);
 
@@ -21,7 +24,7 @@ namespace fcbridge::rc
 
         // Lecturas
         RcSnapshot snapshot() const;
-        bool isFresh(std::chrono::milliseconds timeout) const;
+        bool isFresh(uint32_t timeout_ms) const;
 
         // Config
         void setLimits(const RcLimits &l);
@@ -30,8 +33,8 @@ namespace fcbridge::rc
         RcSample current_{};
         RcSample defaults_{};
         RcLimits limits_{};
-        std::chrono::steady_clock::time_point lastUpdate_{};
-        mutable std::mutex mtx_;
+        TickType_t lastTick_ = 0;
+        mutable SemaphoreHandle_t mtx_ = nullptr;
     };
 
 } // namespace fcbridge::rc

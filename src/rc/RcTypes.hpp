@@ -1,15 +1,15 @@
 #pragma once
 #include <cstdint>
 #include <array>
-#include <chrono>
 
 namespace fcbridge::rc
 {
 
     constexpr size_t RC_MAX_CHANNELS = 14;
 
-    using micros = std::chrono::microseconds;
-    using millis = std::chrono::milliseconds;
+    // Use plain integer durations in public headers to avoid std::chrono
+    using micros = uint64_t; // microseconds
+    using millis = uint32_t; // milliseconds
 
     struct RcSample
     {

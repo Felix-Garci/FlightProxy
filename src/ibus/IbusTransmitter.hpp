@@ -16,6 +16,7 @@ namespace fcbridge::state
 namespace fcbridge::ibus
 {
     class UartPort;
+    class IbusFrame;
 }
 
 namespace fcbridge::ibus

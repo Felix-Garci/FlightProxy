@@ -1,10 +1,11 @@
 #pragma once
 #include <cstdint>
-#include <mutex>
-#include <condition_variable>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
 #include <optional>
-#include <chrono>
 #include "msp/MspFrame.hpp"
+#include "utils/MutexGuard.hpp"
 
 namespace fcbridge::msp
 {
@@ -24,7 +25,8 @@ namespace fcbridge::msp
     class MspSessionManager
     {
     public:
-        MspSessionManager() = default;
+        MspSessionManager();
+        ~MspSessionManager();
 
         // Wiring
         void setCtrlHandler(LocalCtrlHandler *h);
@@ -39,18 +41,18 @@ namespace fcbridge::msp
         void onFcResponse(const MspFrame &resp);
 
         // Config
-        void setTimeouts(std::chrono::milliseconds fcTimeout,
-                         std::chrono::milliseconds localTimeout);
+        void setTimeouts(uint32_t fcTimeoutMs,
+                         uint32_t localTimeoutMs);
 
     private:
         // Entrega al cliente (TCP) la respuesta final
         void deliverToClient(const MspFrame &resp);
 
         // Estado LOCKSTEP
-        std::mutex mtx_;
+        SemaphoreHandle_t mtx_ = nullptr;
         bool inFlight_ = false;
         uint8_t inflightCmd_ = 0;
-        std::chrono::steady_clock::time_point inflightSince_{};
+        TickType_t inflightSince_ = 0;
 
         // Dependencias
         LocalCtrlHandler *ctrl_ = nullptr;
@@ -58,8 +60,8 @@ namespace fcbridge::msp
         net::TcpMspEndpoint *tcp_ = nullptr;
 
         // Timeouts
-        std::chrono::milliseconds fcTimeout_{200};
-        std::chrono::milliseconds localTimeout_{50};
+        TickType_t fcTimeoutTicks_ = pdMS_TO_TICKS(200);
+        TickType_t localTimeoutTicks_ = pdMS_TO_TICKS(50);
     };
 
 } // namespace fcbridge::msp

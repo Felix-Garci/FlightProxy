@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
-#include <mutex>
-#include <chrono>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#include "utils/MutexGuard.hpp"
 
 namespace fcbridge::state
 {
@@ -9,6 +10,8 @@ namespace fcbridge::state
     class StateModel
     {
     public:
+        StateModel();
+        ~StateModel();
         // Getters
         bool udpEnabled() const;
         uint16_t udpTimeoutMs() const; // frescura RC por UDP
@@ -20,7 +23,7 @@ namespace fcbridge::state
         void setIbusPeriodMs(uint16_t ms);
 
     private:
-        mutable std::mutex mtx_;
+        mutable SemaphoreHandle_t mtx_ = nullptr;
         bool udpEnabled_ = true;
         uint16_t udpTimeoutMs_ = 100; // ej. 100 ms
         uint16_t ibusPeriodMs_ = 7;   // ej. ~140 Hz
