@@ -1,8 +1,7 @@
 #pragma once
 #include <cstdint>
-#include <thread>
-#include <atomic>
-#include <chrono>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "rc/RcTypes.hpp"
 
 namespace fcbridge::rc
@@ -38,12 +37,14 @@ namespace fcbridge::ibus
 
     private:
         void runLoop(); // periodicidad fija (no comparte core con Wi-Fi)
+        static void taskTrampoline(void *arg);
 
         rc::RcChannels *rc_ = nullptr;
         state::StateModel *state_ = nullptr;
         UartPort *uart_ = nullptr;
 
-        std::atomic<bool> running_{false};
+        volatile bool running_ = false;
+        TaskHandle_t task_ = nullptr;
     };
 
 } // namespace fcbridge::ibus
