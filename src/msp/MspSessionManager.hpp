@@ -5,6 +5,9 @@
 #include "freertos/semphr.h"
 #include <optional>
 #include "msp/MspFrame.hpp"
+#include "msp/LocalCtrlHandler.hpp"
+#include "msp/MspPassthroughProxy.hpp"
+#include "net/TcpMspEndpoint.hpp"
 #include "utils/MutexGuard.hpp"
 
 namespace fcbridge::msp
@@ -51,7 +54,7 @@ namespace fcbridge::msp
         // Estado LOCKSTEP
         SemaphoreHandle_t mtx_ = nullptr;
         bool inFlight_ = false;
-        uint8_t inflightCmd_ = 0;
+        uint16_t inflightCmd_ = 0;
         TickType_t inflightSince_ = 0;
 
         // Dependencias

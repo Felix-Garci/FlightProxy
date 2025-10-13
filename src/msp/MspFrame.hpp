@@ -26,11 +26,11 @@ namespace fcbridge::msp
     struct MspFrame
     {
         uint8_t flag = 0;             // Flag del mensaje
-        uint8_t cmd = 0;              // ID MSP
+        uint16_t cmd = 0;             // ID MSP
         bool isRequest = true;        // true = solicitud, false = respuesta
         std::vector<uint8_t> payload; // datos crudos
         uint8_t result = 0;           // código de resultado (solo en respuestas)
-        uint16_t crc = 0;             // CRC8 del frame
+        uint8_t crc = 0;              // CRC8 del frame
     };
 
     // Utilidades de codificación/decodificación
@@ -38,6 +38,6 @@ namespace fcbridge::msp
     void encode(const MspFrame &in, std::vector<uint8_t> &out);
 
     // Helpers comunes
-    inline bool isCtrl(uint8_t cmd) { return cmd >= 0xE0; } // Tenemos que decidir un threshold
+    inline bool isCtrl(uint8_t cmd) { return cmd >= 0xFFFF / 2; } // Tenemos que decidir un threshold
 
 } // namespace fcbridge::msp

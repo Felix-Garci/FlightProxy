@@ -6,48 +6,63 @@ using fcbridge::utils::MutexGuard;
 namespace fcbridge::msp
 {
 
-MspSessionManager::MspSessionManager()
-{
-    mtx_ = xSemaphoreCreateMutex();
-}
-
-MspSessionManager::~MspSessionManager()
-{
-    if (mtx_)
+    MspSessionManager::MspSessionManager()
     {
-        vSemaphoreDelete(mtx_);
-        mtx_ = nullptr;
+        mtx_ = xSemaphoreCreateMutex();
     }
-}
 
-void MspSessionManager::setCtrlHandler(LocalCtrlHandler *h) { ctrl_ = h; }
-void MspSessionManager::setProxy(MspPassthroughProxy *p) { proxy_ = p; }
-void MspSessionManager::setTcpEndpoint(net::TcpMspEndpoint *ep) { tcp_ = ep; }
+    MspSessionManager::~MspSessionManager()
+    {
+        if (mtx_)
+        {
+            vSemaphoreDelete(mtx_);
+            mtx_ = nullptr;
+        }
+    }
 
-bool MspSessionManager::submit(const MspFrame &req)
-{
-    // Placeholder lock to illustrate FreeRTOS mutex usage
-    MutexGuard lock(mtx_);
-    (void)req;
-    return false;
-}
+    void MspSessionManager::setCtrlHandler(LocalCtrlHandler *h) { ctrl_ = h; }
+    void MspSessionManager::setProxy(MspPassthroughProxy *p) { proxy_ = p; }
+    void MspSessionManager::setTcpEndpoint(net::TcpMspEndpoint *ep) { tcp_ = ep; }
 
-void MspSessionManager::onFcResponse(const MspFrame &resp)
-{
-    (void)resp;
-}
+    bool MspSessionManager::submit(const MspFrame &req)
+    {
+        MutexGuard lock(mtx_);
+        if (!inFlight_)
+        {
+            inFlight_ = true;
+            inflightCmd_ = req.cmd & 0xFFFF;
+            inflightSince_ = xTaskGetTickCount();
 
-void MspSessionManager::setTimeouts(uint32_t fcTimeoutMs,
-                                    uint32_t localTimeoutMs)
-{
-    MutexGuard lock(mtx_);
-    fcTimeoutTicks_ = pdMS_TO_TICKS(fcTimeoutMs);
-    localTimeoutTicks_ = pdMS_TO_TICKS(localTimeoutMs);
-}
+            if (fcbridge::msp::isCtrl(inflightCmd_))
+            {
+                ctrl_->handle(req);
+                return true;
+            }
+            else
+            {
+                proxy_->sendToFc(req);
+                return true;
+            }
+        }
+        return false;
+    }
 
-void MspSessionManager::deliverToClient(const MspFrame &resp)
-{
-    (void)resp;
-}
+    void MspSessionManager::onFcResponse(const MspFrame &resp)
+    {
+        (void)resp;
+    }
+
+    void MspSessionManager::setTimeouts(uint32_t fcTimeoutMs,
+                                        uint32_t localTimeoutMs)
+    {
+        MutexGuard lock(mtx_);
+        fcTimeoutTicks_ = pdMS_TO_TICKS(fcTimeoutMs);
+        localTimeoutTicks_ = pdMS_TO_TICKS(localTimeoutMs);
+    }
+
+    void MspSessionManager::deliverToClient(const MspFrame &resp)
+    {
+        (void)resp;
+    }
 
 } // namespace fcbridge::msp
