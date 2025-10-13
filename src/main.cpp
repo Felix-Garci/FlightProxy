@@ -5,11 +5,15 @@
 #include "rc/RcChannels.hpp"
 #include "state/StateModel.hpp"
 #include "ibus/IbusTransmitter.hpp"
+#include "utils/log.hpp"
 
 using namespace fcbridge;
 
 int app_main(void)
 {
+    // Logs
+    utils::Log::init("transponder");
+
     // Instancias
     rc::RcChannels rc;
     state::StateModel st;
