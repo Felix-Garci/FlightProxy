@@ -20,7 +20,8 @@ namespace fcbridge::msp
         Ok,
         Invalid,
         CrcError,
-        Incomplete
+        Incomplete,
+        Error
     };
 
     struct MspFrame
@@ -35,6 +36,7 @@ namespace fcbridge::msp
     // Utilidades de codificación/decodificación
     ParseStatus decode(std::span<const uint8_t> stream, MspFrame &out);
     void encode(const MspFrame &in, std::vector<uint8_t> &out);
+    inline uint8_t CRC8_DVB_S2(const std::span<const uint8_t> data);
 
     // Helpers comunes
     inline bool isCtrl(uint8_t cmd) { return cmd >= 0xFFFF / 2; } // Tenemos que decidir un threshold
