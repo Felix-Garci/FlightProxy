@@ -47,7 +47,7 @@ fcbridge::msp::ParseStatus fcbridge::msp::decode(std::span<const uint8_t> stream
         out.payload[i] = stream[pos++];
     }
     uint8_t received_crc = stream[pos];
-    uint8_t computed_crc = CRC8_DVB_S2(stream.subspan(3, total_length - 1));
+    uint8_t computed_crc = CRC8_DVB_S2(stream.subspan(3, total_length - 1 - 3));
 
     if (received_crc != computed_crc)
     {
