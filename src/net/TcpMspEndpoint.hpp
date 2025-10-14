@@ -5,6 +5,7 @@
 #include <span>
 #include <string_view>
 #include "msp/MspFrame.hpp"
+#include "msp/MspSessionManager.hpp"
 
 namespace fcbridge::msp
 {

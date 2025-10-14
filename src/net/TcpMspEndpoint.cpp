@@ -16,13 +16,16 @@ void fcbridge::net::TcpMspEndpoint::stop()
 }
 bool fcbridge::net::TcpMspEndpoint::sendToClient(const msp::MspFrame &resp)
 {
-    // placeholder
+    fcbridge::msp::encode(resp, rxBuf_);
+    sendRaw_(rxBuf_);
     return true;
 }
 
 void fcbridge::net::TcpMspEndpoint::onTcpBytes(std::span<const uint8_t> bytes)
 {
-    // placeholder
+    fcbridge::msp::MspFrame frame;
+    fcbridge::msp::decode(bytes, frame);
+    session_->submit(frame);
 }
 void fcbridge::net::TcpMspEndpoint::setLowLevelSender(SendFunc f)
 {
