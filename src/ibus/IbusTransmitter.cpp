@@ -58,7 +58,7 @@ void fcbridge::ibus::IbusTransmitter::runLoop()
     while (running_)
     {
         const uint16_t period_ms = state_->ibusPeriodMs();
-        const uint16_t udp_timeout_ms = state_->udpTimeoutMs();
+        // const uint16_t udp_timeout_ms = state_->udpTimeoutMs();
 
         // Select current or defaults based on freshness
         auto src = rc_->snapshot().current;
