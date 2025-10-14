@@ -2,6 +2,7 @@
 #include "hal/uart.hpp"
 #include "hal/wifi.hpp"
 #include "hal/tcp.hpp"
+#include "hal/udp.hpp"
 #include "utils/log.hpp"
 
 extern "C" void app_main(void)
@@ -50,6 +51,20 @@ extern "C" void app_main(void)
                   });
 
     srv.start(4096, tskIDLE_PRIORITY + 2);
+
+    SimpleUDPReceiver udp;
+
+    udp.begin(5005, [&](const uint8_t *data, size_t len, const sockaddr_in &from)
+              {
+        char ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(from.sin_addr), ip, sizeof(ip));
+        char line[256];
+        int n = snprintf(line, sizeof(line),
+                         "UDP desde %s:%d -> %.*s\r\n",
+                         ip, (int)ntohs(from.sin_port), (int)len, (const char *)data);
+
+        if (n > 0)
+            uart.write(line); });
 
     // Tu app puede seguir haciendo otras cosas...
     for (;;)
