@@ -5,11 +5,18 @@
 #include "rc/RcChannels.hpp"
 #include "state/StateModel.hpp"
 #include "ibus/IbusTransmitter.hpp"
-#include "utils/log.hpp"
+#include "utils/Log.hpp"
+
+#include "hal/wifi.hpp"
+#include "hal/tcp.hpp"
+
+#include <cstdint>
+#include <cstddef>
+#include <span>
 
 using namespace fcbridge;
 
-int app_main(void)
+extern "C" void app_main(void)
 {
     // Logs
     utils::Log::init("transponder");
@@ -34,5 +41,23 @@ int app_main(void)
 
     // start() / UART/TCP setLowLevel... aquí
 
-    return 0;
+    // WIFI
+    WiFiSTA wifi;
+    if (wifi.begin("Sup", "rrrrrrrr", 15000, 112) != ESP_OK)
+        return;
+
+    // TCP para recivir mensajes msp
+    SimpleTCPServer srv;
+    if (srv.begin(12345) != ESP_OK)
+        return;
+
+    srv.onReceive([&](int, const uint8_t *data, std::size_t len)
+                  { tcp.onTcpBytes(std::span<const uint8_t>(data, len)); });
+
+    tcp.setLowLevelSender([&](std::span<const uint8_t> bytes)
+                          { return srv.write(bytes.data(), bytes.size()) == bytes.size(); });
+
+    srv.start(4096, tskIDLE_PRIORITY + 2);
+
+    return;
 }
