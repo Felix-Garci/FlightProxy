@@ -15,21 +15,21 @@ namespace fcbridge::utils
         }
 
         template <typename... Args>
-        static void info(const char *format, Args... args)
+        static void info(const char *format, Args &&...args)
         {
-            ESP_LOGI(tag_.data(), format, args...);
+            esp_log_write(ESP_LOG_INFO, tag_.data(), format, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
-        static void warn(const char *format, Args... args)
+        static void warn(const char *format, Args &&...args)
         {
-            ESP_LOGW(tag_.data(), format, args...);
+            esp_log_write(ESP_LOG_WARN, tag_.data(), format, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
-        static void error(const char *format, Args... args)
+        static void error(const char *format, Args &&...args)
         {
-            ESP_LOGE(tag_.data(), format, args...);
+            esp_log_write(ESP_LOG_ERROR, tag_.data(), format, std::forward<Args>(args)...);
         }
 
     private:
