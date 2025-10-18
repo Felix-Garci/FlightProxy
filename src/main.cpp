@@ -39,25 +39,31 @@ extern "C" void app_main(void)
     ibus.setChannelsSource(&rc);
     ibus.setStateModel(&st);
 
-    // start() / UART/TCP setLowLevel... aquí
-
     // WIFI
     WiFiSTA wifi;
     if (wifi.begin("Sup", "rrrrrrrr", 15000, 112) != ESP_OK)
-        return;
+        utils::Log::error("Wi-Fi connection failed");
 
     // TCP para recivir mensajes msp
     SimpleTCPServer srv;
     if (srv.begin(12345) != ESP_OK)
-        return;
+        utils::Log::error("TCP server start failed");
 
+    // Este error es por el vscode, en vd no esta mal
     srv.onReceive([&](int, const uint8_t *data, std::size_t len)
-                  { tcp.onTcpBytes(std::span<const uint8_t>(data, len)); });
+                  { utils::Log::info("TCP RX %zu bytes", len);
+                    tcp.onTcpBytes(std::span<const uint8_t>(data, len)); });
 
     tcp.setLowLevelSender([&](std::span<const uint8_t> bytes)
-                          { return srv.write(bytes.data(), bytes.size()) == bytes.size(); });
+                          { utils::Log::info("TCP TX %zu bytes", bytes.size());
+                            return srv.write(bytes.data(), bytes.size()) == bytes.size(); });
 
     srv.start(4096, tskIDLE_PRIORITY + 2);
+
+    utils::Log::info("System initialized");
+
+    for (;;)
+        vTaskDelay(pdMS_TO_TICKS(1000));
 
     return;
 }

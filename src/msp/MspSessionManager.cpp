@@ -1,5 +1,6 @@
 #include "MspSessionManager.hpp"
 #include "utils/MutexGuard.hpp"
+#include "utils/Log.hpp"
 
 using fcbridge::utils::MutexGuard;
 
@@ -35,11 +36,14 @@ namespace fcbridge::msp
 
             if (fcbridge::msp::isCtrl(inflightCmd_))
             {
-                ctrl_->handle(req);
+                utils::Log::info("Handling local MSP cmd=%u", req.cmd);
+                msp::MspFrame frame = ctrl_->handle(req);
+                deliverToClient(frame);
                 return true;
             }
             else
             {
+                utils::Log::info("Forwarding MSP cmd=%u to FC", req.cmd);
                 proxy_->sendToFc(req);
                 return true;
             }
@@ -49,7 +53,14 @@ namespace fcbridge::msp
 
     void MspSessionManager::onFcResponse(const MspFrame &resp)
     {
-        (void)resp;
+        deliverToClient(resp);
+        inFlight_ = false;
+    }
+
+    void MspSessionManager::deliverToClient(const MspFrame &resp)
+    {
+        tcp_->sendToClient(resp);
+        inFlight_ = false;
     }
 
     void MspSessionManager::setTimeouts(uint32_t fcTimeoutMs,
@@ -59,10 +70,4 @@ namespace fcbridge::msp
         fcTimeoutTicks_ = pdMS_TO_TICKS(fcTimeoutMs);
         localTimeoutTicks_ = pdMS_TO_TICKS(localTimeoutMs);
     }
-
-    void MspSessionManager::deliverToClient(const MspFrame &resp)
-    {
-        (void)resp;
-    }
-
 } // namespace fcbridge::msp

@@ -25,6 +25,7 @@ void fcbridge::net::TcpMspEndpoint::onTcpBytes(std::span<const uint8_t> bytes)
 {
     fcbridge::msp::MspFrame frame;
     fcbridge::msp::decode(bytes, frame);
+    utils::Log::info("TCP RX MSP cmd=%u len=%zu", frame.cmd, frame.payload.size());
     session_->submit(frame);
 }
 void fcbridge::net::TcpMspEndpoint::setLowLevelSender(SendFunc f)

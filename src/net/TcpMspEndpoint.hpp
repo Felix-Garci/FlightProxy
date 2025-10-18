@@ -6,6 +6,7 @@
 #include <string_view>
 #include "msp/MspFrame.hpp"
 #include "msp/MspSessionManager.hpp"
+#include "utils/Log.hpp"
 
 namespace fcbridge::msp
 {

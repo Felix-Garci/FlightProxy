@@ -1,4 +1,5 @@
 #include "LocalCtrlHandler.hpp"
+#include "utils/Log.hpp"
 // placeholder
 
 void fcbridge::msp::LocalCtrlHandler::setRc(rc::RcChannels *rc)
@@ -32,6 +33,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
         }
         else
         {
+            utils::Log::info("Setting RC defaults via MSP");
             rc::RcSample sample;
 
             for (size_t i = 0; i < rc::RC_MAX_CHANNELS; ++i)
@@ -53,6 +55,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
         }
         else
         {
+            utils::Log::info("Setting RC values via MSP");
             rc::RcSample sample;
             for (size_t i = 0; i < rc::RC_MAX_CHANNELS; ++i)
             {
@@ -71,6 +74,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
         }
         else
         {
+            utils::Log::info("Getting RC status via MSP");
             return getRcStatus();
         }
 
@@ -81,6 +85,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
         }
         else
         {
+            utils::Log::info("Setting UDP enabled via MSP");
             bool on = ctrlReq.payload[0] != 0;
             setUdpEnabled(on);
             return makeAck(ctrlReq.cmd);
@@ -93,6 +98,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
         }
         else
         {
+            utils::Log::info("Setting UDP timeout ms via MSP");
             uint16_t ms = static_cast<uint16_t>(ctrlReq.payload[0]) | (static_cast<uint16_t>(ctrlReq.payload[1]) << 8);
             setTimeoutMs(ms);
             return makeAck(ctrlReq.cmd);
@@ -104,6 +110,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
         }
         else
         {
+            utils::Log::info("Setting iBUS period ms via MSP");
             uint16_t ms = static_cast<uint16_t>(ctrlReq.payload[0]) | (static_cast<uint16_t>(ctrlReq.payload[1]) << 8);
             setIbusPeriodMs(ms);
             return makeAck(ctrlReq.cmd);

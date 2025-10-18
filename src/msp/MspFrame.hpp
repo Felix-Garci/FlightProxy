@@ -39,6 +39,6 @@ namespace fcbridge::msp
     inline uint8_t CRC8_DVB_S2(const std::span<const uint8_t> data);
 
     // Helpers comunes
-    inline bool isCtrl(uint8_t cmd) { return cmd >= 0xFFFF / 2; } // Tenemos que decidir un threshold
+    inline bool isCtrl(uint8_t cmd) { return cmd <= (0xFFFF / 2); } // Tenemos que decidir un threshold
 
 } // namespace fcbridge::msp

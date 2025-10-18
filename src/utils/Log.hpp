@@ -2,6 +2,7 @@
 #pragma once
 #include <esp_log.h>
 #include <string_view>
+#include <cstdio>
 
 namespace fcbridge::utils
 {
@@ -11,25 +12,36 @@ namespace fcbridge::utils
         static void init(std::string_view tag)
         {
             tag_ = tag;
-            ESP_LOGI(tag_.data(), "Log initialized with tag: %s", tag_.data());
+            // Asegura nivel global visible y deja rastro inicial
+            esp_log_level_set("*", ESP_LOG_INFO);
+            esp_log_write(ESP_LOG_INFO, tag_.data(), "Log initialized with tag: %s\n", tag_.data());
         }
 
         template <typename... Args>
         static void info(const char *format, Args &&...args)
         {
-            esp_log_write(ESP_LOG_INFO, tag_.data(), format, std::forward<Args>(args)...);
+            char buf[256];
+            int n = std::snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+            (void)n; // ignorar truncado
+            esp_log_write(ESP_LOG_INFO, tag_.data(), "%s\n", buf);
         }
 
         template <typename... Args>
         static void warn(const char *format, Args &&...args)
         {
-            esp_log_write(ESP_LOG_WARN, tag_.data(), format, std::forward<Args>(args)...);
+            char buf[256];
+            int n = std::snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+            (void)n;
+            esp_log_write(ESP_LOG_WARN, tag_.data(), "%s\n", buf);
         }
 
         template <typename... Args>
         static void error(const char *format, Args &&...args)
         {
-            esp_log_write(ESP_LOG_ERROR, tag_.data(), format, std::forward<Args>(args)...);
+            char buf[256];
+            int n = std::snprintf(buf, sizeof(buf), format, std::forward<Args>(args)...);
+            (void)n;
+            esp_log_write(ESP_LOG_ERROR, tag_.data(), "%s\n", buf);
         }
 
     private:
