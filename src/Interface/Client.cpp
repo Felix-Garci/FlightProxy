@@ -1,0 +1,39 @@
+#pragma once
+#include "Interface.hpp"
+#include "hal/tcp.hpp"
+
+namespace tp::I
+{
+    class Client : public Interface
+    {
+    public:
+        explicit Client(SimpleTCPServer &s) : srv_(s)
+        {
+            srv_.onReceive([this](int, const std::uint8_t *data, std::size_t len)
+                           { recive(data, len); });
+        }
+
+        int write(const tp::MSG::Frame &frame)
+        {
+            std::vector<uint8_t> out;
+            tp::MSG::encode(frame, out);
+            return srv_.write(out.data(), out.size());
+        }
+
+        void recive(const std::uint8_t *data, std::size_t len)
+        {
+            tp::MSG::Frame frame;
+            tp::MSG::decode(std::vector<std::uint8_t>(data, data + len), frame);
+            cb_(frame);
+        }
+
+        void setCallBack(CallBack c)
+        {
+            cb_ = c;
+        }
+
+    private:
+        SimpleTCPServer &srv_;
+        CallBack cb_;
+    };
+}
