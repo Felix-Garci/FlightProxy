@@ -1,4 +1,3 @@
-#pragma once
 #include "Structure.hpp"
 
 namespace tp::MSG
