@@ -24,10 +24,9 @@ public:
      * @param port Puerto UDP local
      * @param cb   Callback para manejar los datos recibidos
      */
-    esp_err_t begin(uint16_t port, RxCallback cb)
+    esp_err_t begin(uint16_t port)
     {
         port_ = port;
-        cb_ = cb;
 
         sock_ = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (sock_ < 0)
@@ -76,6 +75,8 @@ public:
             sock_ = -1;
         }
     }
+
+    void onReceive(RxCallback c) { cb_ = c; }
 
 private:
     static constexpr const char *TAG = "SimpleUDPReceiver";
