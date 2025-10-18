@@ -30,10 +30,11 @@ public:
             .parity = UART_PARITY_DISABLE,
             .stop_bits = UART_STOP_BITS_1,
             .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .rx_flow_ctrl_thresh = 0,
 #if SOC_UART_SUPPORT_REF_TICK
-            .source_clk = UART_SCLK_DEFAULT
+            .source_clk = UART_SCLK_DEFAULT,
 #endif
-        };
+            .flags = 0};
 
         ESP_RETURN_ON_ERROR(uart_param_config(port_, &cfg), TAG, "param");
         ESP_RETURN_ON_ERROR(uart_set_pin(port_, tx, rx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE),

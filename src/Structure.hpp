@@ -27,7 +27,7 @@ namespace tp
             bool isRequest = true;        // Indica si es peticion o es contestacion
         };
 
-        bool decode(const std::vector<uint8_t> &in, Frame &out);
+        bool decode(const std::vector<uint8_t> &stream, Frame &out);
         void encode(const Frame &in, std::vector<uint8_t> &out);
         uint8_t CRC8_DVB_S2(const std::span<const uint8_t> data);
 
