@@ -12,6 +12,10 @@ namespace tp
         class SimpleUDPReceiver;
         class WiFiSTA;
     }
+    namespace UTILS
+    {
+        class Log;
+    }
     namespace MSG
     {
         struct Frame

@@ -4,7 +4,7 @@
 #include <string_view>
 #include <cstdio>
 
-namespace fcbridge::utils
+namespace tp::UTILS
 {
     class Log
     {
