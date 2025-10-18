@@ -3,6 +3,7 @@
 #include "msp/MspPassthroughProxy.hpp"
 #include "msp/LocalCtrlHandler.hpp"
 #include "rc/RcChannels.hpp"
+#include "rc/RcDefaults.hpp"
 #include "state/StateModel.hpp"
 #include "ibus/IbusTransmitter.hpp"
 #include "utils/Log.hpp"
@@ -29,6 +30,9 @@ extern "C" void app_main(void)
     msp::MspPassthroughProxy proxy(&session);
     net::TcpMspEndpoint tcp(&session);
     ibus::IbusTransmitter ibus;
+
+    // Inicialización RC por defecto
+    rc.init(rc::defaults::stoped());
 
     // Wiring
     ctrl.setRc(&rc);

@@ -13,15 +13,18 @@ namespace fcbridge::rc
 
     struct RcSample
     {
-        std::array<uint16_t, RC_MAX_CHANNELS> ch{}; // unidades iBUS/PWM (1000–2000 típico)
-        uint32_t flags = 0;                         // bits de origen/estado
+        std::array<uint16_t, RC_MAX_CHANNELS> ch{}; // unidades iBUS/PWM (1000–2000 típico)ç
+
+        // flag = 0 : defaults
+        // flag = 1 : from UDP
+        // flag = 2 : from Local (override)
+        uint32_t flags = 0; // bits de origen/estado
     };
 
     struct RcSnapshot
     {
         RcSample current;
         RcSample defaults;
-        bool fresh = false;
         millis age{0};
     };
 
