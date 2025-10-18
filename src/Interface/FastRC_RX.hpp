@@ -7,7 +7,7 @@ namespace tp::I
     class FastRC_RX : public Interface
     {
     public:
-        explicit FastRC_RX(SimpleUDPReceiver &u) : u_(u)
+        explicit FastRC_RX(tp::HAL::SimpleUDPReceiver &u) : u_(u)
         {
             u_.onReceive([this](const std::uint8_t *data, std::size_t len, const sockaddr_in)
                          { recive(data, len); });
@@ -32,7 +32,7 @@ namespace tp::I
         }
 
     private:
-        SimpleUDPReceiver &u_;
+        tp::HAL::SimpleUDPReceiver &u_;
         CallBack cb_;
     };
 }

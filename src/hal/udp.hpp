@@ -1,5 +1,6 @@
 // simple_udp_receiver.h
 #pragma once
+#include "Structure.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -10,7 +11,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-class SimpleUDPReceiver
+class tp::HAL::SimpleUDPReceiver
 {
 public:
     using RxCallback = std::function<void(const uint8_t *data, size_t len,

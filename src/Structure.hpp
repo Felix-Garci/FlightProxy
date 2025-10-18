@@ -5,6 +5,13 @@
 
 namespace tp
 {
+    namespace HAL
+    {
+        class SimpleTCPServer;
+        class SimpleUARTEvt;
+        class SimpleUDPReceiver;
+        class WiFiSTA;
+    }
     namespace MSG
     {
         struct Frame

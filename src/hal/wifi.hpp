@@ -1,5 +1,6 @@
 // wifi_sta.h
 #pragma once
+#include "Structure.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "esp_wifi.h"
@@ -12,7 +13,7 @@
 #include <cstring>
 #include <string>
 
-class WiFiSTA
+class tp::HAL::WiFiSTA
 {
 public:
     WiFiSTA() : eg_(nullptr), got_ip_(false) {}

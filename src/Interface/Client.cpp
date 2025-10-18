@@ -7,7 +7,7 @@ namespace tp::I
     class Client : public Interface
     {
     public:
-        explicit Client(SimpleTCPServer &s) : srv_(s)
+        explicit Client(tp::HAL::SimpleTCPServer &s) : srv_(s)
         {
             srv_.onReceive([this](int, const std::uint8_t *data, std::size_t len)
                            { recive(data, len); });
@@ -33,7 +33,7 @@ namespace tp::I
         }
 
     private:
-        SimpleTCPServer &srv_;
+        tp::HAL::SimpleTCPServer &srv_;
         CallBack cb_;
     };
 }

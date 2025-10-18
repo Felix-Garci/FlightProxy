@@ -7,7 +7,7 @@ namespace tp::I
     class FC : public Interface
     {
     public:
-        explicit FC(SimpleUARTEvt &u) : u_(u)
+        explicit FC(tp::HAL::SimpleUARTEvt &u) : u_(u)
         {
             u_.onReceive([this](const std::uint8_t *data, std::size_t len)
                          { recive(data, len); });
@@ -33,7 +33,7 @@ namespace tp::I
         }
 
     private:
-        SimpleUARTEvt &u_;
+        tp::HAL::SimpleUARTEvt &u_;
         CallBack cb_;
     };
 }

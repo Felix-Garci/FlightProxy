@@ -1,5 +1,6 @@
 // simple_uart_evt.h
 #pragma once
+#include "Structure.hpp"
 #include "esp_check.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
@@ -9,7 +10,7 @@
 #include <functional>
 #include <cstring>
 
-class SimpleUARTEvt
+class tp::HAL::SimpleUARTEvt
 {
 public:
     using RxCallback = std::function<void(const uint8_t *, size_t)>;

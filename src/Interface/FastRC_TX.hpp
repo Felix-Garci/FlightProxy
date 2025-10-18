@@ -7,7 +7,7 @@ namespace tp::I
     class FastRC_TX : public Interface
     {
     public:
-        explicit FastRC_TX(SimpleUARTEvt &u) : u_(u)
+        explicit FastRC_TX(tp::HAL::SimpleUARTEvt &u) : u_(u)
         {
             u_.onReceive([this](const std::uint8_t *data, std::size_t len)
                          { recive(data, len); });
@@ -33,7 +33,7 @@ namespace tp::I
         }
 
     private:
-        SimpleUARTEvt &u_;
+        tp::HAL::SimpleUARTEvt &u_;
         CallBack cb_;
     };
 }

@@ -1,5 +1,7 @@
 // simple_tcp_server.h
 #pragma once
+#include "Structure.hpp"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -13,7 +15,7 @@
 #include <unistd.h> // close()
 #include <lwip/inet.h>
 
-class SimpleTCPServer
+class tp::HAL::SimpleTCPServer
 {
 public:
     using RxCallback = std::function<void(int sock, const uint8_t *data, size_t len)>; // se llama cuando llegan datos
