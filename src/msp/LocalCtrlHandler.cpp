@@ -1,5 +1,6 @@
 #include "LocalCtrlHandler.hpp"
 #include "utils/Log.hpp"
+#include "rc/RcChannels.hpp"
 // placeholder
 
 void fcbridge::msp::LocalCtrlHandler::setRc(rc::RcChannels *rc)
@@ -27,23 +28,14 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
     switch (ctrlReq.cmd)
     {
     case MspCodes::MSP_SET_RC_DEFAULT:
-        if (ctrlReq.payload.size() != sizeof(rc::RcSample::ch))
+        if (!ctrlReq.payload.empty())
         {
             return makeError(ctrlReq.cmd, 3); // Error: tamaño inválido
         }
         else
         {
             utils::Log::info("Setting RC defaults via MSP");
-            rc::RcSample sample;
-
-            for (size_t i = 0; i < rc::RC_MAX_CHANNELS; ++i)
-            {
-                size_t off = i * 2;
-                uint16_t v = static_cast<uint16_t>(ctrlReq.payload[off]) | (static_cast<uint16_t>(ctrlReq.payload[off + 1]) << 8);
-                sample.ch[i] = v;
-            }
-
-            rc_->setDefault(sample);
+            rc_->applyDefaults();
 
             return makeAck(ctrlReq.cmd);
         }
@@ -122,7 +114,7 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::handle(const MspFrame &
 
 void fcbridge::msp::LocalCtrlHandler::setRcDefault(const rc::RcSample &s)
 {
-    rc_->setDefault(s);
+    rc_->applyDefaults();
 }
 
 void fcbridge::msp::LocalCtrlHandler::setRcValue(const rc::RcSample &s)
@@ -133,6 +125,7 @@ void fcbridge::msp::LocalCtrlHandler::setRcValue(const rc::RcSample &s)
 fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::getRcStatus()
 {
     fcbridge::rc::RcSnapshot snap = rc_->snapshot();
+    utils::Log::info("RC status: flag= %u age=%u ms", snap.current.flags, snap.age);
     return makeStatusPayload(snap);
 }
 
@@ -176,12 +169,11 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::makeStatusPayload(const
     frame.result = 0;
 
     const size_t N = rc::RC_MAX_CHANNELS;
-    const size_t offCurrent = 0;        // 0 .. 2N-1
-    const size_t offDefaults = 2 * N;   // 2N .. 4N-1
-    const size_t offFresh = 4 * N;      // 4N
-    const size_t offAge = offFresh + 1; // 4N+1 .. 4N+4
+    const size_t offCurrent = 0;      // 0 .. 2N-1
+    const size_t offDefaults = 2 * N; // 2N .. 4N-1
+    const size_t offAge = 4 * N;      // 4N
 
-    const size_t payloadSize = 4 * N + 1 + 4;
+    const size_t payloadSize = 4 * N + 4;
     frame.payload.resize(payloadSize);
 
     // current[0..N-1] (uint16 LE)
@@ -199,10 +191,6 @@ fcbridge::msp::MspFrame fcbridge::msp::LocalCtrlHandler::makeStatusPayload(const
         frame.payload[offDefaults + i * 2 + 0] = static_cast<uint8_t>(v & 0xFF);
         frame.payload[offDefaults + i * 2 + 1] = static_cast<uint8_t>(v >> 8);
     }
-
-    // fresh (bool)
-    frame.payload[offFresh] = snap.fresh ? 1 : 0;
-
     // age (uint32 LE)
     const uint32_t age = snap.age;
     frame.payload[offAge + 0] = static_cast<uint8_t>((age >> 0) & 0xFF);
