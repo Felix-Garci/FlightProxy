@@ -24,6 +24,7 @@ namespace tp
             uint16_t cmd = 0;             // ID MSP
             std::vector<uint8_t> payload; // datos crudos
             uint8_t result = 0;           // código de resultado (solo en respuestas)
+            bool isRequest = true;        // Indica si es peticion o es contestacion
         };
 
         bool decode(const std::vector<uint8_t> &in, Frame &out);
