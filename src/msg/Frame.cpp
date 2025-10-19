@@ -118,7 +118,7 @@ namespace tp::MSG
         if (stream[1] != IBUS_TYPE_RC)      return false;
 
         // Verificar checksum
-        const uint16_t crc_calc = CRC_ibus_16(std::span<const uint8_t>(stream.data(), stream.size()));
+        const uint16_t crc_calc = CRC_ibus(std::span<const uint8_t>(stream.data(), stream.size()));
         const uint16_t crc_recv = static_cast<uint16_t>(stream[IBUS_FRAME_LEN - 2] |
                                                        (static_cast<uint16_t>(stream[IBUS_FRAME_LEN - 1]) << 8));
         if (crc_calc != crc_recv) return false;
@@ -158,7 +158,7 @@ namespace tp::MSG
         }
 
         // Calcular y escribir checksum (LE)
-        const uint16_t crc = CRC_ibus_16(std::span<const uint8_t>(out.data(), out.size()));
+        const uint16_t crc = CRC_ibus(std::span<const uint8_t>(out.data(), out.size()));
         out[IBUS_FRAME_LEN - 2] = static_cast<uint8_t>(crc & 0xFF);
         out[IBUS_FRAME_LEN - 1] = static_cast<uint8_t>((crc >> 8) & 0xFF);
     }
