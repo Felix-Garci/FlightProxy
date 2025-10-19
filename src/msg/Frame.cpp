@@ -2,7 +2,7 @@
 
 namespace tp::MSG
 {
-
+    // raw -> Frame
     bool decode(const std::vector<uint8_t> &stream, Frame &out)
     {
         size_t pos = 0;
@@ -74,6 +74,7 @@ namespace tp::MSG
         return 1;
     }
 
+    // Frame -> raw
     void encode(const Frame &in, std::vector<uint8_t> &out)
     {
         out.clear();
@@ -108,4 +109,65 @@ namespace tp::MSG
         return crc;
     }
 
+    // raw -> Frame
+    bool decode_ibus(const std::vector<uint8_t> &stream, Frame &out)
+    {
+        // Validaciones básicas
+        if (stream.size() < IBUS_FRAME_LEN) return false;
+        if (stream[0] != IBUS_FRAME_LEN)    return false;       
+        if (stream[1] != IBUS_TYPE_RC)      return false;
+
+        // Verificar checksum
+        const uint16_t crc_calc = CRC_ibus_16(std::span<const uint8_t>(stream.data(), stream.size()));
+        const uint16_t crc_recv = static_cast<uint16_t>(stream[IBUS_FRAME_LEN - 2] |
+                                                       (static_cast<uint16_t>(stream[IBUS_FRAME_LEN - 1]) << 8));
+        if (crc_calc != crc_recv) return false;
+
+        // Extraer payload de canales (bytes 2..29)
+        out.flag      = 0;                    
+        out.cmd       = 0;
+        out.result    = 0;
+        out.isRequest = true;
+
+        out.payload.resize(IBUS_PAYLOAD_LEN);
+        for (uint8_t i = 0; i < IBUS_PAYLOAD_LEN; ++i) {
+            out.payload[i] = stream[IBUS_HEADER_LEN + i];
+        }
+
+        return true;
+    }
+
+    // Frame -> raw
+    void encode_ibus(const Frame &in, std::vector<uint8_t> &out)
+    {
+        // Validar que sea el comando adecuado y payload de 28 bytes
+        if (in.cmd != 0 || in.payload.size() != IBUS_PAYLOAD_LEN) {
+            out.clear();
+            return;
+        }
+
+        out.resize(IBUS_FRAME_LEN);
+
+        // Cabecera
+        out[0] = IBUS_FRAME_LEN;
+        out[1] = IBUS_TYPE_RC;
+
+        // Copia del payload (28 bytes) SIN memcpy
+        for (uint8_t i = 0; i < IBUS_PAYLOAD_LEN; ++i) {
+            out[IBUS_HEADER_LEN + i] = in.payload[i];
+        }
+
+        // Calcular y escribir checksum (LE)
+        const uint16_t crc = CRC_ibus_16(std::span<const uint8_t>(out.data(), out.size()));
+        out[IBUS_FRAME_LEN - 2] = static_cast<uint8_t>(crc & 0xFF);
+        out[IBUS_FRAME_LEN - 1] = static_cast<uint8_t>((crc >> 8) & 0xFF);
+    }
+    
+    uint16_t CRC_ibus(const std::span<const uint8_t> data)
+    {
+        uint32_t sum = 0;
+        const size_t count = (data.size() >= IBUS_FRAME_LEN) ? (IBUS_FRAME_LEN - 2) : data.size();
+        for (size_t i = 0; i < count; ++i) sum += data[i];
+        return static_cast<uint16_t>(0xFFFFu - (sum & 0xFFFFu));
+    }
 }
