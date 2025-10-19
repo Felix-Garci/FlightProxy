@@ -33,10 +33,10 @@ namespace tp
         uint8_t CRC8_DVB_S2(const std::span<const uint8_t> data);
 
         // Just for in and out Ibus
-        constexpr uint8_t  IBUS_FRAME_LEN   = 32;
-        constexpr uint8_t  IBUS_HEADER_LEN  = 2;
-        constexpr uint8_t  IBUS_NUM_CHANNELS= 14;
-        constexpr uint8_t  IBUS_TYPE_RC     = 0x40;
+        constexpr uint8_t IBUS_FRAME_LEN = 32;
+        constexpr uint8_t IBUS_HEADER_LEN = 2;
+        constexpr uint8_t IBUS_NUM_CHANNELS = 14;
+        constexpr uint8_t IBUS_TYPE_RC = 0x40;
         constexpr uint16_t IBUS_PAYLOAD_LEN = IBUS_NUM_CHANNELS * 2;
 
         bool decode_ibus(const std::vector<uint8_t> &stream, Frame &out);
