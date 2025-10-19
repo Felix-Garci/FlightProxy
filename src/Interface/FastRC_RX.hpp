@@ -22,7 +22,7 @@ namespace tp::I
         void recive(const std::uint8_t *data, std::size_t len)
         {
             tp::MSG::Frame frame;
-            tp::MSG::decode(std::vector<std::uint8_t>(data, data + len), frame);
+            tp::MSG::decode_ibus(std::vector<std::uint8_t>(data, data + len), frame);
             if (cb_)
                 cb_(frame);
         }

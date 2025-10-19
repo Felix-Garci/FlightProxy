@@ -16,7 +16,7 @@ namespace tp::I
         int write(const tp::MSG::Frame &frame)
         {
             std::vector<uint8_t> out;
-            tp::MSG::encode(frame, out);
+            tp::MSG::encode_ibus(frame, out);
             return u_.write(out.data(), out.size());
         }
 
