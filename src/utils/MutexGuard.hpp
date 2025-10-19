@@ -3,7 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-namespace fcbridge::utils
+namespace tp::UTILS
 {
 
     class MutexGuard

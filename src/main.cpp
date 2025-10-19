@@ -15,6 +15,8 @@
 #include "Interface/FastRC_RX.hpp"
 #include "Interface/FastRC_TX.hpp"
 
+#include "Storage/Manager.hpp"
+
 extern "C" void app_main(void)
 {
     // Logs
@@ -68,6 +70,13 @@ extern "C" void app_main(void)
     }
     // INTERFAZ
     tp::I::FastRC_TX IFastSender(uartB);
+
+    // Storages
+    tp::STORAGE::FastRCStatusSample FastRCStatus_def{false, 7};
+    tp::STORAGE::Manager FastRCStatusManager{FastRCStatus_def};
+
+    tp::STORAGE::RCSample RCSample_def = {{1500, 1500, 1500, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0};
+    tp::STORAGE::Manager RCSampleManager{RCSample_def};
 
     // Arrancamos servidor TCP
     srv.start(4096, tskIDLE_PRIORITY + 2);

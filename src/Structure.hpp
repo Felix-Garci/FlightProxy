@@ -15,6 +15,7 @@ namespace tp
     namespace UTILS
     {
         class Log;
+        class MutexGuard;
     }
     namespace MSG
     {
@@ -64,10 +65,25 @@ namespace tp
         class Client;
         class FC;
     }
-    namespace CORE
+    namespace ADMIN
     {
-        class Administrator;
-        class Storage;
-        class Tasker;
+
     }
+    namespace STORAGE
+    {
+        struct RCSample
+        {
+            std::array<uint16_t, tp::MSG::IBUS_NUM_CHANNELS> ch{};
+            uint32_t age{0};
+        };
+
+        struct FastRCStatusSample
+        {
+            bool FastRC_RX_ON{false};
+            uint16_t IbusPeriodMS{7}; // 140 Hz
+        };
+        class Manager; // Manejador generico de structs ( gestiona seguridad de acceso concurrente )
+
+    }
+
 }
