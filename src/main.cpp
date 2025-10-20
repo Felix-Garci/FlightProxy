@@ -112,8 +112,7 @@ extern "C" void app_main(void)
     tp::T::Connector TfastTX;
     tp::UTILS::Timer fastRCTimer;
     fastRCTimer.setONTrigger([&]()
-                             {
-                                 
+                             {    
                             tp::STORAGE::RCSample rcSample = RCSampleManager.get();
                             tp::MSG::Frame frame;
                             frame.flag = 0;
