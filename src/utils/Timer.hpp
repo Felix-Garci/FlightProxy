@@ -25,7 +25,8 @@ namespace tp::UTILS
                 .callback = &Timer::onTimeStatic,
                 .arg = this,
                 .dispatch_method = ESP_TIMER_TASK,
-                .name = "tp_utils_timer"};
+                .name = "tp_utils_timer",
+                .skip_unhandled_events = true};
 
             esp_err_t err = esp_timer_create(&args, &timer_handle_);
             if (err != ESP_OK)
