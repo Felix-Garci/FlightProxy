@@ -31,7 +31,7 @@ namespace tp::STORAGE
             current_ = s;
         }
 
-        SampleT get(bool current = false)
+        SampleT get(bool current = true)
         {
             MutexGuard lock(mtx_);
             if (current)

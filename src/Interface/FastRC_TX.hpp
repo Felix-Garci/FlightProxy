@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface.hpp"
 #include "hal/uart.hpp"
+#include "utils/Log.hpp"
 
 namespace tp::I
 {
@@ -23,7 +24,12 @@ namespace tp::I
         void recive(const std::uint8_t *data, std::size_t len)
         {
             tp::MSG::Frame frame;
-            tp::MSG::decode(std::vector<std::uint8_t>(data, data + len), frame);
+            bool ok = tp::MSG::decode(std::vector<std::uint8_t>(data, data + len), frame);
+            if (!ok)
+            {
+                tp::UTILS::Log::warn("FastRC_TX decode failed: %u bytes", (unsigned)len);
+                return;
+            }
             if (cb_)
                 cb_(frame);
         }

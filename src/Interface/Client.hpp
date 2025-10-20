@@ -1,6 +1,7 @@
 #pragma once
 #include "Interface.hpp"
 #include "hal/tcp.hpp"
+#include "utils/Log.hpp"
 
 namespace tp::I
 {
@@ -23,8 +24,14 @@ namespace tp::I
         void recive(const std::uint8_t *data, std::size_t len)
         {
             tp::MSG::Frame frame;
-            tp::MSG::decode(std::vector<std::uint8_t>(data, data + len), frame);
-            cb_(frame);
+            bool ok = tp::MSG::decode(std::vector<std::uint8_t>(data, data + len), frame);
+            if (!ok)
+            {
+                tp::UTILS::Log::warn("Client decode failed: %u bytes", (unsigned)len);
+                return;
+            }
+            if (cb_)
+                cb_(frame);
         }
 
         void setCallBack(CallBack c)
