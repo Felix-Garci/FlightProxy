@@ -15,7 +15,12 @@
 #include "Interface/FastRC_RX.hpp"
 #include "Interface/FastRC_TX.hpp"
 
+#include "Transaction/Transactor.hpp"
+#include "Transaction/Connector.hpp"
+
 #include "Storage/Manager.hpp"
+
+#include "utils/Timer.hpp"
 
 extern "C" void app_main(void)
 {
@@ -77,6 +82,57 @@ extern "C" void app_main(void)
 
     tp::STORAGE::RCSample RCSample_def = {{1500, 1500, 1500, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0};
     tp::STORAGE::Manager RCSampleManager{RCSample_def};
+
+    // TRANSACTORS
+    tp::T::Transactor Tclient;
+    IClient.setCallBack([&](tp::MSG::Frame frame)
+                        { Tclient.ONReciveUP(frame); });
+
+    Tclient.SETupwriter([&](tp::MSG::Frame frame)
+                        { IClient.write(frame); });
+
+    tp::T::Transactor Tfc;
+
+    tp::T::Connector TfastRX;
+    IFastRecive.setCallBack([&](tp::MSG::Frame frame)
+                            { TfastRX.ONReciveUP(frame); });
+
+    TfastRX.SETdownwriter([&](tp::MSG::Frame frame)
+                          { tp::STORAGE::RCSample sample;
+                            sample.age = xTaskGetTickCount();
+                            for (size_t i = 0; i < sample.ch.size(); ++i)
+                            {
+                                sample.ch[i] = static_cast<uint16_t>(
+                                    frame.payload[i * 2] |
+                                    (static_cast<uint16_t>(frame.payload[i * 2 + 1]) << 8)
+                                );
+                            }
+                            RCSampleManager.set(sample); });
+
+    tp::T::Connector TfastTX;
+    tp::UTILS::Timer fastRCTimer;
+    fastRCTimer.setONTrigger([&]()
+                             {
+                                 
+                            tp::STORAGE::RCSample rcSample = RCSampleManager.get();
+                            tp::MSG::Frame frame;
+                            frame.flag = 0;
+                            frame.cmd = 0; 
+                            frame.isRequest = true;
+                            frame.payload.resize(tp::MSG::IBUS_PAYLOAD_LEN);
+                            for (size_t i = 0; i < tp::MSG::IBUS_NUM_CHANNELS; ++i)
+                            {
+                                frame.payload[i * 2] = static_cast<uint8_t>(rcSample.ch[i] & 0xFF);
+                                frame.payload[i * 2 + 1] = static_cast<uint8_t>((rcSample.ch[i] >> 8) & 0xFF);
+                            }
+                            TfastTX.ONReciveUP(frame); });
+    if (fastRCTimer.start(FastRCStatus_def.IbusPeriodMS, true) != ESP_OK)
+    {
+        tp::UTILS::Log::error("FastRC Timer start failed");
+    }
+
+    TfastTX.SETdownwriter([&](tp::MSG::Frame frame)
+                          { IFastSender.write(frame); });
 
     // Arrancamos servidor TCP
     srv.start(4096, tskIDLE_PRIORITY + 2);

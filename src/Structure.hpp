@@ -3,6 +3,7 @@
 #include <span>
 #include <vector>
 #include <array>
+#include <functional>
 
 namespace tp
 {
@@ -17,6 +18,8 @@ namespace tp
     {
         class Log;
         class MutexGuard;
+        using TargetFunction = std::function<void(void)>;
+        class Timer;
     }
     namespace MSG
     {
@@ -59,8 +62,9 @@ namespace tp
     }
     namespace T
     {
-        class Client;
-        class FC;
+        using TargetFunction = std::function<void(const tp::MSG::Frame &)>;
+        class Transactor;
+        class Connector;
     }
     namespace ADMIN
     {
