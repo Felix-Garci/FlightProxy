@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <span>
 #include <vector>
+#include <array>
 
 namespace tp
 {
@@ -58,10 +59,6 @@ namespace tp
     }
     namespace T
     {
-        // Parent
-        class Transaction;
-
-        // Children
         class Client;
         class FC;
     }
@@ -82,6 +79,8 @@ namespace tp
             bool FastRC_RX_ON{false};
             uint16_t IbusPeriodMS{7}; // 140 Hz
         };
+
+        template <typename SampleT>
         class Manager; // Manejador generico de structs ( gestiona seguridad de acceso concurrente )
 
     }
