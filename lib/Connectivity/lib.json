@@ -4,6 +4,9 @@
 	"dependencies": [
 		{
 			"name": "TransportUART"
+		},
+		{
+			"name": "Utils"
 		}
 	]
 }

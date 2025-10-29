@@ -7,6 +7,9 @@
 		},
 		{
 			"name": "ChannelAPI"
+		},
+		{
+			"name": "Utils"
 		}
 	]
 }
