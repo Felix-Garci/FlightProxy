@@ -1,5 +1,12 @@
 {
-	"name":"CoreLogic",
-	"version":"1.0.0",
-	"dependencies":[]
+	"name": "CoreLogic",
+	"version": "1.0.0",
+	"dependencies": [
+		{
+			"name": "CommonTypes"
+		},
+		{
+			"name": "ChannelAPI"
+		}
+	]
 }

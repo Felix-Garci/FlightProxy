@@ -1,5 +1,9 @@
 {
-	"name":"TransportUDP",
-	"version":"1.0.0",
-	"dependencies":[]
+	"name": "TransportUDP",
+	"version": "1.0.0",
+	"dependencies": [
+		{
+			"name": "TransportAPI"
+		}
+	]
 }

@@ -1,5 +1,9 @@
 {
-	"name":"Connectivity",
-	"version":"1.0.0",
-	"dependencies":[]
+	"name": "Connectivity",
+	"version": "1.0.0",
+	"dependencies": [
+		{
+			"name": "TransportUART"
+		}
+	]
 }

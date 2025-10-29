@@ -1,5 +1,21 @@
 {
-	"name":"ChannelManagers",
-	"version":"1.0.0",
-	"dependencies":[]
+	"name": "ChannelManagers",
+	"version": "1.0.0",
+	"dependencies": [
+		{
+			"name": "ChannelAPI"
+		},
+		{
+			"name": "ProtocolAPI"
+		},
+		{
+			"name": "TransportTCP"
+		},
+		{
+			"name": "TransportUART"
+		},
+		{
+			"name": "TransportUDP"
+		}
+	]
 }

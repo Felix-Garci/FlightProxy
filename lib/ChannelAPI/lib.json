@@ -1,5 +1,9 @@
 {
-	"name":"ChannelAPI",
-	"version":"1.0.0",
-	"dependencies":[]
+	"name": "ChannelAPI",
+	"version": "1.0.0",
+	"dependencies": [
+		{
+			"name": "ProtocolAPI"
+		}
+	]
 }
