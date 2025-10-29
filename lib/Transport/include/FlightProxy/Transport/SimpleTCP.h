@@ -1,40 +1,24 @@
 #pragma once
+#include "FlightProxy/Transport/ITransport.h"
+#include "freertos/task.h"
 #include "lwip/api.h"
-#include "freertos/FreeRTOS.h"
-
-/*
-class SimpleTCP{
-    -clientSocket_: netconn *
-    -taskHandle_: TaskHandle_t
-
-    ' Métodos
-    +SimpleTCP(clientSocket: netconn *)
-    +~SimpleTCP()
-    +open(): void
-    +close(): void
-    +send(data:const uint8_t*,len:size_t): void
-    -eventTask(): void
-    -eventTaskAdapter(arg:void*): void
-}
-*/
 
 namespace FlightProxy
 {
     namespace Transport
     {
-        class SimpleTCP
+        class SimpleTCP : public ITransport
         {
         public:
             SimpleTCP(struct netconn *clientSocket);
-            ~SimpleTCP();
-            void open();
-            void close();
-            void send(const uint8_t *data, size_t len);
+            ~SimpleTCP() override;
+            void open() override;
+            void close() override;
+            void send(const uint8_t *data, size_t len) override;
 
         private:
-            struct netconn *clientSocket_;
+            netconn *clientSocket_;
             TaskHandle_t taskHandle_;
-
             void eventTask();
             static void eventTaskAdapter(void *arg);
         };

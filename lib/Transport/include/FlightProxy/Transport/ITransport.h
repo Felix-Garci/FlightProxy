@@ -1,18 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <functional>
-/*
-interface ITransport{
-    {field}+onOpen: std::function<void()>
-    {field}+onData: std::function<void(const uint8_t*, size_t)>
-    {field}+onClose: std::function<void()>
 
-    +~ITransport()
-    +open(): void
-    +close(): void
-    +send(data:const uint8_t*,len:size_t): void
-}
-*/
 namespace FlightProxy
 {
     namespace Transport
