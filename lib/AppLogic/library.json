@@ -1,0 +1,13 @@
+{
+  "name": "FlightProxy-AppLogic",
+  "version": "0.1.0",
+  "description": "Capa de AppLogic del proyecto FlightProxy",
+  "build": {
+    "libArchive": false
+  },
+  "libDeps": [
+    "FlightProxy-Core",
+    "FlightProxy-Connectivity",
+    "FlightProxy-Channel"
+  ]
+}

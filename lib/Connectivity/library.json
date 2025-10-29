@@ -1,0 +1,11 @@
+{
+  "name": "FlightProxy-Connectivity",
+  "version": "0.1.0",
+  "description": "Capa de Connectivity del proyecto FlightProxy",
+  "build": {
+    "libArchive": false
+  },
+  "libDeps": [
+    "FlightProxy-Core"
+  ]
+}

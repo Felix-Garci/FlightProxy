@@ -1,0 +1,12 @@
+{
+  "name": "FlightProxy-Channel",
+  "version": "0.1.0",
+  "description": "Capa de Channel del proyecto FlightProxy",
+  "build": {
+    "libArchive": false
+  },
+  "libDeps": [
+    "FlightProxy-Core",
+    "FlightProxy-Transport"
+  ]
+}

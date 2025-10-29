@@ -1,0 +1,8 @@
+{
+  "name": "FlightProxy-Core",
+  "version": "0.1.0",
+  "description": "Interfaces, tipos y utilidades comunes.",
+  "build": {
+    "libArchive": false
+  }
+}
