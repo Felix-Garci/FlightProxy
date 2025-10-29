@@ -175,7 +175,7 @@ IDataNode --[hidden]right> TcpTransportManagerT
 
 class AlmacenFlexible {
   - m_storage : map<DataID, shared_ptr<DataSlot>>
-  - m_mapMutex : std::mutex
+  - m_mapMutex : MutexHandle_t
 
   + AlmacenFlexible()
   + registrarProductor<T>(id: DataID) : std::function<void(T)>
@@ -186,7 +186,7 @@ class AlmacenFlexible {
 
 class AlmacenFlexible::DataSlot {
   + data : std::any
-  + slotMutex : std::mutex
+  + slotMutex : MutexHandle_t
   + typeInfo : std::type_index
 
   + DataSlot(info: std::type_index, defaultVal: std::any)
