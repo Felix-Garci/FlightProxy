@@ -1,32 +1,18 @@
 #pragma once
 
 #include "esp_log.h"
-#include <cstdarg>
 
-namespace FlightProxy
-{
-    namespace Utils
-    {
-        // Un envoltorio simple para esp_log
-        class Logger
-        {
-        public:
-            // Constructor: almacena el TAG
-            Logger(const char *tag) : tag_(tag) {}
+/**
+ * @brief Envoltorio de macros de log para FlightProxy.
+ * * Esto nos da un punto central para controlar todo el logging.
+ * Si en el futuro queremos redirigir logs a un archivo o a la red,
+ * solo modificamos este archivo.
+ * * El '##__VA_ARGS__' es una extensión de C/C++ que maneja correctamente
+ * los argumentos variables (incluso si no hay ninguno).
+ */
 
-            // Métodos para cada nivel
-            void info(const char *format, ...) const;
-            void warn(const char *format, ...) const;
-            void error(const char *format, ...) const;
-            void debug(const char *format, ...) const;
-            void verbose(const char *format, ...) const;
-
-        private:
-            const char *tag_;
-
-            // Función helper genérica
-            void log(esp_log_level_t level, const char *format, va_list args) const;
-        };
-
-    }
-}
+#define FP_LOG_E(tag, format, ...) ESP_LOGE(tag, format, ##__VA_ARGS__)
+#define FP_LOG_W(tag, format, ...) ESP_LOGW(tag, format, ##__VA_ARGS__)
+#define FP_LOG_I(tag, format, ...) ESP_LOGI(tag, format, ##__VA_ARGS__)
+#define FP_LOG_D(tag, format, ...) ESP_LOGD(tag, format, ##__VA_ARGS__)
+#define FP_LOG_V(tag, format, ...) ESP_LOGV(tag, format, ##__VA_ARGS__)
