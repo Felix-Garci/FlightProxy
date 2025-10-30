@@ -1,5 +1,8 @@
 #pragma once
 #include "FlightProxy/Transport/ITransport.h"
+#include "FlightProxy/Core/Utils/MutexGuard.h"
+
+#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lwip/api.h"
 
@@ -18,7 +21,8 @@ namespace FlightProxy
 
         private:
             netconn *clientSocket_;
-            TaskHandle_t taskHandle_;
+            TaskHandle_t eventTaskHandle_;
+            SemaphoreHandle_t mutex_;
             void eventTask();
             static void eventTaskAdapter(void *arg);
         };

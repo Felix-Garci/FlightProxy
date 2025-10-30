@@ -1,5 +1,7 @@
 #pragma once
 #include "FlightProxy/Transport/ITransport.h"
+#include "FlightProxy/Core/Utils/MutexGuard.h"
+#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "lwip/api.h"
@@ -21,7 +23,7 @@ namespace FlightProxy
 
         private:
             netconn *udpSocket_;
-            TaskHandle_t taskHandle_;
+            TaskHandle_t eventTaskHandle_;
             uint16_t localPort_;
             ip_addr_t remoteIP_;
             uint16_t remotePort_;
