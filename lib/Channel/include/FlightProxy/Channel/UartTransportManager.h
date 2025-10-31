@@ -4,7 +4,6 @@
 #include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
-
 #include "FlightProxy/Channel/ChannelT.h"
 
 #include "FlightProxy/Core/Utils/Logger.h"

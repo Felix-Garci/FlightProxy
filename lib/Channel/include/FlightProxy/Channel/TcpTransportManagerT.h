@@ -1,6 +1,6 @@
 #pragma once
 #include "FlightProxy/Core/Channel/IChannelT.h"
-
+#include "FlightProxy/Channel/ChannelT.h"
 /*
 class TcpTransportManagerT<PacketT>{
     {field}+onNewChannel: std::function<void(IPacketChannelT<PacketT>*)>

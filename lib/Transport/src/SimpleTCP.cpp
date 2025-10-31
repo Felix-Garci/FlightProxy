@@ -1,4 +1,5 @@
 #include "FlightProxy/Transport/SimpleTCP.h"
+
 #include "FlightProxy/Core/Utils/Logger.h"
 
 namespace FlightProxy
