@@ -6,7 +6,7 @@
 
 namespace FlightProxy
 {
-    namespace Types
+    namespace Core
     {
         struct MspPacket
         {
