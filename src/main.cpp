@@ -1,4 +1,21 @@
-#include "FlightProxy/Core/Protocol/MspProtocol.h"
+#include "FlightProxy/Core/Utils/Logger.h"       // La clase Logger de Core
+#include "FlightProxy/PlatformESP32/EspLogger.h" // La implementación REAL
+#include "AppFactory.h"
+
+// 1. Creamos una instancia estática del logger REAL
+static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
+
+extern "C" void app_main(void)
+{
+    // 2. ¡PRIMERA LÍNEA! Inyectamos el logger en el singleton de Core.
+    FlightProxy::Core::Utils::Logger::setInstance(g_esp_logger);
+
+    FP_LOG_I("main", "Logger inicializado.");
+
+    // Resto de app
+}
+
+/*#include "FlightProxy/Core/Protocol/MspProtocol.h"
 
 #include "FlightProxy/Channel/UartTransportManager.h"
 #include "FlightProxy/Transport/SimpleUart.h"
@@ -37,7 +54,7 @@ extern "C" void app_main(void)
     Channel->open();
 }
 
-/*#include "FlightProxy/Core/Protocol/MspProtocol.h"
+#include "FlightProxy/Core/Protocol/MspProtocol.h"
 #include "FlightProxy/Channel/UartTransportManager.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/Channel/IPacketChannelT.h"
