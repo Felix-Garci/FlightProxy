@@ -1,5 +1,5 @@
 #pragma once
-#include "FlightProxy/Channel/IPacketChannelT.h"
+#include "FlightProxy/Core/Channel/IPacketChannelT.h"
 
 /*
 class TcpTransportManagerT<PacketT>{

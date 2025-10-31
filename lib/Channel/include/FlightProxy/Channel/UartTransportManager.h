@@ -1,11 +1,11 @@
 #pragma once
 
+#include "FlightProxy/Core/Channel/IPacketChannelT.h"
 #include "FlightProxy/Channel/PacketChannelT.h"
-#include "FlightProxy/Channel/IPacketChannelT.h"
-#include "FlightProxy/Transport/SimpleUart.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
 #include "FlightProxy/Core/Utils/Logger.h"
+#include "FlightProxy/Transport/SimpleUart.h"
 
 namespace FlightProxy
 {
@@ -18,7 +18,7 @@ namespace FlightProxy
         {
         public:
             // Para devolver el channel creado
-            using ChannelCallback = std::function<void(IPacketChannelT<PacketT> *)>;
+            using ChannelCallback = std::function<void(Core::Channel::IPacketChannelT<PacketT> *)>;
             ChannelCallback onNewChannel;
 
             // Recibiremos factories para encoder y decoder
@@ -53,7 +53,7 @@ namespace FlightProxy
                 transport_ = nullptr;
 
                 // Crear nuevos recursos
-                transport_ = new FlightProxy::Transport::SimpleUart(port_, txpin_, rxpin_, baudrate_);
+                transport_ = new Transport::SimpleUart(port_, txpin_, rxpin_, baudrate_);
 
                 encoder_ = ef();
                 decoder_ = df();

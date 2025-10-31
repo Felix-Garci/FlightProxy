@@ -9,7 +9,7 @@ namespace FlightProxy
 {
     namespace Transport
     {
-        class SimpleUart : public ITransport
+        class SimpleUart : public FlightProxy::Core::Transport::ITransport
         {
         public:
             SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate);

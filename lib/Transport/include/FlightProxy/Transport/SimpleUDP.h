@@ -12,7 +12,7 @@ namespace FlightProxy
 {
     namespace Transport
     {
-        class SimpleUDP : public ITransport
+        class SimpleUDP : public FlightProxy::Core::Transport::ITransport
         {
         public:
             SimpleUDP(uint16_t localPort);

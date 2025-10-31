@@ -10,7 +10,7 @@ namespace FlightProxy
 {
     namespace Transport
     {
-        class SimpleTCP : public ITransport
+        class SimpleTCP : public FlightProxy::Core::Transport::ITransport
         {
         public:
             SimpleTCP(struct netconn *clientSocket);
