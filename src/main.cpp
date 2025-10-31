@@ -1,4 +1,4 @@
-#include "FlightProxy/Core/Protocol/MspProtocol.h"
+/*#include "FlightProxy/Core/Protocol/MspProtocol.h"
 #include "FlightProxy/Channel/UartTransportManager.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/Channel/IPacketChannelT.h"
@@ -52,3 +52,4 @@ extern "C" void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
+*/
