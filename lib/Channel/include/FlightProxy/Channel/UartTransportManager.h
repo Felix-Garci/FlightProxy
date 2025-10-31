@@ -1,11 +1,6 @@
 #pragma once
 
-#include "FlightProxy/Core/Channel/IChannelT.h"
-#include "FlightProxy/Core/Transport/ITransport.h"
-#include "FlightProxy/Core/Protocol/IEncoderT.h"
-#include "FlightProxy/Core/Protocol/IDecoderT.h"
 #include "FlightProxy/Channel/ChannelT.h"
-
 #include "FlightProxy/Core/Utils/Logger.h"
 
 namespace FlightProxy
@@ -31,6 +26,7 @@ namespace FlightProxy
             UartTransportManagerT()
                 : packetChannel_(nullptr), transport_(nullptr), encoder_(nullptr), decoder_(nullptr)
             {
+                FP_LOG_D(TAG, "Constructor llamado");
             }
             ~UartTransportManagerT()
             {
@@ -42,6 +38,7 @@ namespace FlightProxy
 
             void start(DecoderFactory df, EncoderFactory ef, TransportFactory tf)
             {
+                FP_LOG_I(TAG, "Iniciando UartTransportManager...");
                 // Liberar recursos antiguos si existen
                 delete packetChannel_;
                 delete decoder_;
@@ -64,6 +61,7 @@ namespace FlightProxy
 
                 if (onNewChannel)
                 {
+                    FP_LOG_I(TAG, "Ejecutando callback onNewChannel.");
                     onNewChannel(packetChannel_);
                 }
                 else

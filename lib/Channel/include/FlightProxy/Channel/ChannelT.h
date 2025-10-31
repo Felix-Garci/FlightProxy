@@ -1,4 +1,5 @@
 #pragma once
+
 #include "FlightProxy/Core/Channel/IChannelT.h"
 #include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
