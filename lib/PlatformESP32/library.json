@@ -1,0 +1,14 @@
+{
+    "name": "FlightProxy-PlatformESP32",
+    "version": "0.1.0",
+    "description": "Implementaciones de OSAL y plataforma para ESP32",
+    "build": {
+        "libArchive": false
+    },
+    "libDeps": [
+        "FlightProxy-Core"
+    ],
+    "platforms": [
+        "espressif32"
+    ]
+}
