@@ -1,22 +1,20 @@
 #pragma once
-/*
-interface IEncoderT<PacketT>{
-    +~IEncoderT()
-    +encode(packet:const PacketT&): std::vector<uint8_t>
-}
-*/
+#include <cstdint>
+#include <vector>
 
 namespace FlightProxy
 {
-    namespace Protocol
+    namespace Core
     {
-        template <typename PacketT>
-        class IEncoderT
+        namespace Protocol
         {
-        public:
-            virtual ~IEncoderT() = default;
-
-            virtual std::vector<uint8_t> encode(const PacketT &packet) = 0;
-        };
+            template <typename PacketT>
+            class IEncoderT
+            {
+            public:
+                virtual ~IEncoderT() = default;
+                virtual std::vector<uint8_t> encode(const PacketT &packet) = 0;
+            };
+        }
     }
 }
