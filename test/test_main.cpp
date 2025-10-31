@@ -37,6 +37,19 @@ void test_UartTransportManager()
 
     // Channel->open();
     TEST_ASSERT_NOT_NULL(Channel);
+    FlightProxy::Core::MspPacket p = {
+        .direction = '>',
+        .command = 0,
+        .payload = {0x01, 0x02, 0x03}};
+
+    Channel->onPacket = [&](const FlightProxy::Core::MspPacket &packet)
+    {
+        FP_LOG_I("Main", "Received MSP Packet: Command=%u, Payload Size=%zu", packet.command, packet.payload.size());
+        TEST_ASSERT_EQUAL(p.command, packet.command);
+        TEST_ASSERT_EQUAL_HEX8_ARRAY(p.payload.data(), packet.payload.data(), 3);
+    };
+
+    Channel->sendPacket(p);
 }
 
 void setUp(void)

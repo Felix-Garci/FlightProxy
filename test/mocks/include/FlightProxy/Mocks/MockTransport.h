@@ -1,5 +1,6 @@
 #pragma once
 #include "FlightProxy/Core/Transport/ITransport.h"
+#include "FlightProxy/Mocks/HostLogger.h"
 #include <vector>
 #include <cstdint>
 
@@ -7,7 +8,7 @@ namespace FlightProxy
 {
     namespace Mocks
     {
-
+        const char *TAG = "Mock Transport";
         class MockTransport : public Core::Transport::ITransport
         {
         public:
@@ -31,6 +32,8 @@ namespace FlightProxy
             {
                 sendCount++;
                 lastSentData.assign(data, data + len);
+                FP_LOG_D(TAG, "data recived %d", len);
+                simulateRx(data, len);
             }
 
             // Función especial para simular datos ENTRANDES
