@@ -1,5 +1,5 @@
 #pragma once
-#include "FlightProxy/Transport/ITransport.h"
+#include "FlightProxy/Core/Transport/ITransport.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"

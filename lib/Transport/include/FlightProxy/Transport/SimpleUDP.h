@@ -1,6 +1,7 @@
 #pragma once
-#include "FlightProxy/Transport/ITransport.h"
+#include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Utils/MutexGuard.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
