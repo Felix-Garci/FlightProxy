@@ -1,11 +1,13 @@
 #pragma once
 
 #include "FlightProxy/Core/Channel/IChannelT.h"
-#include "FlightProxy/Channel/ChannelT.h"
+#include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
+
+#include "FlightProxy/Channel/ChannelT.h"
+
 #include "FlightProxy/Core/Utils/Logger.h"
-#include "FlightProxy/Transport/SimpleUart.h"
 
 namespace FlightProxy
 {
@@ -24,10 +26,11 @@ namespace FlightProxy
             // Recibiremos factories para encoder y decoder
             using DecoderFactory = std::function<Core::Protocol::IDecoderT<PacketT> *()>;
             using EncoderFactory = std::function<Core::Protocol::IEncoderT<PacketT> *()>;
+            // Recibiremos factories para el transport
+            using TransportFactory = std::function<Core::Transport::ITransport *()>;
 
-            UartTransportManagerT(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate)
-                : port_(port), txpin_(txpin), rxpin_(rxpin), baudrate_(baudrate),
-                  packetChannel_(nullptr), transport_(nullptr), encoder_(nullptr), decoder_(nullptr)
+            UartTransportManagerT()
+                : packetChannel_(nullptr), transport_(nullptr), encoder_(nullptr), decoder_(nullptr)
             {
             }
             ~UartTransportManagerT()
@@ -38,7 +41,7 @@ namespace FlightProxy
                 delete decoder_;
             }
 
-            void start(DecoderFactory df, EncoderFactory ef)
+            void start(DecoderFactory df, EncoderFactory ef, TransportFactory tf)
             {
                 // Liberar recursos antiguos si existen
                 delete packetChannel_;
@@ -53,10 +56,10 @@ namespace FlightProxy
                 transport_ = nullptr;
 
                 // Crear nuevos recursos
-                transport_ = new Transport::SimpleUart(port_, txpin_, rxpin_, baudrate_);
 
                 encoder_ = ef();
                 decoder_ = df();
+                transport_ = tf();
 
                 packetChannel_ = new ChannelT<PacketT>(transport_, encoder_, decoder_);
 
@@ -71,13 +74,8 @@ namespace FlightProxy
             }
 
         private:
-            uart_port_t port_;
-            gpio_num_t txpin_;
-            gpio_num_t rxpin_;
-            uint32_t baudrate_;
-
             ChannelT<PacketT> *packetChannel_;
-            Transport::SimpleUart *transport_;
+            Core::Transport::ITransport *transport_;
             Core::Protocol::IEncoderT<PacketT> *encoder_;
             Core::Protocol::IDecoderT<PacketT> *decoder_;
         };
