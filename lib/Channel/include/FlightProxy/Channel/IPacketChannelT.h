@@ -1,18 +1,6 @@
 #pragma once
-/*
-interface IPacketChannelT<PacketT>{
-    ' Atributos
-    {field}+onPacket: std::function<void(const PacketT&)>
-    {field}+onOpen: std::function<void()>
-    {field}+onClose: std::function<void()>
+#include <functional>
 
-    ' Métodos
-    +~IPacketChannelT()
-    +open(): void
-    +close(): void
-    +sendPacket(packet:const PacketT&): void
-}
-*/
 namespace FlightProxy
 {
     namespace Channel
@@ -27,6 +15,7 @@ namespace FlightProxy
             virtual void close() = 0;
             virtual void sendPacket(const PacketT &packet) = 0;
 
+            // Callbacks que el usuario (dueño del channel) puede suscribir
             std::function<void(const PacketT &)> onPacket;
             std::function<void()> onOpen;
             std::function<void()> onClose;
