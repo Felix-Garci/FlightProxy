@@ -1,3 +1,42 @@
+#include "FlightProxy/Core/Protocol/MspProtocol.h"
+
+#include "FlightProxy/Channel/UartTransportManager.h"
+#include "FlightProxy/Transport/SimpleUart.h"
+
+#include "driver/uart.h"
+#include "driver/gpio.h"
+
+extern "C" void app_main(void)
+{
+    FlightProxy::Channel::UartTransportManagerT<FlightProxy::Core::MspPacket> uartManager{};
+    FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket> *Channel = nullptr;
+
+    uartManager.onNewChannel = [&](FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket> *channel)
+    {
+        Channel = channel;
+    };
+
+    uartManager.start(
+        []() -> FlightProxy::Core::Protocol::IDecoderT<FlightProxy::Core::MspPacket> *
+        {
+            return new FlightProxy::Core::Protocol::MspDecoder();
+        },
+        []() -> FlightProxy::Core::Protocol::IEncoderT<FlightProxy::Core::MspPacket> *
+        {
+            return new FlightProxy::Core::Protocol::MspEncoder();
+        },
+        []() -> FlightProxy::Core::Transport::ITransport *
+        {
+            return new FlightProxy::Transport::SimpleUart(
+                UART_NUM_0,
+                GPIO_NUM_1,
+                GPIO_NUM_3,
+                115200);
+        });
+
+    Channel->open();
+}
+
 /*#include "FlightProxy/Core/Protocol/MspProtocol.h"
 #include "FlightProxy/Channel/UartTransportManager.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
