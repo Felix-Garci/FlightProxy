@@ -1,34 +1,54 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "FlightProxy/Core/Protocol/MspProtocol.h"
+#include "FlightProxy/Channel/UartTransportManager.h"
+#include "FlightProxy/Core/FlightProxyTypes.h"
+#include "FlightProxy/Channel/IPacketChannelT.h"
+
+#include "FlightProxy/Core/Utils/Logger.h"
+
+#include "driver/uart.h"
 #include "driver/gpio.h"
-#include "esp_log.h"
-
-static const char *TAG = "HOLA";
-
-#ifndef LED_PIN
-#define LED_PIN GPIO_NUM_2 // Cambia si tu placa usa otro LED
-#endif
 
 extern "C" void app_main(void)
 {
-    // Configurar LED como salida
-    gpio_config_t io{};
-    io.intr_type = GPIO_INTR_DISABLE;
-    io.mode = GPIO_MODE_OUTPUT;
-    io.pin_bit_mask = (1ULL << LED_PIN);
-    io.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io.pull_up_en = GPIO_PULLUP_DISABLE;
-    gpio_config(&io);
+    FlightProxy::Channel::UartTransportManagerT<FlightProxy::Core::MspPacket> uartManager(
+        UART_NUM_0,
+        GPIO_NUM_1,
+        GPIO_NUM_3,
+        115200);
 
-    ESP_LOGI(TAG, "Hola mundo desde ESP-IDF 🤖");
-    ESP_LOGI(TAG, "Parpadeando LED en GPIO %d", (int)LED_PIN);
+    FlightProxy::Channel::IPacketChannelT<FlightProxy::Core::MspPacket> *packetChannel = nullptr;
 
-    bool on = false;
+    uartManager.onNewChannel = [&](FlightProxy::Channel::IPacketChannelT<FlightProxy::Core::MspPacket> *channel)
+    {
+        packetChannel = channel;
+    };
+
+    uartManager.start(
+        []() -> FlightProxy::Core::Protocol::IDecoderT<FlightProxy::Core::MspPacket> *
+        {
+            return new FlightProxy::Core::Protocol::MspDecoder();
+        },
+        []() -> FlightProxy::Core::Protocol::IEncoderT<FlightProxy::Core::MspPacket> *
+        {
+            return new FlightProxy::Core::Protocol::MspEncoder();
+        });
+
+    // Aquí podrías agregar lógica adicional para enviar/recibir paquetes usando packetChannel
+    packetChannel->onPacket = [](const FlightProxy::Core::MspPacket &packet)
+    {
+        FP_LOG_I("Main", "Received MSP Packet: Command=%u, Payload Size=%zu", packet.command, packet.payload.size());
+    };
+
+    packetChannel->open();
+
+    // Bucle principal (aquí solo como ejemplo, en un caso real usarías FreeRTOS tasks)
+    uint8_t i = 0;
     while (true)
     {
-        on = !on;
-        gpio_set_level(LED_PIN, on ? 1 : 0);
-        ESP_LOGI(TAG, "Tick! LED %s", on ? "ON" : "OFF");
-        vTaskDelay(pdMS_TO_TICKS(500)); // 500 ms
+        packetChannel->sendPacket(FlightProxy::Core::MspPacket{
+            .direction = '>',
+            .command = i++,
+            .payload = {0x01, 0x02, 0x03}});
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
