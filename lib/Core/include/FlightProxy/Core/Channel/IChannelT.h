@@ -8,10 +8,10 @@ namespace FlightProxy
         namespace Channel
         {
             template <typename PacketT>
-            class IPacketChannelT
+            class IChannelT
             {
             public:
-                virtual ~IPacketChannelT() = default;
+                virtual ~IChannelT() = default;
 
                 virtual void open() = 0;
                 virtual void close() = 0;

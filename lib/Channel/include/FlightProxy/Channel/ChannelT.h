@@ -1,5 +1,5 @@
 #pragma once
-#include "FlightProxy/Core/Channel/IPacketChannelT.h"
+#include "FlightProxy/Core/Channel/IChannelT.h"
 #include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
@@ -9,10 +9,10 @@ namespace FlightProxy
     namespace Channel
     {
         template <typename PacketT>
-        class PacketChannelT : public Core::Channel::IPacketChannelT<PacketT>
+        class ChannelT : public Core::Channel::IChannelT<PacketT>
         {
         public:
-            PacketChannelT(Core::Transport::ITransport *t, Core::Protocol::IEncoderT<PacketT> *e, Core::Protocol::IDecoderT<PacketT> *d)
+            ChannelT(Core::Transport::ITransport *t, Core::Protocol::IEncoderT<PacketT> *e, Core::Protocol::IDecoderT<PacketT> *d)
                 : transport_(t), encoder_(e), decoder_(d)
             {
                 // 1. Flujo de ENTRADA: Transport -> Decoder
@@ -49,7 +49,7 @@ namespace FlightProxy
                     }
                 };
             }
-            ~PacketChannelT() {}
+            ~ChannelT() {}
 
             void open() override
             {
