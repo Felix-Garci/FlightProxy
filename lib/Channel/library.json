@@ -6,7 +6,6 @@
     "libArchive": false
   },
   "libDeps": [
-    "FlightProxy-Core",
-    "FlightProxy-Transport"
+    "FlightProxy-Core"
   ]
 }

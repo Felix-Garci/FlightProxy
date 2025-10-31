@@ -1,11 +1,14 @@
 {
   "name": "FlightProxy-Transport",
   "version": "0.1.0",
-  "description": "Capa de Transport del proyecto FlightProxy",
+  "description": "Implementaciones de transporte (UART, TCP) para FlightProxy",
   "build": {
     "libArchive": false
   },
   "libDeps": [
     "FlightProxy-Core"
+  ],
+  "platforms": [
+    "espressif32"
   ]
 }
