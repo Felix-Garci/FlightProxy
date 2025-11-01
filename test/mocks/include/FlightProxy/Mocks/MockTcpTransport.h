@@ -8,12 +8,10 @@
 #include <vector>
 
 // Asegúrate de que los namespaces de FlightProxy estén disponibles
-using FlightProxy::Core::Transport::ITransport;
 namespace FlightProxy
 {
     namespace Mocks
     {
-
         /**
          * @brief Implementación de ITransport usando Asio.
          *
@@ -22,7 +20,7 @@ namespace FlightProxy
          *
          * Utiliza operaciones asíncronas y un 'strand' para la sincronización.
          */
-        class SimpleTCPAsio : public ITransport, public std::enable_shared_from_this<SimpleTCPAsio>
+        class SimpleTCPAsio : public Core::Transport::ITransport, public std::enable_shared_from_this<SimpleTCPAsio>
         {
         public:
             /**
