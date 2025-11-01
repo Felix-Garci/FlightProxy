@@ -15,12 +15,11 @@ namespace FlightProxy
         public:
             // Para devolver el channel creado
             using ChannelCallback = std::function<void(Core::Channel::IChannelT<PacketT> *)>;
-            ChannelCallback onNewChannel;
-
-            // Recibiremos factories para encoder y decoder
             using DecoderFactory = std::function<Core::Protocol::IDecoderT<PacketT> *()>;
             using EncoderFactory = std::function<Core::Protocol::IEncoderT<PacketT> *()>;
-            // Recibiremos factories para el transport
+
+            ChannelCallback onNewChannel;
+
             using TransportFactory = std::function<Core::Transport::ITransport *()>;
 
             SimpleTransportManagerT()
