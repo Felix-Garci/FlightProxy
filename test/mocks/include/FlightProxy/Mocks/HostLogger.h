@@ -1,6 +1,6 @@
 #pragma once
 #include "FlightProxy/Core/Utils/ILogger.h"
-#include <cstdio> // Para vprintf
+#include <cstdio>
 #include <mutex>
 
 namespace FlightProxy
