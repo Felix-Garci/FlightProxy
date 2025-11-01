@@ -1,5 +1,5 @@
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
-#include "FlightProxy/Channel/UartTransportManager.h"
+#include "FlightProxy/Channel/SimpleTransportManagerT.h"
 #include "FlightProxy/Mocks/MockTransport.h"
 
 #include "FlightProxy/Core/Utils/Logger.h" // El singleton Logger de Core
@@ -9,11 +9,11 @@
 
 static FlightProxy::Mocks::HostLogger g_host_logger;
 
-void test_UartTransportManager()
+void test_SimpleTransportManager()
 {
-    FP_LOG_I("test_UartTransportManager", "Ejecutando test...");
+    FP_LOG_I("test_SimpleTransportManager", "Ejecutando test...");
 
-    FlightProxy::Channel::UartTransportManagerT<FlightProxy::Core::MspPacket> uartManager{};
+    FlightProxy::Channel::SimpleTransportManagerT<FlightProxy::Core::MspPacket> uartManager{};
     FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket> *Channel = nullptr;
 
     uartManager.onNewChannel = [&](FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket> *channel)
@@ -69,7 +69,7 @@ int main(void)
     FP_LOG_I("main", "Iniciando Pruebas Unitarias...");
 
     UNITY_BEGIN();
-    RUN_TEST(test_UartTransportManager);
+    RUN_TEST(test_SimpleTransportManager);
     return UNITY_END();
 }
 

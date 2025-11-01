@@ -7,10 +7,10 @@ namespace FlightProxy
 {
     namespace Channel
     {
-        const char *TAG = "UartTransportManagerT";
+        const char *TAG = "SimpleTransportManagerT";
 
         template <typename PacketT>
-        class UartTransportManagerT
+        class SimpleTransportManagerT
         {
         public:
             // Para devolver el channel creado
@@ -23,12 +23,12 @@ namespace FlightProxy
             // Recibiremos factories para el transport
             using TransportFactory = std::function<Core::Transport::ITransport *()>;
 
-            UartTransportManagerT()
+            SimpleTransportManagerT()
                 : packetChannel_(nullptr), transport_(nullptr), encoder_(nullptr), decoder_(nullptr)
             {
                 FP_LOG_D(TAG, "Constructor llamado");
             }
-            ~UartTransportManagerT()
+            ~SimpleTransportManagerT()
             {
                 delete packetChannel_;
                 delete transport_;
@@ -38,7 +38,7 @@ namespace FlightProxy
 
             void start(DecoderFactory df, EncoderFactory ef, TransportFactory tf)
             {
-                FP_LOG_I(TAG, "Iniciando UartTransportManager...");
+                FP_LOG_I(TAG, "Iniciando SimpleTransportManagerT...");
                 // Liberar recursos antiguos si existen
                 delete packetChannel_;
                 delete decoder_;
