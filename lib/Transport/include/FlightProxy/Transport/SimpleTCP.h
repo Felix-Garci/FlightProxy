@@ -14,6 +14,7 @@ namespace FlightProxy
         {
         public:
             SimpleTCP(int accepted_socket);
+            SimpleTCP(const char *ip, uint16_t port);
             ~SimpleTCP() override;
             void open() override;
             void close() override;
@@ -21,6 +22,9 @@ namespace FlightProxy
 
         private:
             int m_sock = -1;
+            uint16_t port_ = -1;
+            char ip_[16];
+
             TaskHandle_t eventTaskHandle_;
             SemaphoreHandle_t mutex_;
             static void eventTaskAdapter(void *arg);

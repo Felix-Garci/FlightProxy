@@ -2,28 +2,51 @@
 #include "FlightProxy/Core/Utils/Logger.h"
 
 #include "lwip/sockets.h"
+#include "lwip/netdb.h" // Para getaddrinfo
 #include <vector>
+#include <cstring> // Para strncpy
 
 namespace FlightProxy
 {
     namespace Transport
     {
-        static const char *TAG = "SimpleTCP"; // Tag for logging simple TCP
+        static const char *TAG = "SimpleTCP";
 
         SimpleTCP::SimpleTCP(int accepted_socket)
-            // TU CÓDIGO ORIGINAL ESTABA BIEN: Inicializa m_sock, el task handle y crea el mutex
-            : m_sock(accepted_socket), eventTaskHandle_(nullptr), mutex_(xSemaphoreCreateMutex())
+            : m_sock(accepted_socket), port_(0), eventTaskHandle_(nullptr), mutex_(xSemaphoreCreateMutex())
         {
             if (mutex_ == NULL)
             {
                 FP_LOG_E(TAG, "Error al crear mutex!");
             }
+            ip_[0] = '\0';
             FP_LOG_I(TAG, "Canal (socket %d): Creado.", m_sock);
+        }
+        SimpleTCP::SimpleTCP(const char *ip, uint16_t port)
+            : port_(port), m_sock(-1), eventTaskHandle_(nullptr), mutex_(xSemaphoreCreateMutex())
+        {
+            if (mutex_ == NULL)
+            {
+                FP_LOG_E(TAG, "Error al crear mutex!");
+            }
+
+            if (ip != nullptr)
+            {
+                // Copia como máximo 15 caracteres para dejar espacio para el '\0'
+                strncpy(ip_, ip, sizeof(ip_) - 1);
+                // Asegura que la cadena siempre termine en nulo, incluso si la IP es muy larga
+                ip_[sizeof(ip_) - 1] = '\0';
+            }
+            else
+            {
+                // Si la IP es nula, deja el buffer vacío
+                ip_[0] = '\0';
+                FP_LOG_W(TAG, "Constructor de cliente llamado con IP nula.");
+            }
         }
 
         SimpleTCP::~SimpleTCP()
         {
-            // TU CÓDIGO ORIGINAL ESTABA BIEN: Limpia el mutex y el socket
             if (mutex_)
             {
                 vSemaphoreDelete(mutex_);
@@ -41,13 +64,63 @@ namespace FlightProxy
         {
             FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
 
-            if (eventTaskHandle_ != nullptr || m_sock == -1)
+            if (eventTaskHandle_ != nullptr)
             {
-                FP_LOG_W(TAG, "Tarea de eventos ya iniciada o socket nulo.");
+                FP_LOG_W(TAG, "Tarea de eventos ya iniciada.");
                 return;
             }
 
-            // 'open()' SÓLO crea la tarea.
+            // --- Lógica de conexión para el MODO CLIENTE ---
+            if (m_sock == -1)
+            {
+                // Si no tenemos socket, es un cliente que debe conectarse.
+                if (ip_[0] == '\0' || port_ == 0)
+                {
+                    FP_LOG_E(TAG, "No se puede abrir: IP o puerto no configurados para el cliente.");
+                    return;
+                }
+
+                FP_LOG_I(TAG, "Modo cliente: Intentando conectar a %s:%u...", ip_, port_);
+
+                // 1. Resolver la dirección (getaddrinfo es más robusto)
+                struct addrinfo hints = {};
+                hints.ai_family = AF_INET;
+                hints.ai_socktype = SOCK_STREAM;
+                struct addrinfo *res;
+                char port_str[6];
+                sprintf(port_str, "%u", port_);
+
+                int err = getaddrinfo(ip_, port_str, &hints, &res);
+                if (err != 0 || res == nullptr)
+                {
+                    FP_LOG_E(TAG, "Error en getaddrinfo para '%s': %d", ip_, err);
+                    return; // No se puede conectar
+                }
+
+                // 2. Crear el socket
+                int sock = ::socket(res->ai_family, res->ai_socktype, 0);
+                if (sock < 0)
+                {
+                    FP_LOG_E(TAG, "Error al crear socket cliente: %d", errno);
+                    freeaddrinfo(res);
+                    return;
+                }
+
+                // 3. Conectar
+                if (::connect(sock, res->ai_addr, res->ai_addrlen) != 0)
+                {
+                    FP_LOG_E(TAG, "Error en connect a %s:%u: %d", ip_, port_, errno);
+                    ::close(sock); // Limpiar el socket fallido
+                    freeaddrinfo(res);
+                    return;
+                }
+
+                freeaddrinfo(res); // Liberar memoria de getaddrinfo
+                FP_LOG_I(TAG, "Conectado con éxito! Nuevo socket: %d", sock);
+                m_sock = sock; // Guardar el socket recién conectado
+            }
+
+            // --- Lógica común: Iniciar la tarea de lectura ---
             // La tarea misma es la que debe llamar a 'onOpen()'
             BaseType_t result = xTaskCreate(
                 eventTaskAdapter, // La función adaptadora estática
@@ -67,7 +140,6 @@ namespace FlightProxy
 
         void SimpleTCP::close()
         {
-            // TU CÓDIGO ORIGINAL ESTABA PERFECTO
             FlightProxy::Core::Utils::MutexGuard lock(mutex_);
             if (m_sock == -1)
             {
@@ -79,7 +151,6 @@ namespace FlightProxy
 
         void SimpleTCP::send(const uint8_t *data, size_t len)
         {
-            // TU CÓDIGO ORIGINAL ESTABA PERFECTO
             FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
 
             if (m_sock == -1)
@@ -99,9 +170,6 @@ namespace FlightProxy
                 FP_LOG_E(TAG, "Canal (socket %d): Error en send(): %d", m_sock, errno);
             }
         }
-
-        // --- Lógica de la Tarea ---
-        // (He movido eventTask() aquí dentro)
 
         void SimpleTCP::eventTaskAdapter(void *arg)
         {
