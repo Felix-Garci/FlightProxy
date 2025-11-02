@@ -1,3 +1,4 @@
+#include "FlightProxy/Core/Utils/Logger.h"
 #include "FlightProxy/Mocks/HostLogger.h"
 #include <iostream>
 
