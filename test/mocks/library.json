@@ -6,8 +6,7 @@
         "libArchive": false
     },
     "libDeps": [
-        "FlightProxy-Core",
-        "FlightProxy-Asio"
+        "FlightProxy-Core"
     ],
     "platforms": [
         "native"
