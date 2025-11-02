@@ -26,7 +26,8 @@ namespace FlightProxy
             char ip_[16];
 
             TaskHandle_t eventTaskHandle_;
-            SemaphoreHandle_t mutex_;
+            SemaphoreHandle_t mutex_;       // limita el aceso a open close y send a una persona solo
+            SemaphoreHandle_t taskworking_; // Se tomara al inicio de la tarea y se soltara cuando se salga del bucle. nadie mas puede cogerlo
             static void eventTaskAdapter(void *arg);
         };
     }

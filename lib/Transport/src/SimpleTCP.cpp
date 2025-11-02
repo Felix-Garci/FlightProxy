@@ -13,12 +13,14 @@ namespace FlightProxy
         static const char *TAG = "SimpleTCP";
 
         SimpleTCP::SimpleTCP(int accepted_socket)
-            : m_sock(accepted_socket), port_(0), eventTaskHandle_(nullptr), mutex_(xSemaphoreCreateMutex())
+            : m_sock(accepted_socket), port_(0), eventTaskHandle_(nullptr),
+              mutex_(xSemaphoreCreateMutex()), taskworking_(xSemaphoreCreateBinary())
         {
-            if (mutex_ == NULL)
+            if (mutex_ == NULL || taskworking_ == NULL)
             {
                 FP_LOG_E(TAG, "Error al crear mutex!");
             }
+
             ip_[0] = '\0';
             FP_LOG_I(TAG, "Canal (socket %d): Creado.", m_sock);
         }
@@ -47,16 +49,23 @@ namespace FlightProxy
 
         SimpleTCP::~SimpleTCP()
         {
+            if (m_sock != -1)
+            {
+                FP_LOG_W(TAG, "Llamando al destructor sin tener cerrado el canal.");
+                close();
+            }
+
             if (mutex_)
             {
                 vSemaphoreDelete(mutex_);
                 mutex_ = nullptr;
             }
-            if (m_sock != -1)
+            if (taskworking_)
             {
-                FP_LOG_W(TAG, "Canal (socket %d): Destruido sin cerrar limpiamente!", m_sock);
-                ::close(m_sock); // Cierre de emergencia (fuga de file descriptor)
+                vSemaphoreDelete(taskworking_);
+                taskworking_ = nullptr;
             }
+
             FP_LOG_I(TAG, "Canal (socket %d): Destruido.", m_sock);
         }
 
@@ -146,7 +155,10 @@ namespace FlightProxy
                 return;
             }
             FP_LOG_I(TAG, "Canal (socket %d): Solicitando cierre...", m_sock);
-            ::shutdown(m_sock, SHUT_RDWR);
+            ::shutdown(m_sock, SHUT_RDWR); // Le dice al ::recv que ya esta. pero no elimina todavia el soket
+
+            // Close Bloqueante para esperar a que de verdad se ha cerrado
+            FlightProxy::Core::Utils::MutexGuard MutexGuard(taskworking_);
         }
 
         void SimpleTCP::send(const uint8_t *data, size_t len)
@@ -163,105 +175,70 @@ namespace FlightProxy
                 FP_LOG_W(TAG, "Canal: Intento de envío datos vacios.");
                 return;
             }
-
-            int sent = ::send(m_sock, data, len, 0);
-            if (sent < 0)
+            // Tenemos que asegurarnos que todo el contenido de data se envia
+            size_t total_sent = 0;
+            while (total_sent < len)
             {
-                FP_LOG_E(TAG, "Canal (socket %d): Error en send(): %d", m_sock, errno);
+                int sent_now = ::send(m_sock, data + total_sent, len - total_sent, 0);
+                if (sent_now < 0)
+                {
+                    FP_LOG_E(TAG, "Canal (socket %d): Error en send(): %d. Abortando envío.", m_sock, errno);
+                    return;
+                }
+                total_sent += sent_now;
             }
         }
 
         void SimpleTCP::eventTaskAdapter(void *arg)
         {
-            // 1. Recuperar el puntero 'this'
             SimpleTCP *transport = static_cast<SimpleTCP *>(arg);
-            if (transport == nullptr)
+
+            if (transport->onOpen)
             {
-                FP_LOG_E(TAG, "eventTaskAdapter recibió un argumento nulo!");
-                vTaskDelete(NULL);
-                return;
+                transport->onOpen();
             }
 
-            // 2. ¡EL "SEGURO DE VIDA"!
-            // Obtenemos un shared_ptr a nosotros mismos.
-            // El objeto no será destruido mientras 'self' exista (en el stack de esta tarea).
-            std::shared_ptr<SimpleTCP> self = transport->shared_from_this();
+            // Ocupamos el semaforo para que desde el close sepamos cuando esto esta terminado ya
+            FlightProxy::Core::Utils::MutexGuard MutexGuard(transport->taskworking_);
 
-            // 3. Tarea iniciada. Ahora SÍ llamamos a onOpen
-            if (self->onOpen)
-            {
-                self->onOpen();
-            }
-
-            // 4. Preparar bucle de lectura
             std::vector<uint8_t> rx_buffer(1024);
-            // Copia local del socket (buena práctica)
-            int sock = self->m_sock;
-            FP_LOG_I(TAG, "Tarea (socket %d): Iniciada.", sock);
+
+            FP_LOG_I(TAG, "Tarea Iniciada.");
 
             // 5. Bucle de lectura
             while (true)
             {
-                int len = ::recv(sock, rx_buffer.data(), rx_buffer.size(), 0);
+                int len = ::recv(transport->m_sock, rx_buffer.data(), rx_buffer.size(), 0);
 
                 if (len > 0)
                 {
-                    // --- Datos recibidos ---
-                    // Usamos 'self' para llamar a los callbacks
-                    if (self->onData)
+                    if (transport->onData)
                     {
-                        self->onData(rx_buffer.data(), len);
+                        transport->onData(rx_buffer.data(), len);
                     }
                 }
                 else if (len == 0)
                 {
-                    // --- Conexión cerrada por el cliente ---
-                    FP_LOG_I(TAG, "Tarea (socket %d): Cliente cerró la conexión.", sock);
-                    break; // Salir del bucle
+                    FP_LOG_I(TAG, "Cliente cerró la conexión.");
+                    break;
                 }
                 else
                 {
                     // --- Error en la conexión (len < 0) ---
                     // Esto también ocurre si 'close()' llamó a 'shutdown()'.
-                    FP_LOG_E(TAG, "Tarea (socket %d): Error en recv(): %d. Conexión cerrada.", sock, errno);
-                    break; // Salir del bucle
+                    FP_LOG_E(TAG, "Error en recv(): %d. Error en la conexion o que se llamo a this->close()", errno);
+                    break;
                 }
             }
-
-            // 6. --- Limpieza (fuera del bucle) ---
-
-            // Notificar que la conexión se cerró
-            if (self->onClose)
+            ::close(transport->m_sock);
+            transport->m_sock = -1;
+            transport->eventTaskHandle_ = nullptr;
+            if (transport->onClose)
             {
-                self->onClose();
+                transport->onClose();
             }
-
-            // 7. Cerrar el socket (protegido por mutex)
-            // Es CRÍTICO usar 'self->' para acceder a miembros
-            // en este punto, no 'transport->'.
-            {
-                // Usamos 'self->mutex_'
-                FlightProxy::Core::Utils::MutexGuard MutexGuard(self->mutex_);
-                if (self->m_sock != -1)
-                {
-                    FP_LOG_I(TAG, "Tarea (socket %d): Cerrando file descriptor.", sock);
-                    ::close(self->m_sock); // Cierre real
-                    self->m_sock = -1;     // Marcar como inválido
-                }
-            }
-
-            // 8. Tarea completada. Borrarse a sí misma.
-            FP_LOG_I(TAG, "Tarea (socket %d): Terminando.", sock);
-
-            // Limpiamos el handle en la clase
-            self->eventTaskHandle_ = nullptr;
-
-            // Borramos la tarea de FreeRTOS
-            vTaskDelete(NULL);
-
-            // Al salir de esta función, el 'std::shared_ptr self' se destruye.
-            // Si el Manager ya no tenía una copia, el objeto será
-            // destruido (se llamará a ~SimpleTCP) ahora mismo, de forma segura.
+            FP_LOG_I(TAG, "Tarea terminada.");
+            // Al no poner vTaskDelete(NULL); freertos se encarga de eliminar los objetos creados en este contexto y de eliminar la clase
         }
 
     } // namespace Transport

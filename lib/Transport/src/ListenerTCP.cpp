@@ -15,7 +15,6 @@ namespace FlightProxy
 
         ListenerTCP::ListenerTCP()
         {
-            // El constructor está vacío. La inicialización ocurre en startListening.
         }
 
         ListenerTCP::~ListenerTCP()
@@ -137,23 +136,17 @@ namespace FlightProxy
                 // --- ¡Cliente Aceptado! ---
                 FP_LOG_I(TAG, "Cliente conectado! Socket: %d", client_sock);
 
-                // 1. Crear el objeto de transporte (envuelto en shared_ptr)
-                auto new_channel = std::make_shared<SimpleTCP>(client_sock);
-
-                // 2. Notificar al Manager (si está suscrito)
                 if (listener->onChannelAccepted)
                 {
-                    listener->onChannelAccepted(new_channel);
+                    // ¡Simplemente pasamos el socket!
+                    listener->onChannelAccepted(client_sock);
                 }
                 else
                 {
-                    FP_LOG_W(TAG, "Cliente aceptado, pero no hay suscriptor en onChannelAccepted!");
+                    FP_LOG_W(TAG, "Cliente aceptado (socket %d), pero no hay suscriptor en onChannelAccepted!", client_sock);
+                    // Si no hay suscriptor, debemos cerrar el socket o habrá una fuga
+                    ::close(client_sock);
                 }
-
-                // 3. Decirle al nuevo canal que inicie su propia tarea de lectura
-                new_channel->open();
-
-                // 4. Volver al bucle para aceptar al siguiente cliente
             }
 
             // --- Limpieza de la tarea ---
