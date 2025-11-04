@@ -3,6 +3,9 @@
 #include "FlightProxy/Channel/ChannelT.h"
 #include "FlightProxy/Core/Utils/Logger.h"
 
+#include <functional>
+#include <memory>
+
 namespace FlightProxy
 {
     namespace Channel
@@ -13,54 +16,52 @@ namespace FlightProxy
         class SimpleTransportManagerT
         {
         public:
-            // Para devolver el channel creado
-            using ChannelCallback = std::function<void(Core::Channel::IChannelT<PacketT> *)>;
+            // Tipos de punteros compartidos
+            using ChannelPtr = std::shared_ptr<Core::Channel::IChannelT<PacketT>>;
+            using DecoderPtr = std::shared_ptr<Core::Protocol::IDecoderT<PacketT>>;
+            using EncoderPtr = std::shared_ptr<Core::Protocol::IEncoderT<PacketT>>;
+            using TransportPtr = std::shared_ptr<Core::Transport::ITransport>;
+
+            // Callbak de nuevo channel pasando un shared ptr
+            using ChannelCallback = std::function<void(ChannelPtr)>;
             ChannelCallback onNewChannel;
 
-            using DecoderFactory = std::function<Core::Protocol::IDecoderT<PacketT> *()>;
-            using EncoderFactory = std::function<Core::Protocol::IEncoderT<PacketT> *()>;
-            using TransportFactory = std::function<Core::Transport::ITransport *()>;
+            // Las factorias debuelven shared ptr
+            using DecoderFactory = std::function<DecoderPtr()>;
+            using EncoderFactory = std::function<EncoderPtr()>;
+            using TransportFactory = std::function<TransportPtr()>;
 
             SimpleTransportManagerT()
-                : packetChannel_(nullptr), transport_(nullptr), encoder_(nullptr), decoder_(nullptr)
             {
                 FP_LOG_D(TAG, "Constructor llamado");
             }
+
             ~SimpleTransportManagerT()
             {
-                delete packetChannel_;
-                delete transport_;
-                delete encoder_;
-                delete decoder_;
+                FP_LOG_D(TAG, "Destructor llamado. Limpieza automática por shared_ptr.");
             }
 
             void start(DecoderFactory df, EncoderFactory ef, TransportFactory tf)
             {
                 FP_LOG_I(TAG, "Iniciando SimpleTransportManagerT...");
-                // Liberar recursos antiguos si existen
-                delete packetChannel_;
-                delete decoder_;
-                delete encoder_;
-                delete transport_;
 
-                // Ponerlos a nullptr por si algo falla
-                packetChannel_ = nullptr;
-                decoder_ = nullptr;
-                encoder_ = nullptr;
-                transport_ = nullptr;
+                // Liberar recursos antiguos si existen
+                packetChannel_.reset();
+                decoder_.reset();
+                encoder_.reset();
+                transport_.reset();
 
                 // Crear nuevos recursos
-
                 encoder_ = ef();
                 decoder_ = df();
                 transport_ = tf();
 
-                packetChannel_ = new ChannelT<PacketT>(transport_, encoder_, decoder_);
+                packetChannel_ = std::make_shared<ChannelT<PacketT>>(transport_, encoder_, decoder_);
 
                 if (onNewChannel)
                 {
                     FP_LOG_I(TAG, "Ejecutando callback onNewChannel.");
-                    onNewChannel(packetChannel_);
+                    onNewChannel(packetChannel_); // Pasa el shared_ptr
                 }
                 else
                 {
@@ -69,10 +70,10 @@ namespace FlightProxy
             }
 
         private:
-            ChannelT<PacketT> *packetChannel_;
-            Core::Transport::ITransport *transport_;
-            Core::Protocol::IEncoderT<PacketT> *encoder_;
-            Core::Protocol::IDecoderT<PacketT> *decoder_;
+            ChannelPtr packetChannel_;
+            TransportPtr transport_;
+            EncoderPtr encoder_;
+            DecoderPtr decoder_;
         };
     }
 }

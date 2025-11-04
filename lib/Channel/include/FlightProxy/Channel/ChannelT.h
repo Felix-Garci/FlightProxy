@@ -4,6 +4,7 @@
 #include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
+#include <memory> // <-- AÑADIR ESTO
 
 namespace FlightProxy
 {
@@ -13,10 +14,12 @@ namespace FlightProxy
         class ChannelT : public Core::Channel::IChannelT<PacketT>
         {
         public:
-            ChannelT(Core::Transport::ITransport *t, Core::Protocol::IEncoderT<PacketT> *e, Core::Protocol::IDecoderT<PacketT> *d)
-                : transport_(t), encoder_(e), decoder_(d)
+            ChannelT(std::shared_ptr<Core::Transport::ITransport> t,
+                     std::shared_ptr<Core::Protocol::IEncoderT<PacketT>> e,
+                     std::shared_ptr<Core::Protocol::IDecoderT<PacketT>> d)
+                : transport_(t), encoder_(e), decoder_(d) // Se copian los shared_ptr
             {
-                // 1. Flujo de ENTRADA: Transport -> Decoder
+
                 transport_->onData = [this](const uint8_t *data, size_t len)
                 {
                     if (decoder_)
@@ -25,15 +28,13 @@ namespace FlightProxy
                     }
                 };
 
-                // 2. Flujo de ENTRADA: Decoder -> Channel
-                decoder_->onPacket([this](const PacketT &packet) // <-- Llama a la función
-                                   {
+                decoder_->onPacket([this](const PacketT &packet)
+                                   { 
                     if (this->onPacket) 
                     { 
                         this->onPacket(packet);
                     } });
 
-                // 3. Callbacks de estado: Transport -> Channel
                 transport_->onOpen = [this]()
                 {
                     if (this->onOpen)
@@ -50,16 +51,19 @@ namespace FlightProxy
                     }
                 };
             }
+
             ~ChannelT() {}
 
             void open() override
             {
                 transport_->open();
             }
+
             void close() override
             {
                 transport_->close();
             }
+
             void sendPacket(const PacketT &packet) override
             {
                 std::vector<uint8_t> encodedData = encoder_->encode(packet);
@@ -67,9 +71,9 @@ namespace FlightProxy
             }
 
         private:
-            Core::Transport::ITransport *transport_;
-            Core::Protocol::IEncoderT<PacketT> *encoder_;
-            Core::Protocol::IDecoderT<PacketT> *decoder_;
+            std::shared_ptr<Core::Transport::ITransport> transport_;
+            std::shared_ptr<Core::Protocol::IEncoderT<PacketT>> encoder_;
+            std::shared_ptr<Core::Protocol::IDecoderT<PacketT>> decoder_;
         };
     }
 }
