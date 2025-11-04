@@ -16,11 +16,11 @@ namespace FlightProxy
             public:
                 virtual ~ITcpListener() = default;
 
+                using TransportCallback = std::function<void(std::shared_ptr<ITransport>)>;
+                TransportCallback onNewTransport;
+
                 virtual bool startListening(uint16_t port) = 0;
                 virtual void stopListening() = 0;
-
-                // Callbak con el file descriptor del soket creado al recivir a un nuevo cliente
-                std::function<void(int)> onChannelAccepted;
             };
 
         } // namespace Transport

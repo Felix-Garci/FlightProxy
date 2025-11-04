@@ -1,11 +1,10 @@
 #include "FlightProxy/Transport/ListenerTCP.h"
-#include "FlightProxy/Transport/SimpleTCP.h" // ¡Importante! El listener CREA el SimpleTCP
-#include "FlightProxy/Core/Utils/Logger.h"   // Usando tu logger
+#include "FlightProxy/Transport/SimpleTCP.h"
+#include "FlightProxy/Core/Utils/Logger.h"
+#include "FlightProxy/Core/Utils/MutexGuard.h"
 
-// Includes de lwIP y ESP-IDF
 #include "lwip/sockets.h"
-#include "esp_log.h"
-#include <memory> // Para std::make_shared
+#include <memory>
 
 namespace FlightProxy
 {
@@ -13,18 +12,46 @@ namespace FlightProxy
     {
         static const char *TAG = "ListenerTCP";
 
-        ListenerTCP::ListenerTCP()
+        ListenerTCP::ListenerTCP() : m_mutex(xSemaphoreCreateRecursiveMutex())
         {
         }
 
         ListenerTCP::~ListenerTCP()
         {
             stopListening();
+
+            // anadimos join de la tarea
+            int loops = 0;
+            while (true)
+            {
+                bool task_running;
+                {
+                    Core::Utils::MutexGuard lock(m_mutex);
+                    task_running = (m_listener_task_handle != NULL);
+                }
+
+                if (!task_running)
+                {
+                    break; // La tarea ha terminado
+                }
+
+                if (++loops > 100)
+                { // Timeout de 2 segundos
+                    FP_LOG_E(TAG, "Timeout esperando a listener_task! Fugando mutex.");
+                    return; // No borrar el mutex, la tarea sigue viva
+                }
+                vTaskDelay(pdMS_TO_TICKS(20));
+            }
+
+            FP_LOG_I(TAG, "Tarea de Listener terminada. Borrando mutex.");
+            vSemaphoreDelete(m_mutex);
         }
 
         bool ListenerTCP::startListening(uint16_t port)
         {
-            if (m_server_sock != -1)
+            Core::Utils::MutexGuard lock(m_mutex);
+
+            if (m_listener_task_handle != NULL)
             {
                 FP_LOG_W(TAG, "El listener ya estaba iniciado.");
                 return true;
@@ -34,19 +61,19 @@ namespace FlightProxy
             m_server_sock = ::socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
             if (m_server_sock < 0)
             {
-                FP_LOG_E(TAG, "Error al crear socket: %d", errno);
                 return false;
             }
 
-            // 2. Configurar la dirección (escuchar en todas las IPs)
+            // 2. Configurar dirección y reusar (SO_REUSEADDR)
             struct sockaddr_in dest_addr;
             dest_addr.sin_addr.s_addr = htonl(INADDR_ANY);
             dest_addr.sin_family = AF_INET;
             dest_addr.sin_port = htons(port);
+            int opt = 1;
+            setsockopt(m_server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
             // 3. Bind
-            int err = ::bind(m_server_sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-            if (err != 0)
+            if (::bind(m_server_sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) != 0)
             {
                 FP_LOG_E(TAG, "Error en bind: %d", errno);
                 ::close(m_server_sock);
@@ -55,8 +82,7 @@ namespace FlightProxy
             }
 
             // 4. Listen
-            err = ::listen(m_server_sock, 1); // Cola de 1 (simple)
-            if (err != 0)
+            if (::listen(m_server_sock, 2) != 0)
             {
                 FP_LOG_E(TAG, "Error en listen: %d", errno);
                 ::close(m_server_sock);
@@ -64,15 +90,14 @@ namespace FlightProxy
                 return false;
             }
 
-            // 5. Crear la tarea de FreeRTOS para el bucle accept()
+            // 5. Crear la tarea
             BaseType_t result = xTaskCreate(
-                listener_task_entry,    // Función estática
-                "tcp_listener_task",    // Nombre
-                4096,                   // Stack
-                this,                   // Argumento (puntero a esta instancia)
-                5,                      // Prioridad
-                &m_listener_task_handle // Handle
-            );
+                listenerTaskAdapter,
+                "tcp_listener_task",
+                4096,
+                this,
+                5,
+                &m_listener_task_handle);
 
             if (result != pdPASS)
             {
@@ -88,41 +113,66 @@ namespace FlightProxy
 
         void ListenerTCP::stopListening()
         {
-            if (m_server_sock == -1)
+            Core::Utils::MutexGuard lock(m_mutex);
+
+            if (m_listener_task_handle == NULL)
             {
-                // Ya está parado
-                return;
+                return; // Ya está parado
             }
 
             FP_LOG_I(TAG, "Parando listener...");
 
-            // Al cerrar el socket del servidor, el 'accept()' bloqueante
-            // en la tarea del listener fallará inmediatamente.
-            ::close(m_server_sock);
-            m_server_sock = -1;
-
-            // La tarea se limpiará y borrará a sí misma.
+            // Cerrar el socket del servidor. Esto hará que
+            // accept() en la otra tarea falle inmediatamente.
+            if (m_server_sock != -1)
+            {
+                ::close(m_server_sock);
+                m_server_sock = -1;
+            }
+            // La tarea se limpiará a sí misma. El destructor esperará.
         }
 
         // --- Tarea de FreeRTOS ---
-
-        void ListenerTCP::listener_task_entry(void *arg)
+        void ListenerTCP::listenerTaskAdapter(void *arg)
         {
             ListenerTCP *listener = static_cast<ListenerTCP *>(arg);
+
+            // La tarea se ejecuta...
+            listener->listenerTask();
+
+            // ... y cuando termina, se auto-elimina.
+            vTaskDelete(NULL);
+        }
+
+        void ListenerTCP::listenerTask()
+        {
             FP_LOG_I(TAG, "Tarea de Listener iniciada.");
+
+            // Hacemos una copia local del socket (bajo mutex)
+            // para no tener que bloquear el mutex en cada 'accept'
+            int server_sock_local;
+            {
+                Core::Utils::MutexGuard lock(m_mutex);
+                server_sock_local = m_server_sock;
+            }
 
             while (true)
             {
-                struct sockaddr_in source_addr; // Para guardar la IP del cliente
+                struct sockaddr_in source_addr;
                 socklen_t addr_len = sizeof(source_addr);
 
-                // accept() es BLOQUEANTE. La tarea se "dormirá" aquí.
-                int client_sock = ::accept(listener->m_server_sock, (struct sockaddr *)&source_addr, &addr_len);
+                int client_sock = ::accept(server_sock_local, (struct sockaddr *)&source_addr, &addr_len);
 
                 if (client_sock < 0)
                 {
-                    // Error. Si m_server_sock == -1, es un cierre normal.
-                    if (listener->m_server_sock == -1)
+                    // Error. Comprobamos si fue un cierre intencional
+                    bool was_stopped;
+                    {
+                        Core::Utils::MutexGuard lock(m_mutex);
+                        was_stopped = (m_server_sock == -1);
+                    }
+
+                    if (was_stopped)
                     {
                         FP_LOG_I(TAG, "accept() interrumpido por stopListening(). Saliendo.");
                     }
@@ -136,23 +186,28 @@ namespace FlightProxy
                 // --- ¡Cliente Aceptado! ---
                 FP_LOG_I(TAG, "Cliente conectado! Socket: %d", client_sock);
 
-                if (listener->onChannelAccepted)
+                // 1. Creamos el objeto SimpleTCP con el socket.
+                auto new_transport = std::make_shared<SimpleTCP>(client_sock);
+
+                // 2. Pasamos el shared_ptr<ITransport> completo
+                if (onNewTransport)
                 {
-                    // ¡Simplemente pasamos el socket!
-                    listener->onChannelAccepted(client_sock);
+                    onNewTransport(new_transport);
                 }
                 else
                 {
-                    FP_LOG_W(TAG, "Cliente aceptado (socket %d), pero no hay suscriptor en onChannelAccepted!", client_sock);
-                    // Si no hay suscriptor, debemos cerrar el socket o habrá una fuga
-                    ::close(client_sock);
+                    FP_LOG_W(TAG, "Cliente aceptado, pero no hay suscriptor en onNewTransport!");
+                    // Si no hay suscriptor, debemos cerrar el socket
+                    new_transport->close();
                 }
             }
 
             // --- Limpieza de la tarea ---
             FP_LOG_I(TAG, "Tarea de Listener terminada.");
-            listener->m_listener_task_handle = NULL;
-            vTaskDelete(NULL); // Borrarse a sí misma
+            {
+                Core::Utils::MutexGuard lock(m_mutex);
+                m_listener_task_handle = NULL; // <-- Avisamos al destructor
+            }
         }
 
     } // namespace Transport
