@@ -60,12 +60,6 @@ namespace FlightProxy
                     10,                // Prioridad
                     &eventTaskHandle_  // Handle de la tarea
                 );
-
-                // Llamar al callback onOpen si está definido
-                if (onOpen)
-                {
-                    onOpen();
-                }
             }
             else
             {
@@ -126,6 +120,10 @@ namespace FlightProxy
 
         void SimpleUart::eventTask()
         {
+            if (onOpen)
+            {
+                onOpen();
+            }
             uart_event_t event;
             for (;;) // Bucle infinito de la tarea
             {

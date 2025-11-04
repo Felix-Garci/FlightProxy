@@ -14,25 +14,15 @@ namespace FlightProxy
 
         SimpleTCP::SimpleTCP(int accepted_socket)
             : m_sock(accepted_socket), port_(0), eventTaskHandle_(nullptr),
-              mutex_(xSemaphoreCreateMutex()), taskworking_(xSemaphoreCreateBinary())
+              mutex_(xSemaphoreCreateRecursiveMutex())
         {
-            if (mutex_ == NULL || taskworking_ == NULL)
-            {
-                FP_LOG_E(TAG, "Error al crear mutex!");
-            }
-
             ip_[0] = '\0';
-            FP_LOG_I(TAG, "Canal (socket %d): Creado.", m_sock);
         }
+
         SimpleTCP::SimpleTCP(const char *ip, uint16_t port)
             : port_(port), m_sock(-1), eventTaskHandle_(nullptr),
-              mutex_(xSemaphoreCreateMutex()), taskworking_(xSemaphoreCreateBinary())
+              mutex_(xSemaphoreCreateRecursiveMutex())
         {
-            if (mutex_ == NULL || taskworking_ == NULL)
-            {
-                FP_LOG_E(TAG, "Error al crear mutex!");
-            }
-
             if (ip != nullptr)
             {
                 // Copia como máximo 15 caracteres para dejar espacio para el '\0'
@@ -56,23 +46,49 @@ namespace FlightProxy
                 close();
             }
 
+            // 2. Espera a que la eventTask termine
+            //    La tarea pondrá 'eventTaskHandle_' a NULL (dentro de un mutex)
+            //    cuando haya terminado su limpieza.
+            FP_LOG_I(TAG, "Destructor esperando a que la tarea finalice...");
+            int loop_count = 0;
+            bool task_alive = true;
+            while (task_alive)
+            {
+                // Comprobamos la variable *dentro* del mutex
+                {
+                    FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+                    if (eventTaskHandle_ == nullptr)
+                    {
+                        task_alive = false;
+                    }
+                } // Mutex se libera
+
+                if (task_alive)
+                {
+                    vTaskDelay(pdMS_TO_TICKS(20));
+                    if (++loop_count > 100) // Timeout de 2 segundos
+                    {
+                        FP_LOG_E(TAG, "Timeout esperando a eventTask! Fugando mutex.");
+                        // La tarea sigue viva y podría usar el mutex
+                        // NO PODEMOS borrar el mutex, o crasheará.
+                        return;
+                    }
+                }
+            }
+
+            // 3. Ahora que la tarea está muerta, podemos borrar el mutex
+            FP_LOG_I(TAG, "eventTask terminada. Limpiando mutex.");
             if (mutex_)
             {
                 vSemaphoreDelete(mutex_);
                 mutex_ = nullptr;
             }
-            if (taskworking_)
-            {
-                vSemaphoreDelete(taskworking_);
-                taskworking_ = nullptr;
-            }
-
-            FP_LOG_I(TAG, "Canal (socket %d): Destruido.", m_sock);
+            FP_LOG_I(TAG, "Canal destruido.");
         }
 
         void SimpleTCP::open()
         {
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
 
             if (eventTaskHandle_ != nullptr)
             {
@@ -131,7 +147,6 @@ namespace FlightProxy
             }
 
             // --- Lógica común: Iniciar la tarea de lectura ---
-            // La tarea misma es la que debe llamar a 'onOpen()'
             BaseType_t result = xTaskCreate(
                 eventTaskAdapter, // La función adaptadora estática
                 "tcp_event_task", // Nombre de la tarea
@@ -156,21 +171,23 @@ namespace FlightProxy
 
         void SimpleTCP::close()
         {
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
             if (m_sock == -1)
             {
                 return;
             }
-            FP_LOG_I(TAG, "Canal (socket %d): Solicitando cierre...", m_sock);
-            ::shutdown(m_sock, SHUT_RDWR); // Le dice al ::recv que ya esta. pero no elimina todavia el soket
 
-            // Close Bloqueante para esperar a que de verdad se ha cerrado
-            xSemaphoreTake(taskworking_, portMAX_DELAY);
+            // Esta es la forma correcta de cierre asíncrono:
+            // 1. Marcamos el socket para cierre.
+            // 2. La eventTask que está bloqueada en ::recv() se despertará con error.
+            // 3. La eventTask se encargará de la limpieza (::close, onClose, etc).
+            FP_LOG_I(TAG, "Canal (socket %d): Solicitando cierre (shutdown)...", m_sock);
+            ::shutdown(m_sock, SHUT_RDWR);
         }
 
         void SimpleTCP::send(const uint8_t *data, size_t len)
         {
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
 
             if (m_sock == -1)
             {
@@ -190,6 +207,10 @@ namespace FlightProxy
                 if (sent_now < 0)
                 {
                     FP_LOG_E(TAG, "Canal (socket %d): Error en send(): %d. Abortando envío.", m_sock, errno);
+
+                    // Si el envío falla, es un error grave.
+                    // Cerramos la conexión para notificar a la tarea.
+                    ::shutdown(m_sock, SHUT_RDWR);
                     return;
                 }
                 total_sent += sent_now;
@@ -198,11 +219,15 @@ namespace FlightProxy
 
         void SimpleTCP::eventTaskAdapter(void *arg)
         {
-            SimpleTCP *transport = static_cast<SimpleTCP *>(arg);
+            SimpleTCP *instance = static_cast<SimpleTCP *>(arg);
+            instance->eventTask();
+        }
 
-            if (transport->onOpen)
+        void SimpleTCP::eventTask()
+        {
+            if (onOpen)
             {
-                transport->onOpen();
+                onOpen();
             }
 
             std::vector<uint8_t> rx_buffer(1024);
@@ -212,13 +237,13 @@ namespace FlightProxy
             // 5. Bucle de lectura
             while (true)
             {
-                int len = ::recv(transport->m_sock, rx_buffer.data(), rx_buffer.size(), 0);
+                int len = ::recv(m_sock, rx_buffer.data(), rx_buffer.size(), 0);
 
                 if (len > 0)
                 {
-                    if (transport->onData)
+                    if (onData)
                     {
-                        transport->onData(rx_buffer.data(), len);
+                        onData(rx_buffer.data(), len);
                     }
                 }
                 else if (len == 0)
@@ -234,16 +259,41 @@ namespace FlightProxy
                     break;
                 }
             }
-            ::close(transport->m_sock);
-            transport->m_sock = -1;
-            transport->eventTaskHandle_ = nullptr;
-            if (transport->onClose)
+
+            // --- Limpieza segura de la Tarea ---
+
+            int sock_to_close = -1;
+
+            // 1. Modificamos el estado del objeto DENTRO del mutex
             {
-                transport->onClose();
+                FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+
+                // Comprobamos si el socket ya fue cerrado (p.ej. por open() fallido)
+                if (m_sock != -1)
+                {
+                    sock_to_close = m_sock;
+                    m_sock = -1;
+                }
+                // Poner esto a NULL le dice al destructor que hemos terminado.
+                eventTaskHandle_ = nullptr;
+            } // El mutex se libera aquí
+
+            // 2. Limpiamos los recursos (socket) FUERA del mutex
+            if (sock_to_close != -1)
+            {
+                ::close(sock_to_close);
             }
+
+            // 3. Llamamos al callback (FUERA del mutex)
+            //    Esto es más seguro, ya que evita deadlocks si 'onClose'
+            //    intenta llamar de nuevo a 'open()' o 'close()'.
+            if (onClose)
+            {
+                onClose();
+            }
+
             FP_LOG_I(TAG, "Tarea terminada.");
-            xSemaphoreGive(transport->taskworking_);
-            vTaskDelete(NULL);
+            vTaskDelete(NULL); // La tarea se autodestruye
         }
 
     } // namespace Transport
