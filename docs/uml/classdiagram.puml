@@ -37,16 +37,20 @@ interface ITransport{
 }
 
 class SimpleTCP{
-    -clientSocket_: netconn *
+    -clientSocket_: int
+    -ip_: const char*
+    -port_: uint16_t
+
     -taskHandle_: TaskHandle_t
     
     ' Métodos
-    +SimpleTCP(clientSocket: netconn *)
+    +SimpleTCP(clientSocket: int)
+    +SimpleTCP(ip:const char*,port:uint16_t)
     +~SimpleTCP()
+
     +open(): void
     +close(): void
     +send(data:const uint8_t*,len:size_t): void
-    -eventTask(): void
     -eventTaskAdapter(arg:void*): void
 }
 SimpleTCP <|.d. ITransport
@@ -77,11 +81,23 @@ interface IPacketChannelT<PacketT>{
     {field}+onOpen: std::function<void()>
     {field}+onClose: std::function<void()>
 
+    +transport_:ITransport*
+    +encoder_:IEncoderT<PacketT>*
+    +decoder_:IDecoderT<PacketT>*
+
+
     ' Métodos
     +~IPacketChannelT()
     +open(): void
     +close(): void
     +sendPacket(packet:const PacketT&): void
+}
+
+class SimpleTransportManagerT<PacketT>{
+    {field}+onNewChannel: std::function<void(IPacketChannelT<PacketT> *)>
+    +SimpleTransportManagerT()
+    +~SimpleTransportManagerT()
+    +start(df: std::function<IDecoderT<PacketT>*()>, ef: std::function<IEncoderT<PacketT>*()>,tf: std::function<ITransport *()>;): void
 }
 
 class TcpTransportManagerT<PacketT>{

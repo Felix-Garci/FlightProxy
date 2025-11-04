@@ -25,9 +25,10 @@ namespace FlightProxy
             FP_LOG_I(TAG, "Canal (socket %d): Creado.", m_sock);
         }
         SimpleTCP::SimpleTCP(const char *ip, uint16_t port)
-            : port_(port), m_sock(-1), eventTaskHandle_(nullptr), mutex_(xSemaphoreCreateMutex())
+            : port_(port), m_sock(-1), eventTaskHandle_(nullptr),
+              mutex_(xSemaphoreCreateMutex()), taskworking_(xSemaphoreCreateBinary())
         {
-            if (mutex_ == NULL)
+            if (mutex_ == NULL || taskworking_ == NULL)
             {
                 FP_LOG_E(TAG, "Error al crear mutex!");
             }
@@ -144,12 +145,18 @@ namespace FlightProxy
             {
                 eventTaskHandle_ = nullptr;
                 FP_LOG_E(TAG, "Error al crear la tarea de eventos TCP");
+
+                if (m_sock != -1)
+                {
+                    ::close(m_sock);
+                    m_sock = -1;
+                }
             }
         }
 
         void SimpleTCP::close()
         {
-            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
             if (m_sock == -1)
             {
                 return;
@@ -158,7 +165,7 @@ namespace FlightProxy
             ::shutdown(m_sock, SHUT_RDWR); // Le dice al ::recv que ya esta. pero no elimina todavia el soket
 
             // Close Bloqueante para esperar a que de verdad se ha cerrado
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(taskworking_);
+            xSemaphoreTake(taskworking_, portMAX_DELAY);
         }
 
         void SimpleTCP::send(const uint8_t *data, size_t len)
@@ -198,9 +205,6 @@ namespace FlightProxy
                 transport->onOpen();
             }
 
-            // Ocupamos el semaforo para que desde el close sepamos cuando esto esta terminado ya
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(transport->taskworking_);
-
             std::vector<uint8_t> rx_buffer(1024);
 
             FP_LOG_I(TAG, "Tarea Iniciada.");
@@ -238,7 +242,8 @@ namespace FlightProxy
                 transport->onClose();
             }
             FP_LOG_I(TAG, "Tarea terminada.");
-            // Al no poner vTaskDelete(NULL); freertos se encarga de eliminar los objetos creados en este contexto y de eliminar la clase
+            xSemaphoreGive(transport->taskworking_);
+            vTaskDelete(NULL);
         }
 
     } // namespace Transport
