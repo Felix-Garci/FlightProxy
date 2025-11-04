@@ -122,7 +122,7 @@ namespace FlightProxy
                 // 5. Añadir a la lista usando tu MutexGuard
                 {
                     // Usamos tu MutexGuard personalizado
-                    FlightProxy::Core::Utils::MutexGuard lock(m_list_mutex);
+                    Core::Utils::MutexGuard lock(m_list_mutex);
                     m_channels.push_back(managed);
                 }
 
@@ -146,7 +146,7 @@ namespace FlightProxy
                 // 1. Quitar de la lista usando tu MutexGuard
                 {
                     // Usamos tu MutexGuard personalizado
-                    FlightProxy::Core::Utils::MutexGuard lock(m_list_mutex);
+                    Core::Utils::MutexGuard lock(m_list_mutex);
                     m_channels.remove(channelToRemove);
                 }
 

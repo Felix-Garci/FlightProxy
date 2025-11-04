@@ -56,7 +56,7 @@ namespace FlightProxy
             {
                 // Comprobamos la variable *dentro* del mutex
                 {
-                    FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+                    Core::Utils::MutexGuard lock(mutex_);
                     if (eventTaskHandle_ == nullptr)
                     {
                         task_alive = false;
@@ -88,7 +88,7 @@ namespace FlightProxy
 
         void SimpleTCP::open()
         {
-            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+            Core::Utils::MutexGuard lock(mutex_);
 
             if (eventTaskHandle_ != nullptr)
             {
@@ -171,7 +171,7 @@ namespace FlightProxy
 
         void SimpleTCP::close()
         {
-            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+            Core::Utils::MutexGuard lock(mutex_);
             if (m_sock == -1)
             {
                 return;
@@ -187,7 +187,7 @@ namespace FlightProxy
 
         void SimpleTCP::send(const uint8_t *data, size_t len)
         {
-            FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+            Core::Utils::MutexGuard lock(mutex_);
 
             if (m_sock == -1)
             {
@@ -266,7 +266,7 @@ namespace FlightProxy
 
             // 1. Modificamos el estado del objeto DENTRO del mutex
             {
-                FlightProxy::Core::Utils::MutexGuard lock(mutex_);
+                Core::Utils::MutexGuard lock(mutex_);
 
                 // Comprobamos si el socket ya fue cerrado (p.ej. por open() fallido)
                 if (m_sock != -1)

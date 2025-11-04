@@ -79,7 +79,7 @@ namespace FlightProxy
             TaskHandle_t taskToKill = nullptr;
 
             {
-                FlightProxy::Core::Utils::MutexGuard MutexGuard(remoteMutex_);
+                Core::Utils::MutexGuard MutexGuard(remoteMutex_);
 
                 socketToKill = udpSocket_;
                 taskToKill = eventTaskHandle_;
@@ -110,7 +110,7 @@ namespace FlightProxy
             netconn *sock;
 
             { // --- Sección Crítica ---
-                FlightProxy::Core::Utils::MutexGuard MutexGuard(remoteMutex_);
+                Core::Utils::MutexGuard MutexGuard(remoteMutex_);
                 // Copiar las variables compartidas a locales
                 destIP = remoteIP_;
                 destPort = remotePort_;
@@ -166,7 +166,7 @@ namespace FlightProxy
             netconn *sock;
 
             {
-                FlightProxy::Core::Utils::MutexGuard MutexGuard(remoteMutex_);
+                Core::Utils::MutexGuard MutexGuard(remoteMutex_);
                 sock = udpSocket_;
             }
 
@@ -184,7 +184,7 @@ namespace FlightProxy
 
                 // --- Sección Crítica: Actualizar IP/Puerto del remitente ---
                 {
-                    FlightProxy::Core::Utils::MutexGuard MutexGuard(remoteMutex_);
+                    Core::Utils::MutexGuard MutexGuard(remoteMutex_);
                     // Guardar quién nos envió este paquete
                     remoteIP_ = *netbuf_fromaddr(buf);
                     remotePort_ = netbuf_fromport(buf);
@@ -234,7 +234,7 @@ namespace FlightProxy
                 if (instance->remoteMutex_ != nullptr)
                 {
                     {
-                        FlightProxy::Core::Utils::MutexGuard MutexGuard(instance->remoteMutex_);
+                        Core::Utils::MutexGuard MutexGuard(instance->remoteMutex_);
                         instance->eventTaskHandle_ = nullptr;
                     }
                 }

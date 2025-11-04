@@ -26,7 +26,7 @@ namespace FlightProxy
 
         void SimpleUart::open()
         {
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+            Core::Utils::MutexGuard MutexGuard(mutex_);
 
             // 1. Configurar la UART
             uart_config_t uart_config = {
@@ -69,7 +69,7 @@ namespace FlightProxy
 
         void SimpleUart::close()
         {
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+            Core::Utils::MutexGuard MutexGuard(mutex_);
 
             // 1. Eliminar la tarea de eventos si existe
             if (eventTaskHandle_ != nullptr)
@@ -98,7 +98,7 @@ namespace FlightProxy
 
         void SimpleUart::send(const uint8_t *data, size_t len)
         {
-            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+            Core::Utils::MutexGuard MutexGuard(mutex_);
 
             if (data == nullptr || len == 0)
             {
@@ -130,7 +130,7 @@ namespace FlightProxy
                 // Esperar por un evento en la cola
                 if (xQueueReceive(queue_, (void *)&event, portMAX_DELAY))
                 {
-                    FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+                    Core::Utils::MutexGuard MutexGuard(mutex_);
 
                     if (rxBuffer_ == nullptr)
                         break; // por si close() ha liberado los recursos mientras esperabamos
