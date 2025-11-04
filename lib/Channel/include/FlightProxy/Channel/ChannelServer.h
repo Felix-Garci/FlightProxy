@@ -45,7 +45,7 @@ namespace FlightProxy
             ChannelCallback onNewChannel;
 
             ChannelServer(DecoderFactory df, EncoderFactory ef)
-                : m_decoderFactory(df), m_encoderFactory(ef)
+                : m_decoderFactory(df), m_encoderFactory(ef), m_mutex(xSemaphoreCreateMutex())
             {
                 if (!m_decoderFactory || !m_encoderFactory)
                 {
@@ -56,6 +56,9 @@ namespace FlightProxy
             ~ChannelServer()
             {
                 stop();
+
+                if (m_mutex)
+                    vSemaphoreDelete(m_mutex);
             }
 
             bool start(uint16_t port)

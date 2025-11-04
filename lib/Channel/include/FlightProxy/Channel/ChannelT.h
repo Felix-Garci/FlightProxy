@@ -4,7 +4,7 @@
 #include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
-#include <memory> // <-- AÑADIR ESTO
+#include <memory>
 
 namespace FlightProxy
 {
