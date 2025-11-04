@@ -9,17 +9,25 @@ namespace FlightProxy
 
         SimpleUart::SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate)
             : port_(port), txpin_(txpin), rxpin_(rxpin), baudrate_(baudrate), queue_(nullptr),
-              eventTaskHandle_(nullptr), rxBuffer_(nullptr), rxbuffersize_(1024)
+              eventTaskHandle_(nullptr), rxBuffer_(nullptr), rxbuffersize_(1024),
+              mutex_(xSemaphoreCreateRecursiveMutex())
         {
         }
 
         SimpleUart::~SimpleUart()
         {
             close();
+            if (mutex_ != NULL)
+            {
+                vSemaphoreDelete(mutex_);
+                mutex_ = NULL;
+            }
         }
 
         void SimpleUart::open()
         {
+            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+
             // 1. Configurar la UART
             uart_config_t uart_config = {
                 .baud_rate = (int)baudrate_,
@@ -67,6 +75,8 @@ namespace FlightProxy
 
         void SimpleUart::close()
         {
+            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+
             // 1. Eliminar la tarea de eventos si existe
             if (eventTaskHandle_ != nullptr)
             {
@@ -94,12 +104,24 @@ namespace FlightProxy
 
         void SimpleUart::send(const uint8_t *data, size_t len)
         {
+            FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+
             if (data == nullptr || len == 0)
             {
                 return;
             }
             // Escribir datos en la UART
             uart_write_bytes(port_, (const char *)data, len);
+        }
+
+        void SimpleUart::eventTaskAdapter(void *arg)
+        {
+            // 1. Obtener la instancia
+            SimpleUart *instance = static_cast<SimpleUart *>(arg);
+
+            // 2. Llamar a la función miembro que contiene el bucle
+            // El objeto se mantiene vivo por el shared_ptr original
+            instance->eventTask();
         }
 
         void SimpleUart::eventTask()
@@ -110,6 +132,11 @@ namespace FlightProxy
                 // Esperar por un evento en la cola
                 if (xQueueReceive(queue_, (void *)&event, portMAX_DELAY))
                 {
+                    FlightProxy::Core::Utils::MutexGuard MutexGuard(mutex_);
+
+                    if (rxBuffer_ == nullptr)
+                        break; // por si close() ha liberado los recursos mientras esperabamos
+
                     switch (event.type)
                     {
                     // --- Evento: Datos recibidos ---
@@ -166,15 +193,17 @@ namespace FlightProxy
                         break;
                     }
                 }
-            }
-
-            // La tarea nunca debería salir de este bucle, pero si lo hace:
+                else
+                {
+                    // xQueueReceive falló (probablemente porque se llamó a close()
+                    // y uart_driver_delete() liberó la cola).
+                    // Salir del bucle para que la tarea termine.
+                    FP_LOG_I(TAG, "UART event task stopping.");
+                    break;
+                }
+            } // FIN del for(;;)
+            eventTaskHandle_ = nullptr;
             vTaskDelete(NULL);
-        }
-
-        void SimpleUart::eventTaskAdapter(void *arg)
-        {
-            static_cast<SimpleUart *>(arg)->eventTask();
         }
     }
 }

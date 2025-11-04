@@ -1,15 +1,19 @@
 #pragma once
 #include "FlightProxy/Core/Transport/ITransport.h"
+#include "FlightProxy/Core/Utils/MutexGuard.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "freertos/task.h"
 
+#include <memory>
+
 namespace FlightProxy
 {
     namespace Transport
     {
-        class SimpleUart : public FlightProxy::Core::Transport::ITransport
+        class SimpleUart : public FlightProxy::Core::Transport::ITransport,
+                           public std::enable_shared_from_this<SimpleUart>
         {
         public:
             SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate);
@@ -24,10 +28,13 @@ namespace FlightProxy
             gpio_num_t txpin_;
             gpio_num_t rxpin_;
             uint32_t baudrate_;
-            QueueHandle_t queue_;
+
             TaskHandle_t eventTaskHandle_;
+            QueueHandle_t queue_;
             uint8_t *rxBuffer_;
             size_t rxbuffersize_;
+            SemaphoreHandle_t mutex_;
+
             void eventTask();
             static void eventTaskAdapter(void *arg);
         };
