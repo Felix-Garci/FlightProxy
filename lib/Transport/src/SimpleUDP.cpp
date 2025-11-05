@@ -1,244 +1,268 @@
-#include "FlightProxy/Transport/SimpleUDP.h"
+#include "FlightProxy/Transport/SimpleUDP.h" // Asegúrate de que la ruta sea correcta
 #include "FlightProxy/Core/Utils/Logger.h"
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
+#include "lwip/sockets.h"
+#include <vector>
+#include <cstring> // Para memset
 
 namespace FlightProxy
 {
     namespace Transport
     {
-        static const char *TAG = "SimpleUDP"; // Tag for logging simple UDP
+        static const char *TAG = "SimpleUDP";
 
-        SimpleUDP::SimpleUDP(uint16_t localPort)
-            : udpSocket_(nullptr), eventTaskHandle_(nullptr), localPort_(localPort),
-              remotePort_(0), remoteMutex_(xSemaphoreCreateMutex())
+        SimpleUDP::SimpleUDP(uint16_t port)
+            : m_port(port),
+              m_last_sender_len(sizeof(m_last_sender_addr)),
+              m_has_last_sender(false),
+              eventTaskHandle_(nullptr),
+              mutex_(xSemaphoreCreateRecursiveMutex())
         {
-            ip_addr_set_zero(&remoteIP_);
+            memset(&m_last_sender_addr, 0, sizeof(m_last_sender_addr));
+            FP_LOG_I(TAG, "Canal UDP creado para el puerto %u", m_port);
         }
 
         SimpleUDP::~SimpleUDP()
         {
-            close();
-            if (remoteMutex_)
+            FP_LOG_I(TAG, "eventTask terminada. Limpiando mutex.");
+            if (mutex_)
             {
-                vSemaphoreDelete(remoteMutex_);
-                remoteMutex_ = nullptr;
+                vSemaphoreDelete(mutex_);
+                mutex_ = nullptr;
             }
+            FP_LOG_I(TAG, "Canal destruido.");
         }
 
         void SimpleUDP::open()
         {
-            // Evitar doble apertura
-            if (udpSocket_ != nullptr || remoteMutex_ == nullptr)
+            Core::Utils::MutexGuard lock(mutex_);
+
+            if (eventTaskHandle_ != nullptr)
             {
+                FP_LOG_W(TAG, "Tarea de eventos ya iniciada.");
                 return;
             }
 
-            // 1. Crear un nuevo socket UDP
-            udpSocket_ = netconn_new(NETCONN_UDP);
-            if (udpSocket_ == nullptr)
+            // --- Lógica de "conexión" (bind) para MODO SERVIDOR UDP ---
+            if (m_sock == -1)
             {
-                FP_LOG_E(TAG, "Failed to create UDP socket");
+                FP_LOG_I(TAG, "Modo servidor UDP: Intentando escuchar en el puerto %u...", m_port);
+
+                // 1. Crear el socket UDP
+                m_sock = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+                if (m_sock < 0)
+                {
+                    FP_LOG_E(TAG, "Error al crear socket UDP: %d", errno);
+                    return;
+                }
+
+                // 2. Configurar la dirección para bind (escuchar en CUALQUIER IP)
+                struct sockaddr_in bind_addr;
+                memset(&bind_addr, 0, sizeof(bind_addr));
+                bind_addr.sin_family = AF_INET;
+                bind_addr.sin_port = htons(m_port);
+                bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+                // 3. Bind
+                if (::bind(m_sock, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) != 0)
+                {
+                    FP_LOG_E(TAG, "Error en bind al puerto %u: %d", m_port, errno);
+                    ::close(m_sock); // Limpiar el socket fallido
+                    m_sock = -1;
+                    return;
+                }
+                FP_LOG_I(TAG, "Escuchando con éxito en UDP:%u! Socket: %d", m_port, m_sock);
+            }
+
+            // --- Lógica común: Iniciar la tarea de lectura (COPIADA DE TCP) ---
+            std::shared_ptr<SimpleUDP> self_keep_alive = weak_from_this().lock();
+            if (!self_keep_alive)
+            {
+                FP_LOG_E(TAG, "open() falló: el objeto está siendo destruido (no se pudo obtener shared_ptr)");
+                if (m_sock != -1)
+                {
+                    ::close(m_sock);
+                    m_sock = -1;
+                }
                 return;
             }
 
-            // 2. Enlazar (bind) el socket al puerto local y a cualquier IP
-            err_t err = netconn_bind(udpSocket_, IP_ADDR_ANY, localPort_);
-            if (err != ERR_OK)
-            {
-                FP_LOG_E(TAG, "Failed to bind UDP socket to port %u: %d", localPort_, err);
-                netconn_delete(udpSocket_);
-                udpSocket_ = nullptr;
-                return;
-            }
+            auto *task_arg = new std::shared_ptr<SimpleUDP>(std::move(self_keep_alive));
 
-            // 3. Crear la tarea de FreeRTOS para recibir datos
             BaseType_t result = xTaskCreate(
-                eventTaskAdapter, // Función adaptadora estática
+                eventTaskAdapter,
                 "udp_event_task", // Nombre de la tarea
-                4096,             // Tamaño de la pila
-                this,             // Puntero 'this' como argumento
+                4096,             // Stack
+                task_arg,         // Puntero shared que esta en el heap
                 5,                // Prioridad
                 &eventTaskHandle_ // Handle de la tarea
             );
 
             if (result != pdPASS)
             {
-                // Error: no se pudo crear la tarea
-                netconn_delete(udpSocket_);
-                udpSocket_ = nullptr;
                 eventTaskHandle_ = nullptr;
+                FP_LOG_E(TAG, "Error al crear la tarea de eventos UDP");
+                delete task_arg; // Liveramos memoria pq el task no la va a liberar
+                if (m_sock != -1)
+                {
+                    ::close(m_sock);
+                    m_sock = -1;
+                }
             }
         }
 
         void SimpleUDP::close()
         {
-            netconn *socketToKill = nullptr;
-            {
-                Core::Utils::MutexGuard MutexGuard(remoteMutex_);
-
-                socketToKill = udpSocket_;
-
-                // Poner a nulo para evitar uso concurrente
-                udpSocket_ = nullptr;
-                eventTaskHandle_ = nullptr;
-            }
-            // 2. Eliminar el socket lwIP.
-            // ESTO ES IMPORTANTE: netconn_delete() desbloqueará
-            // a la tarea que esté en netconn_recv(), haciendo que falle
-            // y la tarea termine limpiamente.
-            if (socketToKill != nullptr)
-            {
-                netconn_delete(socketToKill);
-            }
-        }
-
-        void SimpleUDP::send(const uint8_t *data, size_t size)
-        {
-            if (data == nullptr || size == 0 || remoteMutex_ == nullptr)
+            Core::Utils::MutexGuard lock(mutex_);
+            if (m_sock == -1)
             {
                 return;
             }
 
-            ip_addr_t destIP;
-            uint16_t destPort;
-            netconn *sock;
+            // Usamos shutdown(SHUT_RD) para despertar a recvfrom()
+            // Esto es más limpio que cerrar el socket desde este hilo.
+            // La eventTask se encargará de llamar a ::close().
+            FP_LOG_I(TAG, "Canal (socket %d): Solicitando cierre (shutdown)...", m_sock);
+            ::shutdown(m_sock, SHUT_RD); // SHUT_RD es suficiente para recvfrom
+        }
 
-            { // --- Sección Crítica ---
-                Core::Utils::MutexGuard MutexGuard(remoteMutex_);
-                // Copiar las variables compartidas a locales
-                destIP = remoteIP_;
-                destPort = remotePort_;
-                sock = udpSocket_;
-            } // --- Fin Sección Crítica ---
+        void SimpleUDP::send(const uint8_t *data, size_t len)
+        {
+            Core::Utils::MutexGuard lock(mutex_);
 
-            // Validar que tenemos un destino y un socket
-            if (sock == nullptr || destPort == 0 || ip_addr_isany(&destIP))
+            if (m_sock == -1)
             {
-                // No tenemos un destino (nadie nos ha enviado nada)
-                // o el socket está cerrado.
+                FP_LOG_W(TAG, "Canal: Intento de envío en socket cerrado.");
+                return;
+            }
+            if (!m_has_last_sender)
+            {
+                FP_LOG_W(TAG, "Canal: Intento de envío sin un destinatario (aún no se ha recibido nada).");
+                return;
+            }
+            if (data == nullptr || len == 0)
+            {
+                FP_LOG_W(TAG, "Canal: Intento de envío datos vacios.");
                 return;
             }
 
-            // 1. Crear un netbuf (el contenedor de lwIP para paquetes)
-            struct netbuf *buf = netbuf_new();
-            if (buf == nullptr)
+            // Enviar al último remitente conocido
+            int sent_now = ::sendto(m_sock, data, len, 0,
+                                    (struct sockaddr *)&m_last_sender_addr,
+                                    m_last_sender_len);
+
+            if (sent_now < 0)
             {
-                FP_LOG_E(TAG, "Failed to create netbuf for UDP send");
-                return; // Error de memoria
-            }
-
-            // 2. Asignar memoria dentro del netbuf
-            void *ptr = netbuf_alloc(buf, size);
-            if (ptr == nullptr)
-            {
-                netbuf_delete(buf); // Limpiar
-                return;             // Error de memoria
-            }
-
-            // 3. Copiar nuestros datos al netbuf
-            memcpy(ptr, data, size);
-
-            // 4. Enviar el netbuf al destino
-            err_t err = netconn_sendto(sock, buf, &destIP, destPort);
-
-            // 5. Liberar el netbuf
-            netbuf_delete(buf);
-
-            if (err != ERR_OK)
-            {
-                FP_LOG_E(TAG, "Failed to send UDP data: %d", err);
+                FP_LOG_E(TAG, "Canal (socket %d): Error en sendto(): %d.", m_sock, errno);
+                // Para UDP, un error de envío no es (normalmente) fatal para la conexión.
+                // No llamamos a shutdown() aquí, a diferencia de TCP.
             }
         }
 
-        void SimpleUDP::eventTask()
+        // --- Tareas (Adaptador y Tarea de Eventos) ---
+
+        void SimpleUDP::eventTaskAdapter(void *arg)
         {
-            struct netbuf *buf;
-            err_t err;
+            // 1. Recibimos el puntero al shared_ptr que está en el heap
+            auto *self_ptr_on_heap = static_cast<std::shared_ptr<SimpleUDP> *>(arg);
 
-            // Obtener el socket de forma segura (aunque no debería cambiar
-            // si no llamamos a close())
-            netconn *sock;
+            // 2. Obtenemos el puntero 'this'
+            SimpleUDP *instance = self_ptr_on_heap->get();
 
+            // 3. Llamamos a la tarea, pasando el puntero del heap
+            instance->eventTask(self_ptr_on_heap);
+        }
+
+        void SimpleUDP::eventTask(std::shared_ptr<SimpleUDP> *self_ptr_on_heap)
+        {
+            // 1. Tomamos posesión del shared_ptr
+            std::shared_ptr<SimpleUDP> self = std::move(*self_ptr_on_heap);
+
+            // 2. Borramos el puntero del heap
+            delete self_ptr_on_heap;
+
+            // 'self' mantendrá el objeto vivo
+            if (onOpen)
             {
-                Core::Utils::MutexGuard MutexGuard(remoteMutex_);
-                sock = udpSocket_;
+                onOpen();
             }
 
-            if (sock == nullptr)
+            // Un buffer más grande es apropiado para UDP (cerca de MTU)
+            std::vector<uint8_t> rx_buffer(1500);
+
+            FP_LOG_I(TAG, "Tarea Iniciada.");
+
+            // Bucle de lectura
+            while (true)
             {
-                return; // El socket no se creó bien, salir de la tarea
-            }
+                // Preparar para recibir la dirección del remitente
+                struct sockaddr_in sender_addr;
+                socklen_t sender_len = sizeof(sender_addr);
 
-            // Bucle principal: esperar datos
-            // netconn_recv se bloqueará indefinidamente hasta que llegue un paquete
-            // o hasta que netconn_delete(sock) sea llamado desde close().
-            while ((err = netconn_recv(sock, &buf)) == ERR_OK)
-            {
-                // --- Datos recibidos ---
+                int len = ::recvfrom(m_sock, rx_buffer.data(), rx_buffer.size(), 0,
+                                     (struct sockaddr *)&sender_addr, &sender_len);
 
-                // --- Sección Crítica: Actualizar IP/Puerto del remitente ---
+                if (len > 0)
                 {
-                    Core::Utils::MutexGuard MutexGuard(remoteMutex_);
-                    // Guardar quién nos envió este paquete
-                    remoteIP_ = *netbuf_fromaddr(buf);
-                    remotePort_ = netbuf_fromport(buf);
-                }
-                // --- Fin Sección Crítica ---
-
-                // Procesar los datos del buffer
-                do
-                {
-                    void *data;
-                    u16_t len;
-                    netbuf_data(buf, &data, &len);
+                    // Guardar el remitente para futuros 'send()'
+                    {
+                        Core::Utils::MutexGuard lock(mutex_);
+                        m_last_sender_addr = sender_addr;
+                        m_last_sender_len = sender_len;
+                        m_has_last_sender = true;
+                    }
 
                     if (onData)
                     {
-                        onData(static_cast<const uint8_t *>(data), len);
+                        // Opcional: Loguear de quién recibimos
+                        char sender_ip[INET_ADDRSTRLEN];
+                        inet_ntop(AF_INET, &sender_addr.sin_addr, sender_ip, INET_ADDRSTRLEN);
+                        FP_LOG_I(TAG, "Recibido %d bytes de %s:%u", len, sender_ip, ntohs(sender_addr.sin_port));
+                        FP_LOG_I(TAG, "Contenido: %.*s", len, rx_buffer.data());
+                        onData(rx_buffer.data(), len);
                     }
-
-                } while (netbuf_next(buf) >= 0);
-
-                // Liberar el buffer de lwIP
-                netbuf_delete(buf);
+                }
+                else if (len == 0)
+                {
+                    // Esto no debería ocurrir con UDP (sockets DGRAM)
+                    FP_LOG_I(TAG, "recvfrom devolvió 0. Raro.");
+                }
+                else
+                {
+                    // Error (len < 0)
+                    // Ocurre si 'close()' llamó a 'shutdown()'.
+                    FP_LOG_E(TAG, "Error en recvfrom(): %d. Cerrando tarea.", errno);
+                    break;
+                }
             }
 
-            // --- Tarea terminando ---
-            // Si salimos del bucle, err != ERR_OK.
-            // Esto significa que netconn_delete() fue llamado desde close()
-            // o hubo un error fatal. La tarea debe terminar.
+            // --- Limpieza segura de la Tarea ---
+            int sock_to_close = -1;
 
-            // La función adaptadora (eventTaskAdapter) se encargará
-            // de poner taskHandle_ a NULL y de llamar a vTaskDelete.
+            {
+                Core::Utils::MutexGuard lock(mutex_);
+                if (m_sock != -1)
+                {
+                    sock_to_close = m_sock;
+                    m_sock = -1;
+                }
+                eventTaskHandle_ = nullptr;
+                m_has_last_sender = false; // Invalidar el remitente
+            }
+
+            if (sock_to_close != -1)
+            {
+                ::close(sock_to_close);
+            }
+
             if (onClose)
             {
                 onClose();
             }
+
+            FP_LOG_I(TAG, "Tarea terminada.");
+            vTaskDelete(NULL); // La tarea se autodestruye
         }
 
-        void SimpleUDP::eventTaskAdapter(void *arg)
-        {
-            SimpleUDP *instance = static_cast<SimpleUDP *>(arg);
-            if (instance != nullptr)
-            {
-                // Ejecutar la tarea
-                instance->eventTask();
-
-                // --- Limpieza después de que eventTask termine ---
-                if (instance->remoteMutex_ != nullptr)
-                {
-                    {
-                        Core::Utils::MutexGuard MutexGuard(instance->remoteMutex_);
-                        instance->eventTaskHandle_ = nullptr;
-                    }
-                }
-            }
-
-            // Tarea completada, eliminarse a sí misma.
-            vTaskDelete(NULL);
-        }
-    }
-}
+    } // namespace Transport
+} // namespace FlightProxy

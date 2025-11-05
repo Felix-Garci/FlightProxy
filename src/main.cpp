@@ -15,6 +15,8 @@ static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 #include "FlightProxy/Channel/ChannelServer.h"
 #include "FlightProxy/Transport/ListenerTCP.h"
 
+#include "FlightProxy/Transport/SimpleUDP.h"
+
 extern "C" void app_main(void)
 {
     // 2. ¡PRIMERA LÍNEA! Inyectamos el logger en el singleton de Core.
@@ -53,8 +55,18 @@ extern "C" void app_main(void)
     }
 
     // Resto de app
-    bool use_tcp_client = false;
-    if (use_tcp_client)
+
+    enum class TransportMode : int
+    {
+        TcpClient = 0,
+        TcpServer = 1,
+        UdpServer = 2
+    };
+
+    // Uso
+    TransportMode mode = TransportMode::UdpServer;
+
+    if (mode == TransportMode::TcpClient)
     {
         auto transport = std::make_shared<FlightProxy::Transport::SimpleTCP>("10.26.145.193", 12345);
         auto encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
@@ -80,7 +92,7 @@ extern "C" void app_main(void)
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }
-    else
+    else if (mode == TransportMode::TcpServer)
     {
         auto decoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IDecoderT<FlightProxy::Core::MspPacket>>
         {
@@ -118,6 +130,32 @@ extern "C" void app_main(void)
         {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
+    }
+    else if (mode == TransportMode::UdpServer)
+    {
+        auto transport = std::make_shared<FlightProxy::Transport::SimpleUDP>(12345);
+        auto encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+        auto decoder = std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+        auto udp_channel = std::make_shared<FlightProxy::Channel::ChannelT<FlightProxy::Core::MspPacket>>(
+            std::weak_ptr(transport),
+            encoder,
+            decoder);
+
+        udp_channel->onPacket = [&](const FlightProxy::Core::MspPacket &packet)
+        {
+            FP_LOG_I("MAIN", "Recibido MSP Packet en UDP: Command=%u, Payload Size=%zu", packet.command, packet.payload.size());
+            FP_LOG_I("MAIN", "Contenido: %.*s", packet.payload.size(), packet.payload.data());
+        };
+
+        udp_channel->open();
+
+        // Hacemos que el puntero de app_main "desaparezca".
+        // La tarea del propio transport es duena de transport y por lo tanto se
+        // autogesiona su cilco de vida
+        transport.reset();
+
+        while (true)
+            vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
