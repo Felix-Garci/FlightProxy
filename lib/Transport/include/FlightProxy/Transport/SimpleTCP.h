@@ -28,8 +28,7 @@ namespace FlightProxy
             char ip_[16];
 
             TaskHandle_t eventTaskHandle_;
-            SemaphoreHandle_t mutex_; // limita el aceso a open close y send a una persona solo
-
+            SemaphoreHandle_t mutex_;
             void eventTask();
             static void eventTaskAdapter(void *arg);
         };

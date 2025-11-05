@@ -1,13 +1,21 @@
 #pragma once
 
-#include "FlightProxy/AppLogic/MainController.h" // Desde AppLogic
-#include <memory>                                // Para std::unique_ptr
+// --- Includes de Implementaciones Concretas ---
+#include "FlightProxy/Channel/ChannelT.h"
+#include "FlightProxy/Channel/ChannelServer.h"
+#include "FlightProxy/Channel/ChannelPersistent.h"
 
-// Esta clase es la "Fábrica"
-class AppFactory
+#include "FlightProxy/Transport/ListenerTCP.h"
+#include "FlightProxy/Transport/SimpleTCP.h"
+#include "FlightProxy/Transport/SimpleUart.h"
+
+#include <memory>
+#include <functional>
+
+namespace FlightProxy
 {
-public:
-    // El trabajo de esta función es construir la app
-    // y devolver la clase "raíz" de la lógica.
-    // std::unique_ptr<FlightProxy::AppLogic::MainController> createApplication();
-};
+    class AppFactory
+    {
+    public:
+    };
+}

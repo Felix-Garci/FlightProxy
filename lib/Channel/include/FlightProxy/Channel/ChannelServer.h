@@ -10,15 +10,6 @@
 #include <memory>
 #include <vector>
 
-/*
-1. Tu Aplicación: Recibe la llamada onNewChannel(newChannel) (el ChannelT listo para usar).
-2. Tu Aplicación: Guarda el canal en una lista: m_lista_clientes.push_back(newChannel);
-3. En este punto la Aplicación es dueña del ChannelT, y el ChannelT es el único dueño de SimpleTCP, Encoder y Decoder.
-4. Cuando se cierra la conexion se va llamando al onclose hasta la app.
-5. !No eliminamos en el callbak, se encola en una tarea de limpieza!
-6. La tarea de limpieza de la app borra el channel y se vorra todo con el
-*/
-
 namespace FlightProxy
 {
     namespace Channel
@@ -30,11 +21,13 @@ namespace FlightProxy
         {
         public:
             // --- Tipos de Punteros ---
+            using ListenerPtr = std::shared_ptr<Core::Transport::ITcpListener>;
+
             using ChannelPtr = std::shared_ptr<Core::Channel::IChannelT<PacketT>>;
-            using TransportPtr = std::shared_ptr<Core::Transport::ITransport>;
+
+            using TransportPtr = std::weak_ptr<Core::Transport::ITransport>;
             using DecoderPtr = std::shared_ptr<Core::Protocol::IDecoderT<PacketT>>;
             using EncoderPtr = std::shared_ptr<Core::Protocol::IEncoderT<PacketT>>;
-            using ListenerPtr = std::shared_ptr<Core::Transport::ITcpListener>;
 
             // --- Tipos de Factorías (lo que recibimos) ---
             using DecoderFactory = std::function<DecoderPtr()>;
@@ -45,7 +38,7 @@ namespace FlightProxy
             ChannelCallback onNewChannel;
 
             ChannelServer(DecoderFactory df, EncoderFactory ef)
-                : m_decoderFactory(df), m_encoderFactory(ef), m_mutex(xSemaphoreCreateMutex())
+                : m_decoderFactory(df), m_encoderFactory(ef), m_mutex(xSemaphoreCreateRecursiveMutex())
             {
                 if (!m_decoderFactory || !m_encoderFactory)
                 {
@@ -90,6 +83,10 @@ namespace FlightProxy
                         if (onNewChannel)
                         {
                             onNewChannel(newChannel);
+                        }
+                        else
+                        {
+                            newChannel->close();
                         }
                     }
                 };

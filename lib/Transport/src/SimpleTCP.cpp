@@ -40,43 +40,6 @@ namespace FlightProxy
 
         SimpleTCP::~SimpleTCP()
         {
-            if (m_sock != -1)
-            {
-                FP_LOG_W(TAG, "Llamando al destructor sin tener cerrado el canal.");
-                close();
-            }
-
-            // 2. Espera a que la eventTask termine
-            //    La tarea pondrá 'eventTaskHandle_' a NULL (dentro de un mutex)
-            //    cuando haya terminado su limpieza.
-            FP_LOG_I(TAG, "Destructor esperando a que la tarea finalice...");
-            int loop_count = 0;
-            bool task_alive = true;
-            while (task_alive)
-            {
-                // Comprobamos la variable *dentro* del mutex
-                {
-                    Core::Utils::MutexGuard lock(mutex_);
-                    if (eventTaskHandle_ == nullptr)
-                    {
-                        task_alive = false;
-                    }
-                } // Mutex se libera
-
-                if (task_alive)
-                {
-                    vTaskDelay(pdMS_TO_TICKS(20));
-                    if (++loop_count > 100) // Timeout de 2 segundos
-                    {
-                        FP_LOG_E(TAG, "Timeout esperando a eventTask! Fugando mutex.");
-                        // La tarea sigue viva y podría usar el mutex
-                        // NO PODEMOS borrar el mutex, o crasheará.
-                        return;
-                    }
-                }
-            }
-
-            // 3. Ahora que la tarea está muerta, podemos borrar el mutex
             FP_LOG_I(TAG, "eventTask terminada. Limpiando mutex.");
             if (mutex_)
             {
@@ -225,6 +188,8 @@ namespace FlightProxy
 
         void SimpleTCP::eventTask()
         {
+            std::shared_ptr<SimpleTCP> self = shared_from_this();
+
             if (onOpen)
             {
                 onOpen();
@@ -274,7 +239,6 @@ namespace FlightProxy
                     sock_to_close = m_sock;
                     m_sock = -1;
                 }
-                // Poner esto a NULL le dice al destructor que hemos terminado.
                 eventTaskHandle_ = nullptr;
             } // El mutex se libera aquí
 

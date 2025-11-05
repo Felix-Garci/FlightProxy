@@ -16,7 +16,7 @@ namespace FlightProxy
             public:
                 virtual ~ITcpListener() = default;
 
-                using TransportCallback = std::function<void(std::shared_ptr<ITransport>)>;
+                using TransportCallback = std::function<void(std::weak_ptr<ITransport>)>;
                 TransportCallback onNewTransport;
 
                 virtual bool startListening(uint16_t port) = 0;

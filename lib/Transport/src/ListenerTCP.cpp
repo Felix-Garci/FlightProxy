@@ -186,13 +186,16 @@ namespace FlightProxy
                 // --- ¡Cliente Aceptado! ---
                 FP_LOG_I(TAG, "Cliente conectado! Socket: %d", client_sock);
 
-                // 1. Creamos el objeto SimpleTCP con el socket.
+                // 1. Creamos el objeto y su shared_ptr (el propietario)
                 auto new_transport = std::make_shared<SimpleTCP>(client_sock);
 
-                // 2. Pasamos el shared_ptr<ITransport> completo
+                // 2. Creamos un weak_ptr (el observador) a partir del shared_ptr
+                auto new_weak_transport = std::weak_ptr(new_transport);
+
+                // 2. Pasamos el weakptr<ITransport>
                 if (onNewTransport)
                 {
-                    onNewTransport(new_transport);
+                    onNewTransport(new_weak_transport);
                 }
                 else
                 {
