@@ -8,8 +8,8 @@ namespace FlightProxy
         static const char *TAG = "SimpleUart"; // Tag for logging simple uart
 
         SimpleUart::SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate)
-            : port_(port), txpin_(txpin), rxpin_(rxpin), baudrate_(baudrate), queue_(nullptr),
-              eventTaskHandle_(nullptr), rxBuffer_(nullptr), rxbuffersize_(1024),
+            : port_(port), txpin_(txpin), rxpin_(rxpin), baudrate_(baudrate), eventTaskHandle_(nullptr),
+              queue_(nullptr), rxBuffer_(nullptr), rxbuffersize_(1024),
               mutex_(xSemaphoreCreateRecursiveMutex())
         {
         }
@@ -35,7 +35,9 @@ namespace FlightProxy
                 .parity = UART_PARITY_DISABLE,
                 .stop_bits = UART_STOP_BITS_1,
                 .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 122,
                 .source_clk = UART_SCLK_DEFAULT,
+                .flags = {0, 0},
             };
             ESP_ERROR_CHECK(uart_param_config(port_, &uart_config));
 

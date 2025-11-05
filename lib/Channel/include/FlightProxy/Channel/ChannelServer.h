@@ -2,6 +2,7 @@
 
 #include "FlightProxy/Channel/ChannelT.h"
 #include "FlightProxy/Core/Transport/ITcpListener.h"
+#include "FlightProxy/Transport/ListenerTCP.h"
 
 #include "FlightProxy/Core/Utils/Logger.h"
 #include "FlightProxy/Core/Utils/MutexGuard.h"
@@ -94,7 +95,7 @@ namespace FlightProxy
                 // 3. Iniciar el listener
                 if (!m_tcpListener->startListening(port))
                 {
-                    FP_LOG_E(TAG_MTM, "¡Fallo al iniciar el listener TCP!");
+                    FP_LOG_E(TAG, "¡Fallo al iniciar el listener TCP!");
                     m_tcpListener.reset(); // reset() libera el shared_ptr
                     return false;
                 }
@@ -124,20 +125,26 @@ namespace FlightProxy
                 auto decoder = m_decoderFactory();
                 auto encoder = m_encoderFactory();
 
-                if (!transport || !decoder || !encoder)
+                if (!decoder || !encoder)
                 {
-                    FP_LOG_E(TAG, "Fallo al construir canal: ITransport o Encoder/Decoder nulos.");
+                    FP_LOG_E(TAG, "Fallo al construir canal: Encoder/Decoder nulos.");
                     return nullptr;
                 }
+                if (auto transport_ptr = transport.lock())
+                {
+                    // 1. Crear el Channel (con shared_ptr)
+                    auto newChannel = std::make_shared<ChannelT<PacketT>>(transport, encoder, decoder);
 
-                // 1. Crear el Channel (con shared_ptr)
-                auto newChannel = std::make_shared<ChannelT<PacketT>>(transport, encoder, decoder);
-
-                // 2. ¡¡Abrir el transporte!!
-                // Esto inicia la eventTask de SimpleTCP o SimpleUart
-                newChannel->open();
-
-                return newChannel;
+                    // 2. ¡¡Abrir el transporte!!
+                    // Esto inicia la eventTask de SimpleTCP o SimpleUart
+                    newChannel->open();
+                    return newChannel;
+                }
+                else
+                {
+                    FP_LOG_E(TAG, "Fallo al construir canal: Transport nulo");
+                    return nullptr;
+                }
             }
 
             // --- Miembros Privados ---

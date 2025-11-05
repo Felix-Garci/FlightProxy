@@ -20,7 +20,7 @@ namespace FlightProxy
         }
 
         SimpleTCP::SimpleTCP(const char *ip, uint16_t port)
-            : port_(port), m_sock(-1), eventTaskHandle_(nullptr),
+            : m_sock(-1), port_(port), eventTaskHandle_(nullptr),
               mutex_(xSemaphoreCreateRecursiveMutex())
         {
             if (ip != nullptr)
@@ -208,6 +208,8 @@ namespace FlightProxy
                 {
                     if (onData)
                     {
+                        FP_LOG_I(TAG, "Recibido %d bytes.", len);
+                        FP_LOG_I(TAG, "Contenido: %.*s", len, rx_buffer.data());
                         onData(rx_buffer.data(), len);
                     }
                 }

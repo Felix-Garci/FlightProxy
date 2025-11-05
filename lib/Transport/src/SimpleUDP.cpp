@@ -76,13 +76,10 @@ namespace FlightProxy
         void SimpleUDP::close()
         {
             netconn *socketToKill = nullptr;
-            TaskHandle_t taskToKill = nullptr;
-
             {
                 Core::Utils::MutexGuard MutexGuard(remoteMutex_);
 
                 socketToKill = udpSocket_;
-                taskToKill = eventTaskHandle_;
 
                 // Poner a nulo para evitar uso concurrente
                 udpSocket_ = nullptr;
