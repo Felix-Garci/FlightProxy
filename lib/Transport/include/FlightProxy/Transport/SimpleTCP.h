@@ -29,7 +29,7 @@ namespace FlightProxy
 
             TaskHandle_t eventTaskHandle_;
             SemaphoreHandle_t mutex_;
-            void eventTask();
+            void eventTask(std::shared_ptr<SimpleTCP> *self_keep_alive);
             static void eventTaskAdapter(void *arg);
         };
     }

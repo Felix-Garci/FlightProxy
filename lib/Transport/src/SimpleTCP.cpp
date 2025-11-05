@@ -110,11 +110,29 @@ namespace FlightProxy
             }
 
             // --- Lógica común: Iniciar la tarea de lectura ---
+            // 1. Creamos un shared_ptr "keep-alive" ANTES de crear la tarea.
+            std::shared_ptr<SimpleTCP> self_keep_alive = weak_from_this().lock();
+            if (!self_keep_alive)
+            {
+                // El objeto está siendo destruido o no es válido.
+                FP_LOG_E(TAG, "open() falló: el objeto está siendo destruido (no se pudo obtener shared_ptr)");
+
+                if (m_sock != -1 && ip_[0] != '\0') // Si éramos cliente y fallamos
+                {
+                    ::close(m_sock);
+                    m_sock = -1;
+                }
+                return; // Salir de la función
+            }
+            // 2. Creamos un puntero en el HEAP para pasar el shared_ptr a la tarea.
+            //    La tarea será responsable de borrar este puntero.
+            auto *task_arg = new std::shared_ptr<SimpleTCP>(std::move(self_keep_alive));
+
             BaseType_t result = xTaskCreate(
                 eventTaskAdapter, // La función adaptadora estática
                 "tcp_event_task", // Nombre de la tarea
                 4096,             // Stack
-                this,             // Puntero 'this' como argumento
+                task_arg,         // Puntero shared que esta en el heap
                 5,                // Prioridad
                 &eventTaskHandle_ // Handle de la tarea
             );
@@ -123,6 +141,8 @@ namespace FlightProxy
             {
                 eventTaskHandle_ = nullptr;
                 FP_LOG_E(TAG, "Error al crear la tarea de eventos TCP");
+
+                delete task_arg; // Liveramos memoria pq el task no la va a liberar
 
                 if (m_sock != -1)
                 {
@@ -182,13 +202,27 @@ namespace FlightProxy
 
         void SimpleTCP::eventTaskAdapter(void *arg)
         {
-            SimpleTCP *instance = static_cast<SimpleTCP *>(arg);
-            instance->eventTask();
+            // 1. Recibimos el puntero al shared_ptr que está en el heap
+            auto *self_ptr_on_heap = static_cast<std::shared_ptr<SimpleTCP> *>(arg);
+
+            // 2. Obtenemos el puntero 'this'
+            SimpleTCP *instance = self_ptr_on_heap->get();
+
+            // 3. Llamamos a la tarea, pasando el puntero del heap
+            //    La tarea 'eventTask' tomará posesión y lo borrará.
+            instance->eventTask(self_ptr_on_heap);
         }
 
-        void SimpleTCP::eventTask()
+        void SimpleTCP::eventTask(std::shared_ptr<SimpleTCP> *self_ptr_on_heap)
         {
-            std::shared_ptr<SimpleTCP> self = shared_from_this();
+            // 1. Tomamos posesión del shared_ptr (moviéndolo a nuestro stack)
+            std::shared_ptr<SimpleTCP> self = std::move(*self_ptr_on_heap);
+
+            // 2. Borramos el puntero del heap (que ahora está vacío)
+            delete self_ptr_on_heap;
+
+            // Ahora 'self' (en el stack de esta tarea) mantendrá el objeto
+            // SimpleTCP vivo mientras la tarea se ejecute.
 
             if (onOpen)
             {
@@ -260,6 +294,8 @@ namespace FlightProxy
 
             FP_LOG_I(TAG, "Tarea terminada.");
             vTaskDelete(NULL); // La tarea se autodestruye
+            // Esto destruirá 'self' (el shared_ptr), y si es la última
+            // referencia, el objeto SimpleTCP se borrará de forma segura.
         }
 
     } // namespace Transport
