@@ -155,7 +155,17 @@ extern "C" void app_main(void)
         transport.reset();
 
         while (true)
+        {
+            // para ver esto en terminal
+            // dentor de pawershell ejecutas bash
+            // corres ncat -u 10.26.145.236 12345 | hexdump -C
+            // encias algo para que el udp coha tu ip y puerto
+            udp_channel->sendPacket(FlightProxy::Core::MspPacket{
+                .direction = '>',
+                .command = 1,
+                .payload = {0x01, 0x02, 0x03}});
             vTaskDelay(pdMS_TO_TICKS(1000));
+        }
     }
 }
 

@@ -11,7 +11,7 @@ namespace FlightProxy
         struct MspPacket
         {
             char direction;
-            uint8_t command;
+            uint16_t command;
             std::vector<uint8_t> payload;
         };
 
