@@ -8,19 +8,21 @@ static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 // Almacen flexible
 #include "FlightProxy/AppLogic/AlmacenFlexible.h"
 
-// usos ejemplo
+// Wifi
 #include "FlightProxy/Connectivity/WifiManager.h"
-#include "FlightProxy/Core/Protocol/MspProtocol.h"
 
+// Channels logic
 #include "FlightProxy/Channel/ChannelT.h"
 #include "FlightProxy/Transport/SimpleTCP.h"
-
-#include "FlightProxy/Channel/ChannelServer.h"
 #include "FlightProxy/Transport/ListenerTCP.h"
-
+#include "FlightProxy/Channel/ChannelServer.h"
 #include "FlightProxy/Transport/SimpleUDP.h"
-
 #include "FlightProxy/Transport/SimpleUart.h"
+#include "FlightProxy/Core/Protocol/MspProtocol.h"
+
+#include "FlightProxy/Channel/ChannelAgregatorT.h"
+
+#include "FlightProxy/AppLogic/Command/CommandManager.h"
 
 extern "C" void app_main(void)
 {
@@ -34,7 +36,8 @@ extern "C" void app_main(void)
     {
         ID_Dato_Prueva_Int,
     };
-    FlightProxy::AppLogic::AlmacenFlexible blackboard;
+
+    auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
 
     // WIFI
     FlightProxy::Connectivity::WiFiManager wifiManager;
@@ -65,35 +68,41 @@ extern "C" void app_main(void)
         // Manejar el fallo (quizás reiniciar el ESP)
     }
 
+    // Definicion de paquete a usar
+    using Packet = FlightProxy::Core::MspPacket;
+
     // Servidor TCP
-    auto decoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IDecoderT<FlightProxy::Core::MspPacket>>
+    auto decoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IDecoderT<Packet>>
     {
         return std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
     };
-    auto encoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IEncoderT<FlightProxy::Core::MspPacket>>
+    auto encoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IEncoderT<Packet>>
     {
         return std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
     };
-    auto tcp_server = std::make_shared<FlightProxy::Channel::ChannelServer<FlightProxy::Core::MspPacket>>(decoder_factory, encoder_factory);
+    auto tcp_server = std::make_shared<FlightProxy::Channel::ChannelServer<Packet>>(decoder_factory, encoder_factory);
 
-    std::vector<std::shared_ptr<FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket>>> channels;
+    auto agregadorTcpClients = std::make_shared<FlightProxy::Channel::ChannelAgregatorT<Packet>>();
 
-    tcp_server->onNewChannel = [&](std::shared_ptr<FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket>> channel)
+    tcp_server->onNewChannel = [agregadorTcpClients](std::shared_ptr<FlightProxy::Core::Channel::IChannelT<Packet>> channel)
     {
-        FP_LOG_I("MAIN", "¡Nuevo canal TCP creado y abierto!");
-        channels.push_back(channel);
-        channel->onClose = [&, channel]()
-        {
-            FP_LOG_I("MAIN", "Canal TCP cerrado. Borrándolo de la lista.");
-            channels.erase(std::remove(channels.begin(), channels.end(), channel), channels.end());
-        };
-        channel->onPacket = [&](const FlightProxy::Core::MspPacket &packet)
-        {
-            FP_LOG_I("MAIN", "Recibido MSP Packet: Command=%u, Payload Size=%zu", packet.command, packet.payload.size());
-        };
+        agregadorTcpClients->addChannel(channel);
     };
 
     tcp_server->start(12345);
+
+    // Command Manager
+    auto commandManager = std::make_shared<FlightProxy::AppLogic::Command::CommandManager<Packet>>();
+
+    // Conectamos agregator con command manager
+    agregadorTcpClients->onPacketFromAnyChannel = [commandManager](const Packet &packet)
+    {
+        commandManager->enqueuePacket(packet);
+    };
+
+    // Registrar los comandos
+
+    commandManager->start();
 
     /*
     // Resto de app
