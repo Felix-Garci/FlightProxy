@@ -30,7 +30,7 @@ namespace FlightProxy
          * * Valida que el tipo de dato para un ID sea consistente y devuelve
          * "manijas" (funciones) que son seguras para usar entre hilos.
          */
-        class AlmacenFlexible
+        class AlmacenFlexible : public std::enable_shared_from_this<AlmacenFlexible>
         {
 
         private:
