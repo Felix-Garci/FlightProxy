@@ -35,7 +35,7 @@ namespace FlightProxy
             size_t rxbuffersize_;
             SemaphoreHandle_t mutex_;
 
-            void eventTask();
+            void eventTask(std::shared_ptr<SimpleUart> *self_ptr_on_heap);
             static void eventTaskAdapter(void *arg);
         };
     }

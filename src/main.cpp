@@ -17,17 +17,20 @@ static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 
 #include "FlightProxy/Transport/SimpleUDP.h"
 
+#include "FlightProxy/Transport/SimpleUart.h"
+
 extern "C" void app_main(void)
 {
     // 2. ¡PRIMERA LÍNEA! Inyectamos el logger en el singleton de Core.
     FlightProxy::Core::Utils::Logger::setInstance(g_esp_logger);
 
     FP_LOG_I("main", "Logger inicializado.");
-
+    /*
     FlightProxy::Connectivity::WiFiManager wifiManager;
 
     // 2. Conectar (esto es bloqueante)
     // CAMBIA ESTO POR TUS CREDENCIALES
+
     FP_LOG_I("MAIN", "Intentando conectar a WiFi...");
     bool connected = wifiManager.connect("Sup", "rrrrrrrr");
 
@@ -53,18 +56,19 @@ extern "C" void app_main(void)
         FP_LOG_E("MAIN", "Falló la conexión a WiFi.");
         // Manejar el fallo (quizás reiniciar el ESP)
     }
-
+    */
     // Resto de app
 
     enum class TransportMode : int
     {
         TcpClient = 0,
         TcpServer = 1,
-        UdpServer = 2
+        UdpServer = 2,
+        UartClient = 3
     };
 
     // Uso
-    TransportMode mode = TransportMode::UdpServer;
+    TransportMode mode = TransportMode::UartClient;
 
     if (mode == TransportMode::TcpClient)
     {
@@ -164,6 +168,47 @@ extern "C" void app_main(void)
                 .direction = '>',
                 .command = 1,
                 .payload = {0x01, 0x02, 0x03}});
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }
+    }
+    else if (mode == TransportMode::UartClient)
+    {
+        auto transport = std::make_shared<FlightProxy::Transport::SimpleUart>(
+            UART_NUM_0,
+            GPIO_NUM_1,
+            GPIO_NUM_3,
+            115200);
+
+        auto encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+        auto decoder = std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+        auto uart_channel = std::make_shared<FlightProxy::Channel::ChannelT<FlightProxy::Core::MspPacket>>(
+            std::weak_ptr(transport),
+            encoder,
+            decoder);
+
+        uart_channel->onPacket = [&](const FlightProxy::Core::MspPacket &packet)
+        {
+            FP_LOG_I("MAIN", "Recibido MSP Packet en UDP: Command=%u, Payload Size=%zu", packet.command, packet.payload.size());
+        };
+
+        uart_channel->open();
+
+        // Hacemos que el puntero de app_main "desaparezca".
+        // La tarea del propio transport es duena de transport y por lo tanto se
+        // autogesiona su cilco de vida
+        transport.reset();
+
+        /*while (true)
+        {
+            uart_channel->sendPacket(FlightProxy::Core::MspPacket{
+                .direction = '>',
+                .command = 1,
+                .payload = {0x01, 0x02, 0x03}});
+            vTaskDelay(pdMS_TO_TICKS(1000));
+        }*/
+
+        while (true)
+        {
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
     }

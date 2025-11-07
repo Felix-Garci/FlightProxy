@@ -26,7 +26,7 @@ namespace FlightProxy
 
         void SimpleUart::open()
         {
-            Core::Utils::MutexGuard MutexGuard(mutex_);
+            Core::Utils::MutexGuard lock(mutex_);
 
             // 1. Configurar la UART
             uart_config_t uart_config = {
@@ -45,83 +45,103 @@ namespace FlightProxy
             ESP_ERROR_CHECK(uart_set_pin(port_, txpin_, rxpin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
             // 3. Instalar el driver de la UART
-            // Se usa rxbuffersize_ para el buffer de RX y TX, y se crea una cola de eventos
+            // Se usa rxbuffersize_ para el buffer de RX interno del driver , 0 para indicar que No queremos tx buffer,
+            // y se crea una cola de eventos
             ESP_ERROR_CHECK(uart_driver_install(port_, rxbuffersize_, 0, 20, &queue_, 0));
 
             // 4. Asignar memoria para el buffer de recepción temporal
+            // distinto del buffer del driver. este es propiedad de la clase
             rxBuffer_ = (uint8_t *)malloc(rxbuffersize_);
 
-            // 5. Crear la tarea de eventos
-            if (rxBuffer_ != nullptr)
-            {
-                xTaskCreate(
-                    eventTaskAdapter,  // Función de la tarea (el adaptador estático)
-                    "uart_event_task", // Nombre de la tarea
-                    2048,              // Tamaño del stack
-                    this,              // Parámetro de la tarea (puntero a esta instancia)
-                    10,                // Prioridad
-                    &eventTaskHandle_  // Handle de la tarea
-                );
-            }
-            else
+            if (rxBuffer_ == nullptr)
             {
                 FP_LOG_E(TAG, "Failed to allocate memory for RX buffer");
+                uart_driver_delete(port_); // Limpiamos driver al ver fallo
+                return;
+            }
+
+            std::shared_ptr<SimpleUart> self_keep_alive = weak_from_this().lock();
+            if (!self_keep_alive)
+            {
+                // El objeto está siendo destruido o no es válido.
+                FP_LOG_E(TAG, "open() falló: el objeto está siendo destruido (no se pudo obtener shared_ptr)");
+
+                return; // Salir de la función
+            }
+            auto *task_arg = new std::shared_ptr<SimpleUart>(std::move(self_keep_alive));
+
+            // 5. Crear la tarea de eventos
+            BaseType_t result = xTaskCreate(
+                eventTaskAdapter,  // Función de la tarea (el adaptador estático)
+                "uart_event_task", // Nombre de la tarea
+                4096,              // Tamaño del stack
+                task_arg,          // Parámetro de la tarea (puntero a esta instancia)
+                10,                // Prioridad
+                &eventTaskHandle_  // Handle de la tarea
+            );
+
+            if (result != pdPASS)
+            {
+                FP_LOG_E(TAG, "Fallo al crear la tere UART");
+                delete task_arg;
+                free(rxBuffer_);
+                rxBuffer_ = nullptr;
+                uart_driver_delete(port_);
+                eventTaskHandle_ = nullptr;
             }
         }
 
         void SimpleUart::close()
         {
-            Core::Utils::MutexGuard MutexGuard(mutex_);
+            Core::Utils::MutexGuard lock(mutex_);
+            // no se si esta cerrada ya si esto daria erro, esto hay que manejarlo
 
-            // 1. Eliminar la tarea de eventos si existe
-            if (eventTaskHandle_ != nullptr)
-            {
-                vTaskDelete(eventTaskHandle_);
-                eventTaskHandle_ = nullptr;
-            }
-
-            // 2. Desinstalar el driver de la UART
-            // Esto también libera la cola (queue_)
+            // Notificamos a la tarea que queremos cerrar todo.
             uart_driver_delete(port_);
-
-            // 3. Liberar el buffer de recepción
-            if (rxBuffer_ != nullptr)
-            {
-                free(rxBuffer_);
-                rxBuffer_ = nullptr;
-            }
-
-            // 4. Llamar al callback onClose si está definido
-            if (onClose)
-            {
-                onClose();
-            }
         }
 
         void SimpleUart::send(const uint8_t *data, size_t len)
         {
-            Core::Utils::MutexGuard MutexGuard(mutex_);
+            Core::Utils::MutexGuard lock(mutex_);
 
-            if (data == nullptr || len == 0)
+            // Comprovamos si la tarea buffer siguen vivos
+            if (rxBuffer_ == nullptr || eventTaskHandle_ == nullptr)
             {
+                FP_LOG_W(TAG, "Intento de envío en UART cerrada.");
                 return;
             }
+
+            if (data == nullptr || len == 0)
+                return;
+
             // Escribir datos en la UART
             uart_write_bytes(port_, (const char *)data, len);
         }
 
         void SimpleUart::eventTaskAdapter(void *arg)
         {
-            // 1. Obtener la instancia
-            SimpleUart *instance = static_cast<SimpleUart *>(arg);
+            // 1. Recibimos el puntero al shared_ptr que está en el heap
+            auto *self_ptr_on_heap = static_cast<std::shared_ptr<SimpleUart> *>(arg);
 
-            // 2. Llamar a la función miembro que contiene el bucle
-            // El objeto se mantiene vivo por el shared_ptr original
-            instance->eventTask();
+            // 2. Obtenemos el puntero 'this'
+            SimpleUart *instance = self_ptr_on_heap->get();
+
+            // 3. Llamamos a la tarea, pasando el puntero del heap
+            //    La tarea 'eventTask' tomará posesión y lo borrará.
+            instance->eventTask(self_ptr_on_heap);
         }
 
-        void SimpleUart::eventTask()
+        void SimpleUart::eventTask(std::shared_ptr<SimpleUart> *self_ptr_on_heap)
         {
+            // 1. Tomamos posesión del shared_ptr (moviéndolo a nuestro stack)
+            std::shared_ptr<SimpleUart> self = std::move(*self_ptr_on_heap);
+
+            // 2. Borramos el puntero del heap (que ahora está vacío)
+            delete self_ptr_on_heap;
+
+            // Ahora 'self' (en el stack de esta tarea) mantendrá el objeto
+            // SimpleUart vivo mientras la tarea se ejecute.
+
             if (onOpen)
             {
                 onOpen();
@@ -130,12 +150,11 @@ namespace FlightProxy
             for (;;) // Bucle infinito de la tarea
             {
                 // Esperar por un evento en la cola
+                // En el caso de que se llame close() -> uart_delete() este if debuelve false y va al else.
+                // Por lo que si este xQueRecive da true estamos seguros de que no se ha eliminado el driver
                 if (xQueueReceive(queue_, (void *)&event, portMAX_DELAY))
                 {
-                    Core::Utils::MutexGuard MutexGuard(mutex_);
-
-                    if (rxBuffer_ == nullptr)
-                        break; // por si close() ha liberado los recursos mientras esperabamos
+                    Core::Utils::MutexGuard lock(mutex_);
 
                     switch (event.type)
                     {
@@ -202,7 +221,27 @@ namespace FlightProxy
                     break;
                 }
             } // FIN del for(;;)
-            eventTaskHandle_ = nullptr;
+
+            FP_LOG_I(TAG, "Tarea UART terminando. Realizando limpieza...");
+
+            {
+                Core::Utils::MutexGuard lock(mutex_);
+                // Hacemos la limpieza
+                if (rxBuffer_ != nullptr)
+                {
+                    free(rxBuffer_);
+                    rxBuffer_ = nullptr;
+                }
+                eventTaskHandle_ = nullptr;
+                // 'queue_' ya está liberada por uart_driver_delete()
+            }
+
+            // 8. Notificar a la App (FUERA del mutex)
+            if (onClose)
+            {
+                onClose();
+            }
+
             vTaskDelete(NULL);
         }
     }
