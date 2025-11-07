@@ -47,8 +47,8 @@ namespace FlightProxy
 
                 // Constructor: inicializa con el tipo
                 DataSlot(std::type_index info, std::any defaultVal)
-                    : typeInfo(info), data(std::move(defaultVal)),
-                      slotMutex(xSemaphoreCreateMutex()) {}
+                    : data(std::move(defaultVal)),
+                      slotMutex(xSemaphoreCreateMutex()), typeInfo(info) {}
                 ~DataSlot()
                 {
                     vSemaphoreDelete(slotMutex);
