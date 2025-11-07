@@ -5,8 +5,11 @@
 // 1. Creamos una instancia estática del logger REAL
 static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 
+// incluimos tipos
+#include "FlightProxy/Core/FlightProxyTypes.h"
+
 // Almacen flexible
-#include "FlightProxy/AppLogic/AlmacenFlexible.h"
+// #include "FlightProxy/AppLogic/AlmacenFlexible.h"
 
 // Wifi
 #include "FlightProxy/Connectivity/WifiManager.h"
@@ -23,6 +26,7 @@ static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 #include "FlightProxy/Channel/ChannelAgregatorT.h"
 
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
+#include "FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h"
 
 extern "C" void app_main(void)
 {
@@ -37,7 +41,7 @@ extern "C" void app_main(void)
         ID_Dato_Prueva_Int,
     };
 
-    auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
+    // auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
 
     // WIFI
     FlightProxy::Connectivity::WiFiManager wifiManager;
@@ -87,6 +91,7 @@ extern "C" void app_main(void)
     tcp_server->onNewChannel = [agregadorTcpClients](std::shared_ptr<FlightProxy::Core::Channel::IChannelT<Packet>> channel)
     {
         agregadorTcpClients->addChannel(channel);
+        FP_LOG_W("AGREG", "Agregador nuevo chanel");
     };
 
     tcp_server->start(12345);
@@ -95,14 +100,30 @@ extern "C" void app_main(void)
     auto commandManager = std::make_shared<FlightProxy::AppLogic::Command::CommandManager<Packet>>();
 
     // Conectamos agregator con command manager
-    agregadorTcpClients->onPacketFromAnyChannel = [commandManager](const Packet &packet)
+    // Paquetes de ida
+    agregadorTcpClients->onPacketFromAnyChannel = [commandManager](const FlightProxy::Core::PacketEnvelope<Packet> &packet)
     {
         commandManager->enqueuePacket(packet);
+        FP_LOG_W("AGREG", "New oaquet throow agreg");
+    };
+    // Paquetes de vuelta
+    commandManager->responsehandler = [agregadorTcpClients](uint32_t channelId, const Packet &packet) -> bool
+    {
+        FP_LOG_W("CMDMGR", "Sending response back through agregator");
+        agregadorTcpClients->response(channelId, packet);
+        return true;
     };
 
     // Registrar los comandos
+    auto commans1 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_BasicRead_Command<Packet>>();
+
+    commandManager->registerCommand(commans1);
+    // commans1.reset();
 
     commandManager->start();
+
+    while (true)
+        vTaskDelay(pdMS_TO_TICKS(1000));
 
     /*
     // Resto de app

@@ -20,5 +20,13 @@ namespace FlightProxy
             static constexpr size_t NUM_CHANNELS = 14;
             std::array<uint16_t, NUM_CHANNELS> channels;
         };
+
+        template <typename PacketT>
+        struct PacketEnvelope
+        {
+            PacketT packet;     // El paquete de datos real
+            uint32_t channelId; // ID del canal para saber a quién responder
+        };
+
     }
 }

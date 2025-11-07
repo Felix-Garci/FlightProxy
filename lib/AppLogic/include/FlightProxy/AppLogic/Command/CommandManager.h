@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/AppLogic/Command/ICommand.h"
 #include "FlightProxy/Core/Utils/MutexGuard.h"
 
@@ -15,13 +16,14 @@ namespace FlightProxy
         namespace Command
         {
             template <typename PacketT>
-            class CommandManager : public std::enable_shared_from_this<CommandManager>
+            class CommandManager : public std::enable_shared_from_this<CommandManager<PacketT>>
             {
             public:
                 CommandManager(size_t queueSize = 5) : running_(false)
                 {
-                    packetQueue_ = xQueueCreate(queueSize, sizeof(PacketT));
+                    packetQueue_ = xQueueCreate(queueSize, sizeof(Core::PacketEnvelope<PacketT>));
                 }
+
                 ~CommandManager()
                 {
                     running_ = false;
@@ -29,8 +31,11 @@ namespace FlightProxy
                     // Recuerda limpiar las tareas adecuadamente en un sistema real
                 }
 
+                using SenderFunc = std::function<bool(uint32_t, const PacketT &)>;
+                SenderFunc responsehandler;
+
                 // Método público para recibir paquetes desde CUALQUIER sitio (Agregador incluido)
-                bool enqueuePacket(const PacketT &packet)
+                bool enqueuePacket(const Core::PacketEnvelope<PacketT> &packet)
                 {
                     // Usamos wait time 0 para no bloquear a quien envía si la cola está llena
                     return (xQueueSendToBack(packetQueue_, &packet, (TickType_t)0) == pdPASS);
@@ -38,7 +43,7 @@ namespace FlightProxy
 
                 void registerCommand(std::shared_ptr<ICommand<PacketT>> command)
                 {
-                    commandMap_[command->getId()] = command;
+                    commandMap_[command->getID()] = command;
                 }
 
                 void start()
@@ -64,32 +69,44 @@ namespace FlightProxy
 
                 void eventTask()
                 {
-                    PacketT packet;
+                    Core::PacketEnvelope<PacketT> packet;
                     while (running_)
                     {
                         // Espera indefinida hasta que llegue un paquete
                         if (xQueueReceive(packetQueue_, &packet, portMAX_DELAY) == pdPASS)
                         {
-                            processPacket(packet);
+                            FP_LOG_W("CommandManager", "Command manager recived paket %d", packet.packet.command);
+                            processContext(packet);
                         }
                     }
                     vTaskDelete(NULL);
                 }
 
-                void processPacket(const PacketT &packet)
+                void processContext(const Core::PacketEnvelope<PacketT> &ctx)
                 {
-                    // 1. Extraer ID del paquete (asumiendo que PacketT tiene este atributo)
-                    int id = packet.command;
+                    auto it = commandMap_.find(ctx.packet.command);
 
-                    // 2. Buscar el comando correspondiente
-                    auto it = commandMap_.find(id);
                     if (it != commandMap_.end())
                     {
-                        it->second->execute(packet);
+                        // creamos la lambda de respuesta "al vuelo"
+                        // Capturamos el 'sender_' y el 'channelId' específico de este paquete.
+                        ReplyFunc<PacketT> replyCallback = [this, ctx](const PacketT &response)
+                        {
+                            if (this->responsehandler)
+                            {
+                                FP_LOG_W("skdhfj", "usando callbak de respuesta");
+                                this->responsehandler(ctx.channelId, response);
+                            }
+                        };
+
+                        FP_LOG_W("skdhfj", "comando encontrado, ejecutamos comando");
+
+                        // Ejecutamos el comando pasándole la forma fácil de responder
+                        it->second->execute(ctx.packet, replyCallback);
                     }
                     else
                     {
-                        // FP_LOG_W("CMD", "Comando desconocido recibido: %d", (int)id);
+                        FP_LOG_W("skdhfj", "comando no encontrado recivimos msg de %d", ctx.packet.command);
                     }
                 }
             };
