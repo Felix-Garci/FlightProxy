@@ -5,6 +5,9 @@
 // 1. Creamos una instancia estática del logger REAL
 static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 
+// Almacen flexible
+#include "FlightProxy/AppLogic/AlmacenFlexible.h"
+
 // usos ejemplo
 #include "FlightProxy/Connectivity/WifiManager.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
@@ -21,15 +24,20 @@ static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 
 extern "C" void app_main(void)
 {
-    // 2. ¡PRIMERA LÍNEA! Inyectamos el logger en el singleton de Core.
+    // Looger init
     FlightProxy::Core::Utils::Logger::setInstance(g_esp_logger);
 
     FP_LOG_I("main", "Logger inicializado.");
-    /*
-    FlightProxy::Connectivity::WiFiManager wifiManager;
 
-    // 2. Conectar (esto es bloqueante)
-    // CAMBIA ESTO POR TUS CREDENCIALES
+    // Almacen flexible init
+    enum DataIDs
+    {
+        ID_Dato_Prueva_Int,
+    };
+    FlightProxy::AppLogic::AlmacenFlexible blackboard;
+
+    // WIFI
+    FlightProxy::Connectivity::WiFiManager wifiManager;
 
     FP_LOG_I("MAIN", "Intentando conectar a WiFi...");
     bool connected = wifiManager.connect("Sup", "rrrrrrrr");
@@ -56,7 +64,38 @@ extern "C" void app_main(void)
         FP_LOG_E("MAIN", "Falló la conexión a WiFi.");
         // Manejar el fallo (quizás reiniciar el ESP)
     }
-    */
+
+    // Servidor TCP
+    auto decoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IDecoderT<FlightProxy::Core::MspPacket>>
+    {
+        return std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+    };
+    auto encoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IEncoderT<FlightProxy::Core::MspPacket>>
+    {
+        return std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+    };
+    auto tcp_server = std::make_shared<FlightProxy::Channel::ChannelServer<FlightProxy::Core::MspPacket>>(decoder_factory, encoder_factory);
+
+    std::vector<std::shared_ptr<FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket>>> channels;
+
+    tcp_server->onNewChannel = [&](std::shared_ptr<FlightProxy::Core::Channel::IChannelT<FlightProxy::Core::MspPacket>> channel)
+    {
+        FP_LOG_I("MAIN", "¡Nuevo canal TCP creado y abierto!");
+        channels.push_back(channel);
+        channel->onClose = [&, channel]()
+        {
+            FP_LOG_I("MAIN", "Canal TCP cerrado. Borrándolo de la lista.");
+            channels.erase(std::remove(channels.begin(), channels.end(), channel), channels.end());
+        };
+        channel->onPacket = [&](const FlightProxy::Core::MspPacket &packet)
+        {
+            FP_LOG_I("MAIN", "Recibido MSP Packet: Command=%u, Payload Size=%zu", packet.command, packet.payload.size());
+        };
+    };
+
+    tcp_server->start(12345);
+
+    /*
     // Resto de app
 
     enum class TransportMode : int
@@ -66,6 +105,7 @@ extern "C" void app_main(void)
         UdpServer = 2,
         UartClient = 3
     };
+
 
     // Uso
     TransportMode mode = TransportMode::UartClient;
@@ -198,20 +238,22 @@ extern "C" void app_main(void)
         // autogesiona su cilco de vida
         transport.reset();
 
-        /*while (true)
+        while (true)
         {
             uart_channel->sendPacket(FlightProxy::Core::MspPacket{
                 .direction = '>',
                 .command = 1,
                 .payload = {0x01, 0x02, 0x03}});
             vTaskDelay(pdMS_TO_TICKS(1000));
-        }*/
-
-        while (true)
-        {
-            vTaskDelay(pdMS_TO_TICKS(1000));
         }
+
+    while (true)
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
+}
+
+    */
 }
 
 /*#include "FlightProxy/Core/Protocol/MspProtocol.h"
