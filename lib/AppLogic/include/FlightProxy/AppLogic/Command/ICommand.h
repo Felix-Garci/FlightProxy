@@ -6,11 +6,13 @@ namespace FlightProxy
     {
         namespace Command
         {
+            template <typename PacketT>
             class ICommand
             {
             public:
                 virtual ~ICommand() = default;
-                virtual void execute() = 0;
+                virtual void execute(const PacketT &packet) = 0;
+                virtual int getID() = 0;
             };
         }
     }
