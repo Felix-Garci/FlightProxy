@@ -137,7 +137,7 @@ extern "C" void app_main(void)
     commandManager->start();
 
     while (true)
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        FlightProxy::Core::OSAL::Factory::sleep(1000);
 
     /*
     // Resto de app
