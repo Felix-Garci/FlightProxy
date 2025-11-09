@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <memory>
 #include <functional>
 
 namespace FlightProxy
@@ -15,7 +16,7 @@ namespace FlightProxy
             public:
                 virtual ~IDecoderT() = default;
                 virtual void feed(const uint8_t *data, size_t len) = 0;
-                virtual void onPacket(std::function<void(const PacketT &)> handler) = 0;
+                virtual void onPacket(std::function<void(std::shared_ptr<const PacketT>)> handler) = 0;
                 virtual void reset() = 0;
             };
         }

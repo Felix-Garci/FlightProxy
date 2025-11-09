@@ -73,16 +73,18 @@ namespace FlightProxy
                 m_tcpListener->onNewTransport = [this](TransportPtr newTransport)
                 {
                     // Esto se ejecuta en la tarea del Listener
-                    FP_LOG_I(TAG, "Cliente TCP aceptado. Construyendo canal...");
+                    FP_LOG_I(TAG, "Cliente TCP aceptado. Preparando canal...");
 
-                    ChannelPtr newChannel = buildChannel(newTransport); // Construye y abre
+                    ChannelPtr newChannel = buildChannel(newTransport); // Solo construye
                     if (newChannel)
                     {
                         // Notificamos a la aplicación.
-                        // ¡¡NO lo guardamos!! La app es ahora la dueña.
+                        // La app es ahora la dueña y puede suscribirse a los eventos.
                         if (onNewChannel)
                         {
                             onNewChannel(newChannel);
+                            // Ahora que la app está lista, abrimos el canal para empezar a recibir.
+                            newChannel->open();
                         }
                         else
                         {
@@ -132,12 +134,8 @@ namespace FlightProxy
                 if (auto transport_ptr = transport.lock())
                 {
                     // 1. Crear el Channel (con shared_ptr)
-                    auto newChannel = std::make_shared<ChannelT<PacketT>>(transport, encoder, decoder);
-
-                    // 2. ¡¡Abrir el transporte!!
-                    // Esto inicia la eventTask de SimpleTCP o SimpleUart
-                    newChannel->open();
-                    return newChannel;
+                    // NO lo abrimos aquí. Lo devolveremos para que el llamador lo haga.
+                    return std::make_shared<ChannelT<PacketT>>(transport, encoder, decoder);
                 }
                 else
                 {
