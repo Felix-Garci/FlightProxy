@@ -2,11 +2,11 @@
 
 #include "FlightProxy/Channel/ChannelT.h"
 #include "FlightProxy/Core/Transport/ITcpListener.h"
-#include "FlightProxy/Transport/ListenerTCP.h"
 
 #include "FlightProxy/Core/Utils/Logger.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 
+#include <mutex>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -31,6 +31,7 @@ namespace FlightProxy
             using EncoderPtr = std::shared_ptr<Core::Protocol::IEncoderT<PacketT>>;
 
             // --- Tipos de Factorías (lo que recibimos) ---
+            using ListenerFactory = std::function<ListenerPtr()>;
             using DecoderFactory = std::function<DecoderPtr()>;
             using EncoderFactory = std::function<EncoderPtr()>;
 
@@ -38,26 +39,24 @@ namespace FlightProxy
             using ChannelCallback = std::function<void(ChannelPtr)>;
             ChannelCallback onNewChannel;
 
-            ChannelServer(DecoderFactory df, EncoderFactory ef)
-                : m_decoderFactory(df), m_encoderFactory(ef), m_mutex(xSemaphoreCreateRecursiveMutex())
+            ChannelServer(DecoderFactory df, EncoderFactory ef, ListenerFactory lf)
+                : m_decoderFactory(df), m_encoderFactory(ef), m_listenerFactory(lf),
+                  m_mutex(Core::OSAL::Factory::createMutex())
             {
-                if (!m_decoderFactory || !m_encoderFactory)
+                if (!m_decoderFactory || !m_encoderFactory || !m_listenerFactory)
                 {
-                    FP_LOG_E(TAG, "¡Las factorías de Encoder/Decoder no pueden ser nulas!");
+                    FP_LOG_E(TAG, "¡Las factorías de Encoder/Decoder/Listener no pueden ser nulas!");
                 }
             }
 
             ~ChannelServer()
             {
                 stop();
-
-                if (m_mutex)
-                    vSemaphoreDelete(m_mutex);
             }
 
             bool start(uint16_t port)
             {
-                Core::Utils::MutexGuard lock(m_mutex);
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
 
                 if (m_tcpListener)
                 {
@@ -68,7 +67,7 @@ namespace FlightProxy
                 FP_LOG_I(TAG, "Iniciando listener TCP en puerto %u...", port);
 
                 // 1. Crear el listener
-                m_tcpListener = std::make_shared<Transport::ListenerTCP>();
+                m_tcpListener = m_listenerFactory();
 
                 // 2. Suscribirse al evento de nueva conexión
                 m_tcpListener->onNewTransport = [this](TransportPtr newTransport)
@@ -104,7 +103,7 @@ namespace FlightProxy
 
             void stop()
             {
-                Core::Utils::MutexGuard lock(m_mutex);
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                 FP_LOG_I(TAG, "Parando todos los servicios...");
                 if (m_tcpListener)
                 {
@@ -150,8 +149,9 @@ namespace FlightProxy
             // --- Miembros Privados ---
             DecoderFactory m_decoderFactory;
             EncoderFactory m_encoderFactory;
+            ListenerFactory m_listenerFactory;
 
-            SemaphoreHandle_t m_mutex;
+            std::unique_ptr<Core::OSAL::IMutex> m_mutex;
             ListenerPtr m_tcpListener;
         };
     } // namespace Channel

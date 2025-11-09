@@ -1,7 +1,9 @@
 #pragma once
+
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/Core/Channel/IChannelT.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
+#include <mutex>
 #include <map>
 #include <atomic>
 #include <memory>
@@ -15,12 +17,12 @@ namespace FlightProxy
         class ChannelAgregatorT : public std::enable_shared_from_this<ChannelAgregatorT<PacketT>>
         {
         public:
-            ChannelAgregatorT() : mutex_(xSemaphoreCreateMutex()) {}
-            ~ChannelAgregatorT() { vSemaphoreDelete(mutex_); }
+            ChannelAgregatorT() : m_mutex(Core::OSAL::Factory::createMutex()) {}
+            ~ChannelAgregatorT() {}
 
             void addChannel(std::shared_ptr<FlightProxy::Core::Channel::IChannelT<PacketT>> channel)
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
 
                 // Id unico para cada canal nuevo
                 uint32_t myId = nextChannelId_++;
@@ -31,7 +33,7 @@ namespace FlightProxy
                 channel->onClose = [this, myId, channel]()
                 {
                     FP_LOG_I("MAIN", "Canal cerrado. Borrándolo de la lista.");
-                    Core::Utils::MutexGuard lock(mutex_);
+                    std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                     channelsById_.erase(myId);
                 };
 
@@ -57,7 +59,7 @@ namespace FlightProxy
 
         private:
             std::atomic<uint32_t> nextChannelId_{1};
-            SemaphoreHandle_t mutex_;
+            std::unique_ptr<Core::OSAL::IMutex> m_mutex;
             std::map<uint32_t, std::shared_ptr<FlightProxy::Core::Channel::IChannelT<PacketT>>> channelsById_;
         };
 

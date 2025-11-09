@@ -2,9 +2,7 @@
 
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/AppLogic/Command/ICommand.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
-
-#include "freertos/task.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 
 #include <map>
 #include <memory>
@@ -19,26 +17,25 @@ namespace FlightProxy
             class CommandManager : public std::enable_shared_from_this<CommandManager<PacketT>>
             {
             public:
-                CommandManager(size_t queueSize = 5) : running_(false)
+                using SenderFunc = std::function<bool(uint32_t, const PacketT &)>;
+                SenderFunc responsehandler;
+
+                CommandManager(size_t queueSize = 5)
                 {
-                    packetQueue_ = xQueueCreate(queueSize, sizeof(Core::PacketEnvelope<PacketT>));
+                    packetQueue_ = Core::OSAL::Factory::createQueue<Core::PacketEnvelope<PacketT>>(queueSize);
                 }
 
                 ~CommandManager()
                 {
-                    running_ = false;
-                    vQueueDelete(packetQueue_);
-                    // Recuerda limpiar las tareas adecuadamente en un sistema real
+                    stop();
                 }
-
-                using SenderFunc = std::function<bool(uint32_t, const PacketT &)>;
-                SenderFunc responsehandler;
 
                 // Método público para recibir paquetes desde CUALQUIER sitio (Agregador incluido)
                 bool enqueuePacket(const Core::PacketEnvelope<PacketT> &packet)
                 {
-                    // Usamos wait time 0 para no bloquear a quien envía si la cola está llena
-                    return (xQueueSendToBack(packetQueue_, &packet, (TickType_t)0) == pdPASS);
+                    if (!packetQueue_)
+                        return false;
+                    return packetQueue_->send(packet, 0);
                 }
 
                 void registerCommand(std::shared_ptr<ICommand<PacketT>> command)
@@ -48,17 +45,43 @@ namespace FlightProxy
 
                 void start()
                 {
-                    if (!running_)
+                    if (isRunning_)
+                        return;
+
+                    // 2. Configurar y crear la tarea
+                    Core::OSAL::TaskConfig config;
+                    config.name = "CmdMgr";
+                    config.stackSize = 4096;
+                    config.priority = 2;
+
+                    eventTask_ = Core::OSAL::Factory::createTask(
+                        [this]()
+                        { this->eventLoop(); }, // Lambda que llama al bucle
+                        config);
+
+                    if (eventTask_)
                     {
-                        running_ = true;
-                        xTaskCreate(eventTaskAdapter, "CmdMgr", 4096, this, 2, &eventTaskHandle_);
+                        eventTask_->start();
+                        isRunning_ = true;
+                    }
+                }
+
+                void stop()
+                {
+                    if (isRunning_ && eventTask_)
+                    {
+                        // Señalizamos que pare (necesitarías un mecanismo mejor para salir del bucle de la cola,
+                        // como enviar un paquete especial de "STOP" a la cola, o usar un timeout en receive).
+                        isRunning_ = false;
+                        // Por simplicidad aquí, forzamos stop si la implementación lo soporta
+                        eventTask_->stop();
                     }
                 }
 
             private:
-                QueueHandle_t packetQueue_;
-                TaskHandle_t eventTaskHandle_;
-                bool running_;
+                std::unique_ptr<Core::OSAL::IQueue<Core::PacketEnvelope<PacketT>>> packetQueue_;
+                std::unique_ptr<Core::OSAL::ITask> eventTask_;
+                std::atomic<bool> isRunning_{false};
 
                 std::map<int, std::shared_ptr<ICommand<PacketT>>> commandMap_;
 
@@ -67,19 +90,20 @@ namespace FlightProxy
                     static_cast<CommandManager *>(arg)->eventTask();
                 }
 
-                void eventTask()
+                void eventLoop()
                 {
                     Core::PacketEnvelope<PacketT> packet;
-                    while (running_)
+                    // Mientras deba correr, esperamos paquetes
+                    // Usamos un timeout razonable (ej. 1s) para poder comprobar isRunning_ periódicamente
+                    while (isRunning_)
                     {
-                        // Espera indefinida hasta que llegue un paquete
-                        if (xQueueReceive(packetQueue_, &packet, portMAX_DELAY) == pdPASS)
+                        if (packetQueue_->receive(packet, 1000))
                         {
-                            FP_LOG_W("CommandManager", "Command manager recived paket %d", packet.packet.command);
+                            FP_LOG_I("CommandManager", "Recibido comando %d", packet.packet.command);
                             processContext(packet);
                         }
                     }
-                    vTaskDelete(NULL);
+                    FP_LOG_I("CommandManager", "Tarea finalizada");
                 }
 
                 void processContext(const Core::PacketEnvelope<PacketT> &ctx)

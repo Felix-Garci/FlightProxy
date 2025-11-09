@@ -2,13 +2,12 @@
 
 #include "FlightProxy/Channel/ChannelT.h"
 #include "FlightProxy/Core/Utils/Logger.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
 
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
+
+#include <mutex>
 #include <memory>
 #include <functional>
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 namespace FlightProxy
 {
@@ -31,8 +30,8 @@ namespace FlightProxy
             using EncoderFactory = std::function<EncoderPtr()>;
 
             PersistentChannelT(TransportFactory tf, DecoderFactory df, EncoderFactory ef)
-                : m_tf(tf), m_df(df), m_ef(ef), m_running(false), m_task_handle(nullptr),
-                  m_mutex(xSemaphoreCreateRecursiveMutex())
+                : m_tf(tf), m_df(df), m_ef(ef), m_running(false),
+                  m_mutex(Core::OSAL::Factory::createMutex())
             {
                 if (!m_tf || !m_df || !m_ef)
                 {
@@ -44,33 +43,14 @@ namespace FlightProxy
             {
                 // Paramos la tarea de reconexion
                 close();
-
-                // Esperar a que la tarea termine (Patrón "Join")
-                int loops = 0;
-                while (true)
-                {
-                    {
-                        Core::Utils::MutexGuard lock(m_mutex);
-                        if (m_task_handle == nullptr)
-                            break; // La tarea ha muerto
-                    }
-                    vTaskDelay(pdMS_TO_TICKS(20));
-                    if (++loops > 100) // Timeout de 2 segundos
-                    {
-                        FP_LOG_E(TAG, "Timeout esperando a la tarea. Forzando borrado.");
-                        vTaskDelete(m_task_handle); // Matar a la fuerza
-                        break;
-                    }
-                }
-                if (m_mutex)
-                    vSemaphoreDelete(m_mutex);
+                m_reconnectTask->join();
             }
 
             // --- Implementación de IChannelT (Métodos Públicos) ---
 
             void sendPacket(const PacketT &packet) override
             {
-                Core::Utils::MutexGuard lock(m_mutex);
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                 if (m_internal_channel)
                 {
                     // Pasa el paquete al canal interno
@@ -84,37 +64,38 @@ namespace FlightProxy
 
             void open() override
             {
-                Core::Utils::MutexGuard lock(m_mutex);
-                if (m_task_handle)
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
+                if (m_running)
                     return; // Ya iniciada
 
-                m_running = true;
-                BaseType_t result = xTaskCreate(
-                    reconnectionTaskAdapter,
-                    "persistent_task", // Nombre
-                    4096,              // Stack
-                    this,              // Arg
-                    5,                 // Prio
-                    &m_task_handle);
+                Core::OSAL::TaskConfig config;
+                config.name = "PersistentTask";
+                config.stackSize = 4096;
+                config.priority = 5;
 
-                if (result != pdPASS)
+                // Usar OSAL Factory para crear la tarea
+                m_reconnectTask = Core::OSAL::Factory::createTask(
+                    [this]()
+                    { this->reconnectionLoop(); },
+                    config);
+
+                if (m_reconnectTask)
+                {
+                    m_reconnectTask->start();
+                }
+                else
                 {
                     FP_LOG_E(TAG, "Error al crear la tarea de reconexión.");
-                    m_task_handle = nullptr;
                     m_running = false;
                 }
             }
 
             void close() override
             {
-                Core::Utils::MutexGuard lock(m_mutex);
-                if (!m_running)
-                    return;
+                // Primero señalizamos que pare
+                m_running = false;
 
-                m_running = false; // Avisa a la tarea que debe parar
-
-                // Cierra el canal interno (si existe)
-                // Esto provocará que su 'onClose' se llame y limpie m_internal_channel
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                 if (m_internal_channel)
                 {
                     m_internal_channel->close();
@@ -138,77 +119,73 @@ namespace FlightProxy
 
                 while (m_running)
                 {
-                    // Si el canal no existe (y deberíamos estar corriendo)
-                    if (m_internal_channel == nullptr && m_running)
+                    bool isConnected = false;
+                    {
+                        std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
+                        isConnected = (m_internal_channel != nullptr);
+                    }
+
+                    if (!isConnected && m_running)
                     {
                         FP_LOG_I(TAG, "Canal interno caído. Intentando (re)conectar...");
                         try
                         {
-                            // --- 1. Crear componentes con las factorías ---
                             auto transport = m_tf();
                             auto decoder = m_df();
                             auto encoder = m_ef();
 
                             if (!transport || !decoder || !encoder)
-                            {
                                 throw std::runtime_error("Factorías devolvieron nullptr");
-                            }
 
-                            // --- 2. Crear el canal "núcleo" ---
                             auto newChannel = std::make_shared<ChannelT<PacketT>>(transport, encoder, decoder);
 
-                            // --- 3. Conectar Callbacks ---
-
-                            // Reenviar 'onPacket' y 'onOpen' a la App B
                             newChannel->onPacket = this->onPacket;
                             newChannel->onOpen = this->onOpen;
 
-                            // *** ¡LA CLAVE! ***
-                            // Interceptamos 'onClose'
-                            newChannel->onClose = [this]()
+                            // Usamos weak_ptr para evitar ciclo de referencias en la lambda
+                            std::weak_ptr<PersistentChannelT<PacketT>> weak_self = this->shared_from_this();
+                            newChannel->onClose = [weak_self]()
                             {
-                                FP_LOG_W(TAG, "onClose del canal interno detectado.");
-
-                                // 1. Notificar a la App B (si está escuchando)
-                                if (this->onClose)
+                                if (auto self = weak_self.lock())
                                 {
-                                    this->onClose();
-                                }
+                                    FP_LOG_W(TAG, "onClose del canal interno detectado.");
+                                    if (self->onClose)
+                                        self->onClose();
 
-                                // 2. Borrar el canal interno (esto disparará la reconexión)
-                                Core::Utils::MutexGuard lock(m_mutex);
-                                m_internal_channel.reset();
+                                    std::lock_guard<Core::OSAL::IMutex> lock(*self->m_mutex);
+                                    self->m_internal_channel.reset();
+                                }
                             };
 
-                            // --- 4. Abrir el canal (inicia su tarea y conexión) ---
                             newChannel->open();
 
-                            // --- 5. Guardar el canal (thread-safe) ---
                             {
-                                Core::Utils::MutexGuard lock(m_mutex);
+                                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                                 m_internal_channel = newChannel;
                             }
                             FP_LOG_I(TAG, "Canal interno (re)conectado con éxito.");
                         }
                         catch (const std::exception &e)
                         {
-                            FP_LOG_E(TAG, "Fallo al crear canal interno: %s", e.what());
-                            Core::Utils::MutexGuard lock(m_mutex);
+                            FP_LOG_E(TAG, "Fallo de reconexión: %s", e.what());
+                            std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                             m_internal_channel.reset();
                         }
                     }
 
-                    // Esperar 5s antes de volver a comprobar
-                    vTaskDelay(pdMS_TO_TICKS(5000));
+                    // Espera usando OSAL
+                    if (m_running)
+                    {
+                        Core::OSAL::Factory::sleep(5000);
+                    }
                 }
 
-                // --- Limpieza de la Tarea ---
                 FP_LOG_I(TAG, "Tarea de reconexión parada.");
                 {
-                    Core::Utils::MutexGuard lock(m_mutex);
-                    m_internal_channel.reset(); // Asegurarse de que esté limpio
-                    m_task_handle = nullptr;    // Avisar al destructor que hemos muerto
+                    std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
+                    m_internal_channel.reset();
                 }
+                // La tarea termina aquí y el wrapper OSAL se encarga de la limpieza
             }
 
             // --- Variables Miembro ---
@@ -221,8 +198,8 @@ namespace FlightProxy
 
             // Estado de la Tarea
             std::atomic<bool> m_running; // C++ atomic es seguro entre tareas
-            TaskHandle_t m_task_handle;
-            SemaphoreHandle_t m_mutex; // Protege m_internal_channel y m_task_handle
+            std::unique_ptr<Core::OSAL::ITask> m_reconnectTask;
+            std::unique_ptr<Core::OSAL::IMutex> m_mutex;
         };
     }
 }

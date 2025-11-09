@@ -5,6 +5,12 @@
 // 1. Creamos una instancia estática del logger REAL
 static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 
+// incluimos osals
+#include "FlightProxy/Core/OSAL/IMutex.h"
+
+// incluimos implementaciones esp32
+#include "FlightProxy/PlatformESP32/FreeRTOSMutex.h"
+
 // incluimos tipos
 #include "FlightProxy/Core/FlightProxyTypes.h"
 
@@ -34,6 +40,10 @@ extern "C" void app_main(void)
     FlightProxy::Core::Utils::Logger::setInstance(g_esp_logger);
 
     FP_LOG_I("main", "Logger inicializado.");
+
+    // OSALS
+    FlightProxy::Core::OSAL::IMutex::setFactory([]()
+                                                { return std::make_unique<FlightProxy::PlatformESP32::FreeRTOSMutex>(); });
 
     // Almacen flexible init
     enum DataIDs
@@ -84,7 +94,11 @@ extern "C" void app_main(void)
     {
         return std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
     };
-    auto tcp_server = std::make_shared<FlightProxy::Channel::ChannelServer<Packet>>(decoder_factory, encoder_factory);
+    auto listener_factory = []() -> std::shared_ptr<FlightProxy::Core::Transport::ITcpListener>
+    {
+        return std::make_shared<FlightProxy::Transport::ListenerTCP>();
+    };
+    auto tcp_server = std::make_shared<FlightProxy::Channel::ChannelServer<Packet>>(decoder_factory, encoder_factory, listener_factory);
 
     auto agregadorTcpClients = std::make_shared<FlightProxy::Channel::ChannelAgregatorT<Packet>>();
 
