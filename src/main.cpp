@@ -1,18 +1,19 @@
-#include "FlightProxy/Core/Utils/Logger.h"       // La clase Logger de Core
-#include "FlightProxy/PlatformESP32/EspLogger.h" // La implementación REAL
+#include "FlightProxy/Core/Utils/Logger.h"             // La clase Logger de Core
+#include "FlightProxy/PlatformESP32/Utils/EspLogger.h" // La implementación REAL
 #include "AppFactory.h"
 
 // 1. Creamos una instancia estática del logger REAL
-static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
+static FlightProxy::PlatformESP32::Utils::EspLogger g_esp_logger;
 
-// incluimos osals
-#include "FlightProxy/Core/OSAL/IMutex.h"
+// incluimos fabrica de osal
+#include "FlightProxy/PlatformESP32/OSAL/OSALFactory.h"
 
-// incluimos implementaciones esp32
-#include "FlightProxy/PlatformESP32/FreeRTOSMutex.h"
+// incluimos fabrica de transportes
+#include "FlightProxy/Core/Transport/TransportFactory.h"
 
 // incluimos tipos
 #include "FlightProxy/Core/FlightProxyTypes.h"
+#include "FlightProxy/Core/Protocol/MspProtocol.h"
 
 // Almacen flexible
 // #include "FlightProxy/AppLogic/AlmacenFlexible.h"
@@ -22,15 +23,10 @@ static FlightProxy::PlatformESP32::EspLogger g_esp_logger;
 
 // Channels logic
 #include "FlightProxy/Channel/ChannelT.h"
-#include "FlightProxy/Transport/SimpleTCP.h"
-#include "FlightProxy/Transport/ListenerTCP.h"
 #include "FlightProxy/Channel/ChannelServer.h"
-#include "FlightProxy/Transport/SimpleUDP.h"
-#include "FlightProxy/Transport/SimpleUart.h"
-#include "FlightProxy/Core/Protocol/MspProtocol.h"
-
 #include "FlightProxy/Channel/ChannelAgregatorT.h"
 
+// App
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h"
 
@@ -40,10 +36,6 @@ extern "C" void app_main(void)
     FlightProxy::Core::Utils::Logger::setInstance(g_esp_logger);
 
     FP_LOG_I("main", "Logger inicializado.");
-
-    // OSALS
-    FlightProxy::Core::OSAL::IMutex::setFactory([]()
-                                                { return std::make_unique<FlightProxy::PlatformESP32::FreeRTOSMutex>(); });
 
     // Almacen flexible init
     enum DataIDs
@@ -96,7 +88,7 @@ extern "C" void app_main(void)
     };
     auto listener_factory = []() -> std::shared_ptr<FlightProxy::Core::Transport::ITcpListener>
     {
-        return std::make_shared<FlightProxy::Transport::ListenerTCP>();
+        return FlightProxy::Core::Transport::Factory::CreateListenerTCP();
     };
     auto tcp_server = std::make_shared<FlightProxy::Channel::ChannelServer<Packet>>(decoder_factory, encoder_factory, listener_factory);
 
