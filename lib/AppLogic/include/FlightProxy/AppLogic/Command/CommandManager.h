@@ -22,6 +22,7 @@ namespace FlightProxy
 
                 CommandManager(size_t queueSize = 5)
                 {
+                    //
                     packetQueue_ = Core::OSAL::Factory::createQueue<Core::PacketEnvelope<PacketT>>(queueSize);
                 }
 
@@ -100,7 +101,8 @@ namespace FlightProxy
                     {
                         if (packetQueue_->receive(packet, 1000))
                         {
-                            FP_LOG_I("CommandManager", "Recibido comando %d", packet.packet->command);
+                            // FP_LOG_I("CommandManager", "Recibido comando %d", packet.packet->command);
+                            FP_LOG_I("CommandManager", "Recibido comando");
                             processContext(packet);
                         }
                     }
@@ -115,12 +117,13 @@ namespace FlightProxy
                     {
                         // creamos la lambda de respuesta "al vuelo"
                         // Capturamos el 'sender_' y el 'channelId' específico de este paquete.
-                        ReplyFunc<PacketT> replyCallback = [this, ctx](std::shared_ptr<const PacketT> response)
+                        uint32_t channelId = ctx.channelId;
+                        ReplyFunc<PacketT> replyCallback = [this, channelId](std::shared_ptr<const PacketT> response)
                         {
                             if (this->responsehandler)
                             {
                                 FP_LOG_W("skdhfj", "usando callbak de respuesta");
-                                this->responsehandler(ctx.channelId, response);
+                                this->responsehandler(channelId, response);
                             }
                         };
 

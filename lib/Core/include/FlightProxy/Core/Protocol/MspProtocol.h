@@ -102,7 +102,7 @@ namespace FlightProxy
                 };
 
                 ParseState state_ = ParseState::IDLE;
-                std::shared_ptr<FlightProxy::Core::MspPacket> currentPacket_;
+                FlightProxy::Core::MspPacket workingPacket_;
                 uint16_t payloadSize_ = 0;
                 uint16_t payloadCounter_ = 0;
                 uint16_t tempCmd_ = 0;
@@ -130,9 +130,13 @@ namespace FlightProxy
                     case ParseState::DIRECTION:
                         if (byte == '<' || byte == '>')
                         {
-                            currentPacket_->direction = byte;
+                            workingPacket_.direction = byte;
                             calculatedChecksum_ = Detail::crc8_dvb_s2(0, byte); // Iniciar CRC
                             state_ = ParseState::FLAG;
+                        }
+                        else
+                        {
+                            state_ = ParseState::IDLE;
                         }
                         break;
 
@@ -150,7 +154,7 @@ namespace FlightProxy
 
                     case ParseState::CMD_H:
                         tempCmd_ |= (static_cast<uint16_t>(byte) << 8);
-                        currentPacket_->command = tempCmd_;
+                        workingPacket_.command = tempCmd_;
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
                         state_ = ParseState::SIZE_L;
                         break;
@@ -168,7 +172,7 @@ namespace FlightProxy
 
                         if (payloadSize_ > 0)
                         {
-                            currentPacket_->payload.reserve(payloadSize_);
+                            workingPacket_.payload.reserve(payloadSize_);
                             payloadCounter_ = 0;
                             state_ = ParseState::PAYLOAD;
                         }
@@ -179,7 +183,7 @@ namespace FlightProxy
                         break;
 
                     case ParseState::PAYLOAD:
-                        currentPacket_->payload.push_back(byte);
+                        workingPacket_.payload.push_back(byte);
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
                         payloadCounter_++;
                         if (payloadCounter_ == payloadSize_)
@@ -191,10 +195,9 @@ namespace FlightProxy
                     case ParseState::CHECKSUM:
                         if (byte == calculatedChecksum_)
                         {
-                            // ¡Paquete V2 válido!
                             if (onPacketHandler_)
                             {
-                                onPacketHandler_(currentPacket_);
+                                onPacketHandler_(std::make_shared<FlightProxy::Core::MspPacket>(workingPacket_));
                             }
                         }
                         // Siempre resetear, haya sido bueno o malo el checksum
@@ -204,7 +207,6 @@ namespace FlightProxy
                 }
 
             public:
-                // Constructor para inicializar el primer paquete
                 MspDecoder()
                 {
                     reset();
@@ -226,13 +228,13 @@ namespace FlightProxy
                 // Ahora es público y cumple la interfaz
                 void reset() override
                 {
-                    currentPacket_ = std::make_shared<FlightProxy::Core::MspPacket>();
                     state_ = ParseState::IDLE;
                     payloadSize_ = 0;
                     payloadCounter_ = 0;
                     calculatedChecksum_ = 0;
                     tempCmd_ = 0;
                     tempSize_ = 0;
+                    workingPacket_.payload.clear();
                 }
             };
         }

@@ -27,7 +27,6 @@ namespace FlightProxy
                         // hacer cosas con la lecutra de consumer
 
                         // montar un packet
-
                         auto replyPacket = std::make_shared<const PacketT>('<', 1, std::vector<uint8_t>{0x10, 0x20, 0x30, 0x40});
 
                         reply(replyPacket);
