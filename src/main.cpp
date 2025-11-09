@@ -16,7 +16,7 @@ static FlightProxy::PlatformESP32::Utils::EspLogger g_esp_logger;
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
 
 // Almacen flexible
-// #include "FlightProxy/AppLogic/AlmacenFlexible.h"
+#include "FlightProxy/AppLogic/AlmacenFlexible.h"
 
 // Wifi
 #include "FlightProxy/Connectivity/WifiManager.h"
@@ -38,12 +38,12 @@ extern "C" void app_main(void)
     FP_LOG_I("main", "Logger inicializado.");
 
     // Almacen flexible init
-    enum DataIDs
+    enum DataIDs : FlightProxy::AppLogic::DataID
     {
         ID_Dato_Prueva_Int,
     };
 
-    // auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
+    auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
 
     // WIFI
     FlightProxy::Connectivity::WiFiManager wifiManager;
@@ -122,8 +122,8 @@ extern "C" void app_main(void)
 
     // Registrar los comandos
     auto commans1 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_BasicRead_Command<Packet>>();
-
     commandManager->registerCommand(commans1);
+
     // commans1.reset();
 
     commandManager->start();
