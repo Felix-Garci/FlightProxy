@@ -37,7 +37,7 @@ namespace FlightProxy
                     channelsById_.erase(myId);
                 };
 
-                channel->onPacket = [this, myId](const PacketT &packet)
+                channel->onPacket = [this, myId](std::shared_ptr<const PacketT> packet)
                 {
                     if (onPacketFromAnyChannel)
                     {
@@ -50,7 +50,7 @@ namespace FlightProxy
                 };
             }
 
-            void response(uint32_t responseId, const PacketT &packet)
+            void response(uint32_t responseId, std::shared_ptr<const PacketT> packet)
             {
                 channelsById_[responseId]->sendPacket(packet);
             }

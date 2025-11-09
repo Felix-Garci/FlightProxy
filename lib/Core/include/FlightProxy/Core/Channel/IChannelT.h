@@ -15,10 +15,10 @@ namespace FlightProxy
 
                 virtual void open() = 0;
                 virtual void close() = 0;
-                virtual void sendPacket(const PacketT &packet) = 0;
+                virtual void sendPacket(std::shared_ptr<const PacketT> packet) = 0;
 
                 // Callbacks que el usuario (dueño del channel) puede suscribir
-                std::function<void(const PacketT &)> onPacket;
+                std::function<void(std::shared_ptr<const PacketT>)> onPacket;
                 std::function<void()> onOpen;
                 std::function<void()> onClose;
             };

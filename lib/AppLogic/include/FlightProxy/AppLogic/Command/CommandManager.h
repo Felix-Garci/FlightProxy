@@ -17,7 +17,7 @@ namespace FlightProxy
             class CommandManager : public std::enable_shared_from_this<CommandManager<PacketT>>
             {
             public:
-                using SenderFunc = std::function<bool(uint32_t, const PacketT &)>;
+                using SenderFunc = std::function<bool(uint32_t, std::shared_ptr<const PacketT> packet)>;
                 SenderFunc responsehandler;
 
                 CommandManager(size_t queueSize = 5)
@@ -100,7 +100,7 @@ namespace FlightProxy
                     {
                         if (packetQueue_->receive(packet, 1000))
                         {
-                            FP_LOG_I("CommandManager", "Recibido comando %d", packet.packet.command);
+                            FP_LOG_I("CommandManager", "Recibido comando %d", packet.packet->command);
                             processContext(packet);
                         }
                     }
@@ -109,13 +109,13 @@ namespace FlightProxy
 
                 void processContext(const Core::PacketEnvelope<PacketT> &ctx)
                 {
-                    auto it = commandMap_.find(ctx.packet.command);
+                    auto it = commandMap_.find(ctx.packet->command);
 
                     if (it != commandMap_.end())
                     {
                         // creamos la lambda de respuesta "al vuelo"
                         // Capturamos el 'sender_' y el 'channelId' específico de este paquete.
-                        ReplyFunc<PacketT> replyCallback = [this, ctx](const PacketT &response)
+                        ReplyFunc<PacketT> replyCallback = [this, ctx](std::shared_ptr<const PacketT> response)
                         {
                             if (this->responsehandler)
                             {
@@ -131,7 +131,7 @@ namespace FlightProxy
                     }
                     else
                     {
-                        FP_LOG_W("skdhfj", "comando no encontrado recivimos msg de %d", ctx.packet.command);
+                        FP_LOG_W("skdhfj", "comando no encontrado recivimos msg de %d", ctx.packet->command);
                     }
                 }
             };

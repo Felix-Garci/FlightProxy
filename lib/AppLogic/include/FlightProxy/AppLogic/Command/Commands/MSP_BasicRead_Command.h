@@ -18,20 +18,22 @@ namespace FlightProxy
                                               public std::enable_shared_from_this<MSP_BasicRead_Command<PacketT>>
                 {
                 public:
-                    MSP_BasicRead_Command(std::function<T(void)> consumer) : m_consumer(consumer) {}
+                    MSP_BasicRead_Command() {}
                     int getID() override { return 1; }
 
-                    void execute(const PacketT &packet, ReplyFunc<PacketT> reply) override
+                    void execute(std::shared_ptr<const PacketT> packet, ReplyFunc<PacketT> reply) override
                     {
                         FP_LOG_W("Read command", "Estamos a punto de responder dentro del comando");
                         // hacer cosas con la lecutra de consumer
 
                         // montar un packet
-                        reply(packet);
+
+                        auto replyPacket = std::make_shared<const PacketT>('<', 1, std::vector<uint8_t>{0x10, 0x20, 0x30, 0x40});
+
+                        reply(replyPacket);
                     }
 
                 private:
-                    std::function<T(void)> m_consumer;
                 };
             }
         }

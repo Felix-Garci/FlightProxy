@@ -84,9 +84,6 @@ namespace FlightProxy
                 }
             };
 
-            /**
-             * @brief Decoder para MSP V2
-             */
             class MspDecoder : public IDecoderT<FlightProxy::Core::MspPacket>
             {
             private:
@@ -112,12 +109,6 @@ namespace FlightProxy
                 uint16_t tempSize_ = 0;
                 uint8_t calculatedChecksum_ = 0;
                 std::function<void(std::shared_ptr<const FlightProxy::Core::MspPacket>)> onPacketHandler_;
-
-                // Constructor para inicializar el primer paquete
-                MspDecoder()
-                {
-                    reset();
-                }
 
                 // Procesa un solo byte
                 void parse(uint8_t byte)
@@ -213,6 +204,12 @@ namespace FlightProxy
                 }
 
             public:
+                // Constructor para inicializar el primer paquete
+                MspDecoder()
+                {
+                    reset();
+                }
+
                 void feed(const uint8_t *data, size_t len) override
                 {
                     for (size_t i = 0; i < len; ++i)

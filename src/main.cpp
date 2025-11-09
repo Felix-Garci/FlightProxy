@@ -16,7 +16,7 @@ static FlightProxy::PlatformESP32::Utils::EspLogger g_esp_logger;
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
 
 // Almacen flexible
-#include "FlightProxy/AppLogic/AlmacenFlexible.h"
+// #include "FlightProxy/AppLogic/AlmacenFlexible.h"
 
 // Wifi
 #include "FlightProxy/Connectivity/WifiManager.h"
@@ -38,12 +38,13 @@ extern "C" void app_main(void)
     FP_LOG_I("main", "Logger inicializado.");
 
     // Almacen flexible init
-    enum DataIDs : FlightProxy::AppLogic::DataID
+    /*enum DataIDs : FlightProxy::AppLogic::DataID
     {
         ID_Dato_Prueva_Int,
     };
 
     auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
+    */
 
     // WIFI
     FlightProxy::Connectivity::WiFiManager wifiManager;
@@ -113,7 +114,7 @@ extern "C" void app_main(void)
         FP_LOG_W("AGREG", "New oaquet throow agreg");
     };
     // Paquetes de vuelta
-    commandManager->responsehandler = [agregadorTcpClients](uint32_t channelId, const Packet &packet) -> bool
+    commandManager->responsehandler = [agregadorTcpClients](uint32_t channelId, std::shared_ptr<const Packet> packet) -> bool
     {
         FP_LOG_W("CMDMGR", "Sending response back through agregator");
         agregadorTcpClients->response(channelId, packet);
