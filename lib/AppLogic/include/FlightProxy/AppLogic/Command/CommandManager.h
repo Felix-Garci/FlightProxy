@@ -61,8 +61,9 @@ namespace FlightProxy
 
                     if (eventTask_)
                     {
-                        eventTask_->start();
                         isRunning_ = true;
+                        eventTask_->start();
+                        FP_LOG_I("CommandManager", "Tarea iniciada");
                     }
                 }
 
