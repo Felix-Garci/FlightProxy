@@ -9,14 +9,24 @@ namespace FlightProxy
         {
             esp_log_level_t espLevel = toEspLogLevel(level);
 
-            // Usamos la función 'v' (variadic) de esp_log
-            // esp_log_writev(espLevel, tag, format, args);
+            // 1. Creamos un nuevo string de formato que incluya el TAG explícitamente.
+            // Puedes ajustar el formato "[%s] " a tu gusto (ej. añadir timestamp si quieres).
+            std::string new_format = "";
 
-            // 1. Creamos un nuevo string de formato que envuelve al original
-            std::string new_format = "\n";
+            // Opcional: Añadir color según nivel (ESP-IDF lo hace con códigos ANSI)
+            // if (espLevel == ESP_LOG_ERROR) new_format += "\033[0;31m"; // Rojo para error
+
+            new_format += "[";
+            new_format += tag;
+            new_format += "] ";
             new_format += format;
-            new_format += "\n";
-            // 2. Usamos la función 'v' (variadic) de esp_log con el *nuevo* formato
+            new_format += "\n"; // Añadimos salto de línea al final
+
+            // Opcional: Resetear color
+            // if (espLevel == ESP_LOG_ERROR) new_format += "\033[0m";
+
+            // 2. Usamos la función 'v' con el nuevo formato que YA incluye el TAG visualmente.
+            // Seguimos pasando 'tag' como segundo argumento para que el filtrado de logs de ESP-IDF siga funcionando.
             esp_log_writev(espLevel, tag, new_format.c_str(), args);
         }
 
