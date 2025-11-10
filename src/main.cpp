@@ -17,6 +17,7 @@ static FlightProxy::PlatformWin::Utils::HostLogger logger;
 // incluimos tipos
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
+#include "FlightProxy/Core/Protocol/IbusProtocol.h"
 
 // Almacen flexible
 #include "FlightProxy/AppLogic/AlmacenFlexible.h"
@@ -45,7 +46,7 @@ void app()
     // Almacen flexible init
     enum DataIDs : FlightProxy::AppLogic::DataID
     {
-        ID_Dato_Prueva_Int,
+        ID_RC_Input = 1,
     };
 
     auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
@@ -139,16 +140,21 @@ void app()
 
     //________________________________________RC FLUX___________________________________________________________
 
+    using Bus = FlightProxy::Core::IBUSPacket;
+
     // Servidor UDP
-    auto encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
-    auto decoder = std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
     auto udp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleUDP(12346);
-    auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Packet>>(encoder, decoder, udp_transport);
+    auto encoder = std::make_shared<FlightProxy::Core::Protocol::IbusEncoder>();
+    auto decoder = std::make_shared<FlightProxy::Core::Protocol::IbusDecoder>();
 
-    udp_server->onPacket = [blackboard](std::unique_ptr<const Packet> packet)
+    auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Bus>>(udp_transport, encoder, decoder);
+
+    std::function<void(Bus::ChannelsT)> rcWriter = blackboard->registrarProductor<Bus::ChannelsT>(ID_RC_Input);
+
+    udp_server->onPacket = [rcWriter](std::unique_ptr<const Bus> packet)
     {
-        FP_LOG_I("UDP_SERVER", "Paquete recibido en UDP: Cmd=%u, PayloadSize=%zu", packet->command, packet->payload.size());
-
+        FP_LOG_I("UDP_SERVER", "Paquete recibido en UDP");
+        rcWriter(packet->channels);
         return;
     };
 
@@ -156,6 +162,8 @@ void app()
 
     // Limpiamos referencia para que solo quede dentro del tasl del udp
     udp_transport.reset();
+
+    //________________________________________Bucle infinito___________________________________________________________
 
     while (true)
         FlightProxy::Core::OSAL::Factory::sleep(1000);

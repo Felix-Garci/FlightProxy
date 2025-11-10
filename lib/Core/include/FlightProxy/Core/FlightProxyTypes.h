@@ -39,7 +39,8 @@ namespace FlightProxy
         struct IBUSPacket
         {
             static constexpr size_t NUM_CHANNELS = 14;
-            std::array<uint16_t, NUM_CHANNELS> channels;
+            using ChannelsT = std::array<uint16_t, NUM_CHANNELS>;
+            ChannelsT channels;
         };
 
         template <typename PacketT>
