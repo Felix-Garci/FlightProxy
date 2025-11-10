@@ -204,6 +204,7 @@ namespace FlightProxy
                     int len = recv(m_sock, rx_buffer.data(), (int)rx_buffer.size(), 0);
                     if (len > 0)
                     {
+                        // FP_LOG_I(TAG, "Datos recibidos: %d bytes.", len);
                         if (onData)
                             onData((uint8_t *)rx_buffer.data(), len);
                     }

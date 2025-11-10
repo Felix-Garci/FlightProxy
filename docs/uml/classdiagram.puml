@@ -336,3 +336,114 @@ state MIXTO_ARMADO {
 
 
 @enduml
+
+@startuml
+skinparam backgroundColor #FEFECE
+skinparam state {
+    BackgroundColor<<Safety>> LightCoral
+    BorderColor<<Safety>> DarkRed
+    BackgroundColor<<Control>> LightBlue
+    BorderColor<<Control>> DarkBlue
+    BackgroundColor<<Mode>> PaleGreen
+    BorderColor<<Mode>> DarkGreen
+}
+
+title Sistema de Control Dual - Arquitectura de Máquina de Estados
+
+[*] --> SAFETY_DISARMED : Inicialización
+
+state "Sistema A" as sysA #LightGray {
+    [*] --> A_IDLE
+    A_IDLE : Health Score > 70
+    A_IDLE : Tx Rate > 10Hz
+    A_IDLE : CRC Errors < 5%
+    A_IDLE --> A_FAILED : Health < 30
+    A_IDLE --> A_REQUESTING : Control Request
+    A_REQUESTING : Enviando CONTROL_REQ @ 10Hz
+}
+
+state "Sistema B" as sysB #LightGray {
+    [*] --> B_IDLE
+    B_IDLE : Health Score > 70
+    B_IDLE : Tx Rate > 10Hz
+    B_IDLE : CRC Errors < 5%
+    B_IDLE --> B_FAILED : Health < 30
+    B_IDLE --> B_REQUESTING : Control Request
+    B_REQUESTING : Enviando CONTROL_REQ @ 10Hz
+    B_REQUESTING : Prioridad > A
+}
+
+state "SAFETY_DISARMED" as SD <<Safety>> {
+    SD : Motores OFF
+    SD : Ignorar comandos de vuelo
+    SD : Monitorear salud A/B
+}
+
+state "SAFETY_ARMING" as SA <<Safety>> {
+    SA : Verificando...
+    SA : • IMU Calibrado
+    SA : • GPS 3D Lock (HDOP < 2.0)
+    SA : • Batería > 20%
+    SA : • A&B transmitiendo OK
+    SA : Timeout = 3s
+}
+
+state "SAFETY_ARMED" as SARM <<Safety>> {
+    [*] --> CTRL_NONE
+    
+    state "CTRL_NONE" as CN <<Control>> {
+        CN : Sin autoridad
+        CN : Motores en IDLE
+    }
+    
+    state "CTRL_TRANSITION" as CT <<Control>> {
+        CT : Blind Time = 500ms
+        CT : Ignorar paquetes de control
+        CT : Mantener última referencia válida
+    }
+    
+    state "CTRL_A" as CA <<Control>> {
+        [*] --> MODE_STATIC_HOLD
+        MODE_STATIC_HOLD --> MODE_RELATIVE_MOVE : Packet CMD + ref válida
+        MODE_STATIC_HOLD --> MODE_GPS_NAV : Packet CMD + waypoint ID
+        MODE_RELATIVE_MOVE --> MODE_STATIC_HOLD : Timeout 100ms
+        MODE_GPS_NAV --> MODE_STATIC_HOLD : Timeout 100ms
+    }
+    
+    state "CTRL_B" as CB <<Control>> {
+        [*] --> MODE_STATIC_HOLD
+        MODE_STATIC_HOLD --> MODE_ANGLE_ALTHOLD : Packet CMD + ángulo
+        MODE_STATIC_HOLD --> MODE_ANGLE_NORMAL : Packet CMD + ángulo
+        MODE_ANGLE_ALTHOLD --> MODE_STATIC_HOLD : Timeout 100ms
+        MODE_ANGLE_NORMAL --> MODE_STATIC_HOLD : Timeout 100ms
+    }
+    
+    CN --> CT : A o B solicita
+    CT --> CA : Si A gana + salud OK
+    CT --> CB : Si B gana + salud OK (prioridad)
+    CA --> CT : B solicita (mejor prioridad)
+    CB --> CT : A solicita y B falla
+    CA --> CN : Health A < 50
+    CB --> CN : Health B < 50
+}
+
+state "SAFETY_EMERGENCY" as SE <<Safety>> {
+    SE : DESARME FORZOSO
+    SE : Motores OFF inmediato
+    SE : Log de causa
+}
+
+SD --> SA : ARM_COMMAND\n(stick down-right 3s) + checks OK
+SA --> SD : Timeout/Abort\n(cualquier stick)
+SA --> SARM : Checks confirmados\n(100% OK)
+SARM --> SD : DISARM_COMMAND\n(emergency switch)
+SARM --> SE : • Health < 30\n• Pérdida link > 5s\n• Piloto EMERGENCY\n• Watchdog timeout
+SE --> SD : Reset manual +自检
+
+note right of SARM : "Matriz de Transiciones:\nStatic Hold ↔ Cualquier modo (mismo control)\nCambio A→B o B→A: OBLIGATORIO pasar por Static Hold 2s"
+
+note right of sysA : "Validación de Paquetes:\n• Timestamp < 100ms\n• CRC16 OK\n• ID consecutivo\n• Rate > 10Hz"
+
+note left of sysB : "Watchdog:\n• Actualizar last_packet_time\n• Health Score = f(rate, crc, timeout)\n• < 60 → Forzar Static Hold\n• < 30 → EMERGENCY"
+
+@enduml

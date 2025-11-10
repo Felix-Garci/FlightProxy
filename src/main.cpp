@@ -35,6 +35,7 @@ static FlightProxy::PlatformWin::Utils::HostLogger logger;
 // App
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h"
+#include "FlightProxy/AppLogic/Command/Commands/MSP_ReadRCblackboard.h"
 
 void app()
 {
@@ -107,7 +108,6 @@ void app()
     tcp_server->onNewChannel = [agregadorTcpClients](std::shared_ptr<FlightProxy::Core::Channel::IChannelT<Packet>> channel)
     {
         agregadorTcpClients->addChannel(channel);
-        FP_LOG_W("AGREG", "Agregador nuevo chanel");
     };
 
     tcp_server->start(12345);
@@ -119,13 +119,11 @@ void app()
     // Paquetes de ida
     agregadorTcpClients->onPacketFromAnyChannel = [commandManager](const FlightProxy::Core::PacketEnvelope<Packet> &envelope)
     {
-        FP_LOG_W("AGREG", "New oaquet throow agreg");
         return commandManager->enqueuePacket(envelope);
     };
     // Paquetes de vuelta
     commandManager->responsehandler = [agregadorTcpClients](uint32_t channelId, std::unique_ptr<const Packet> packet) -> bool
     {
-        FP_LOG_W("CMDMGR", "Sending response back through agregator");
         agregadorTcpClients->response(channelId, std::move(packet));
         return true;
     };
@@ -133,6 +131,10 @@ void app()
     // Registrar los comandos
     auto commans1 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_BasicRead_Command<Packet>>();
     commandManager->registerCommand(commans1);
+
+    auto commans2 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_ReadRCblackboard<Packet>>(
+        blackboard->registrarConsumidor<FlightProxy::Core::IBUSPacket::ChannelsT>(ID_RC_Input));
+    commandManager->registerCommand(commans2);
 
     // commans1.reset();
 
@@ -153,7 +155,6 @@ void app()
 
     udp_server->onPacket = [rcWriter](std::unique_ptr<const Bus> packet)
     {
-        FP_LOG_I("UDP_SERVER", "Paquete recibido en UDP");
         rcWriter(packet->channels);
         return;
     };

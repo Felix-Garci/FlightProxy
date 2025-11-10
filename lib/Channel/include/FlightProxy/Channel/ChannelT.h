@@ -19,6 +19,7 @@ namespace FlightProxy
                      std::shared_ptr<Core::Protocol::IDecoderT<PacketT>> d)
                 : transport_(t), encoder_(e), decoder_(d) // Se copian los ptr
             {
+
                 if (auto transport_ptr = transport_.lock())
                 {
                     // El objeto existe, 'transport_ptr' es un std::shared_ptr válido
@@ -27,6 +28,7 @@ namespace FlightProxy
                     {
                         if (decoder_)
                         {
+                            // FP_LOG_D("ChannelT", "Feedeng data to decoder in ChannelT");
                             decoder_->feed(data, len);
                         }
                     };
@@ -51,6 +53,7 @@ namespace FlightProxy
                                    { 
                     if (this->onPacket) 
                     { 
+                        //FP_LOG_D("ChannelT", "Paquete decodificado recibido en ChannelT");
                         this->onPacket(std::move(packet));
                     } });
             }
@@ -77,6 +80,7 @@ namespace FlightProxy
             {
                 if (auto transport_ptr = transport_.lock())
                 {
+                    // FP_LOG_D("ChannelT", "Codificando y enviando paquete desde ChannelT");
                     std::vector<uint8_t> encodedData = encoder_->encode(std::move(packet));
                     transport_ptr->send(encodedData.data(), encodedData.size());
                 }

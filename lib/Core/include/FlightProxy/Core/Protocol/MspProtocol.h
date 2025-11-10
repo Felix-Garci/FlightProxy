@@ -1,5 +1,5 @@
 #pragma once
-
+#include "FlightProxy/Core/Utils/Logger.h"
 #include "FlightProxy/Core/Protocol/IDecoderT.h"
 #include "FlightProxy/Core/Protocol/IEncoderT.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
@@ -72,9 +72,9 @@ namespace FlightProxy
                     buffer.insert(buffer.end(), packet->payload.begin(), packet->payload.end());
 
                     // Calcular Checksum (CRC8 DVB-S2)
-                    // Se calcula sobre (Dir, Flag, Cmd, Size, Payload)
+                    // Se calcula sobre (Flag, Cmd, Size, Payload)
                     uint8_t checksum = 0;
-                    for (size_t i = 2; i < buffer.size(); ++i)
+                    for (size_t i = 3; i < buffer.size(); ++i)
                     {
                         checksum = Detail::crc8_dvb_s2(checksum, buffer[i]);
                     }
@@ -118,41 +118,48 @@ namespace FlightProxy
                     case ParseState::IDLE:
                         if (byte == '$')
                         {
+                            // FP_LOG_D("MspDecoder", "Inicio de paquete MSP detectado");
                             reset(); // Iniciar un paquete nuevo y limpio
                             state_ = ParseState::HEADER_X;
                         }
                         break;
 
                     case ParseState::HEADER_X:
+                        // FP_LOG_D("MspDecoder", "Cabecera 'X' de MSP detectada");
                         state_ = (byte == 'X') ? ParseState::DIRECTION : ParseState::IDLE;
                         break;
 
                     case ParseState::DIRECTION:
-                        if (byte == '<' || byte == '>')
+                        if (byte == '<' || byte == '>' || byte == '!')
                         {
+                            // FP_LOG_D("MspDecoder", "Dirección de MSP detectada");
                             workingPacket_.direction = byte;
-                            calculatedChecksum_ = Detail::crc8_dvb_s2(0, byte); // Iniciar CRC
+                            calculatedChecksum_ = 0;
                             state_ = ParseState::FLAG;
                         }
                         else
                         {
+                            // FP_LOG_W("MspDecoder", "Dirección de MSP inválida: %c", byte);
                             state_ = ParseState::IDLE;
                         }
                         break;
 
                     case ParseState::FLAG:
                         // El flag es parte del checksum, pero no lo guardamos
+                        // FP_LOG_D("MspDecoder", "Flag de MSP procesado");
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
                         state_ = ParseState::CMD_L;
                         break;
 
                     case ParseState::CMD_L:
+                        // FP_LOG_D("MspDecoder", "ComandoL de MSP procesado");
                         tempCmd_ = byte;
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
                         state_ = ParseState::CMD_H;
                         break;
 
                     case ParseState::CMD_H:
+                        // FP_LOG_D("MspDecoder", "ComandoH de MSP procesado");
                         tempCmd_ |= (static_cast<uint16_t>(byte) << 8);
                         workingPacket_.command = tempCmd_;
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
@@ -160,12 +167,14 @@ namespace FlightProxy
                         break;
 
                     case ParseState::SIZE_L:
+                        // FP_LOG_D("MspDecoder", "TamañoL de MSP procesado");
                         tempSize_ = byte;
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
                         state_ = ParseState::SIZE_H;
                         break;
 
                     case ParseState::SIZE_H:
+                        // FP_LOG_D("MspDecoder", "TamañoH de MSP procesado");
                         tempSize_ |= (static_cast<uint16_t>(byte) << 8);
                         payloadSize_ = tempSize_;
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
@@ -183,6 +192,7 @@ namespace FlightProxy
                         break;
 
                     case ParseState::PAYLOAD:
+                        // FP_LOG_D("MspDecoder", "Payload de MSP procesado");
                         workingPacket_.payload.push_back(byte);
                         calculatedChecksum_ = Detail::crc8_dvb_s2(calculatedChecksum_, byte);
                         payloadCounter_++;
@@ -193,10 +203,13 @@ namespace FlightProxy
                         break;
 
                     case ParseState::CHECKSUM:
+                        // FP_LOG_D("MspDecoder", "Checksum de MSP procesado recibido: 0x%02X, calculado: 0x%02X", byte, calculatedChecksum_);
                         if (byte == calculatedChecksum_)
                         {
+                            // FP_LOG_D("MspDecoder", "Checksum correcto");
                             if (onPacketHandler_)
                             {
+                                // FP_LOG_D("MspDecoder", "Llamando al handler de paquete MSP");
                                 onPacketHandler_(std::make_unique<FlightProxy::Core::MspPacket>(workingPacket_));
                             }
                         }

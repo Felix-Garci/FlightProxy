@@ -44,11 +44,13 @@ namespace FlightProxy
                     // si no entre en la cola lo eliminas para evitar fugas
                     if (onPacketFromAnyChannel)
                     {
+                        // FP_LOG_I("AGREG", "Paquete recibido en agregador con command %d", packet->command);
                         const PacketT *raw_packet_ptr = packet.release();
 
                         Core::PacketEnvelope<PacketT> envelope;
                         envelope.channelId = myId;
                         envelope.raw_packet_ptr = raw_packet_ptr;
+
                         bool enqueued = onPacketFromAnyChannel(envelope);
                         if (!enqueued)
                         {
