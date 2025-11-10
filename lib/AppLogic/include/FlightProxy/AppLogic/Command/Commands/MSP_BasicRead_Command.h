@@ -21,15 +21,15 @@ namespace FlightProxy
                     MSP_BasicRead_Command() {}
                     int getID() override { return 1; }
 
-                    void execute(std::shared_ptr<const PacketT> packet, ReplyFunc<PacketT> reply) override
+                    void execute(std::unique_ptr<const PacketT> packet, ReplyFunc<PacketT> reply) override
                     {
                         FP_LOG_W("Read command", "Estamos a punto de responder dentro del comando");
                         // hacer cosas con la lecutra de consumer
 
                         // montar un packet
-                        auto replyPacket = std::make_shared<const PacketT>('<', 1, std::vector<uint8_t>{0x10, 0x20, 0x30, 0x40});
+                        auto replyPacket = std::make_unique<const PacketT>('<', 1, std::vector<uint8_t>{0x10, 0x20, 0x30, 0x40});
 
-                        reply(replyPacket);
+                        reply(std::move(replyPacket));
                     }
 
                 private:

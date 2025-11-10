@@ -13,6 +13,7 @@ namespace FlightProxy
 {
     namespace Channel
     {
+
         template <typename PacketT>
         class ChannelAgregatorT : public std::enable_shared_from_this<ChannelAgregatorT<PacketT>>
         {
@@ -37,25 +38,33 @@ namespace FlightProxy
                     channelsById_.erase(myId);
                 };
 
-                channel->onPacket = [this, myId](std::shared_ptr<const PacketT> packet)
+                channel->onPacket = [this, myId](std::unique_ptr<const PacketT> packet)
                 {
+                    // aqui lo que pasa es que tenemos que sacar el puntero crudo para pasarlo por la cola
+                    // si no entre en la cola lo eliminas para evitar fugas
                     if (onPacketFromAnyChannel)
                     {
+                        const PacketT *raw_packet_ptr = packet.release();
+
                         Core::PacketEnvelope<PacketT> envelope;
                         envelope.channelId = myId;
-                        envelope.packet = packet;
-
-                        onPacketFromAnyChannel(envelope);
+                        envelope.raw_packet_ptr = raw_packet_ptr;
+                        bool enqueued = onPacketFromAnyChannel(envelope);
+                        if (!enqueued)
+                        {
+                            FP_LOG_W("AGREG", "Fallo al encolar paquete desde canal borramos ptr para evitar fuga");
+                            std::unique_ptr<const PacketT> failure_deleter(raw_packet_ptr);
+                        }
                     }
                 };
             }
 
-            void response(uint32_t responseId, std::shared_ptr<const PacketT> packet)
+            void response(uint32_t responseId, std::unique_ptr<const PacketT> packet)
             {
-                channelsById_[responseId]->sendPacket(packet);
+                channelsById_[responseId]->sendPacket(std::move(packet));
             }
 
-            std::function<void(const Core::PacketEnvelope<PacketT> &)> onPacketFromAnyChannel;
+            std::function<bool(const Core::PacketEnvelope<PacketT> &)> onPacketFromAnyChannel;
 
         private:
             std::atomic<uint32_t> nextChannelId_{1};

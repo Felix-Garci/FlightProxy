@@ -49,7 +49,7 @@ namespace FlightProxy
             class MspEncoder : public IEncoderT<FlightProxy::Core::MspPacket>
             {
             public:
-                std::vector<uint8_t> encode(std::shared_ptr<const FlightProxy::Core::MspPacket> packet) override
+                std::vector<uint8_t> encode(std::unique_ptr<const FlightProxy::Core::MspPacket> packet) override
                 {
                     std::vector<uint8_t> buffer;
                     buffer.push_back('$');
@@ -108,7 +108,7 @@ namespace FlightProxy
                 uint16_t tempCmd_ = 0;
                 uint16_t tempSize_ = 0;
                 uint8_t calculatedChecksum_ = 0;
-                std::function<void(std::shared_ptr<const FlightProxy::Core::MspPacket>)> onPacketHandler_;
+                std::function<void(std::unique_ptr<const FlightProxy::Core::MspPacket>)> onPacketHandler_;
 
                 // Procesa un solo byte
                 void parse(uint8_t byte)
@@ -197,7 +197,7 @@ namespace FlightProxy
                         {
                             if (onPacketHandler_)
                             {
-                                onPacketHandler_(std::make_shared<FlightProxy::Core::MspPacket>(workingPacket_));
+                                onPacketHandler_(std::make_unique<FlightProxy::Core::MspPacket>(workingPacket_));
                             }
                         }
                         // Siempre resetear, haya sido bueno o malo el checksum
@@ -220,7 +220,7 @@ namespace FlightProxy
                     }
                 }
 
-                void onPacket(std::function<void(std::shared_ptr<const FlightProxy::Core::MspPacket>)> handler) override
+                void onPacket(std::function<void(std::unique_ptr<const FlightProxy::Core::MspPacket>)> handler) override
                 {
                     onPacketHandler_ = handler;
                 }

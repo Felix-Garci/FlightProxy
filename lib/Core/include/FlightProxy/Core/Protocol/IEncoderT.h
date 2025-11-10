@@ -14,7 +14,7 @@ namespace FlightProxy
             {
             public:
                 virtual ~IEncoderT() = default;
-                virtual std::vector<uint8_t> encode(std::shared_ptr<const PacketT> packet) = 0;
+                virtual std::vector<uint8_t> encode(std::unique_ptr<const PacketT> packet) = 0;
             };
         }
     }

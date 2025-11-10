@@ -108,16 +108,16 @@ extern "C" void app_main(void)
 
     // Conectamos agregator con command manager
     // Paquetes de ida
-    agregadorTcpClients->onPacketFromAnyChannel = [commandManager](const FlightProxy::Core::PacketEnvelope<Packet> &packet)
+    agregadorTcpClients->onPacketFromAnyChannel = [commandManager](const FlightProxy::Core::PacketEnvelope<Packet> &envelope)
     {
-        commandManager->enqueuePacket(packet);
         FP_LOG_W("AGREG", "New oaquet throow agreg");
+        return commandManager->enqueuePacket(envelope);
     };
     // Paquetes de vuelta
-    commandManager->responsehandler = [agregadorTcpClients](uint32_t channelId, std::shared_ptr<const Packet> packet) -> bool
+    commandManager->responsehandler = [agregadorTcpClients](uint32_t channelId, std::unique_ptr<const Packet> packet) -> bool
     {
         FP_LOG_W("CMDMGR", "Sending response back through agregator");
-        agregadorTcpClients->response(channelId, packet);
+        agregadorTcpClients->response(channelId, std::move(packet));
         return true;
     };
 

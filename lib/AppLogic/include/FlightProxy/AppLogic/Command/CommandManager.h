@@ -17,12 +17,11 @@ namespace FlightProxy
             class CommandManager : public std::enable_shared_from_this<CommandManager<PacketT>>
             {
             public:
-                using SenderFunc = std::function<bool(uint32_t, std::shared_ptr<const PacketT> packet)>;
+                using SenderFunc = std::function<bool(uint32_t, std::unique_ptr<const PacketT> packet)>;
                 SenderFunc responsehandler;
 
                 CommandManager(size_t queueSize = 5)
                 {
-                    //
                     packetQueue_ = Core::OSAL::Factory::createQueue<Core::PacketEnvelope<PacketT>>(queueSize);
                 }
 
@@ -32,11 +31,12 @@ namespace FlightProxy
                 }
 
                 // Método público para recibir paquetes desde CUALQUIER sitio (Agregador incluido)
-                bool enqueuePacket(const Core::PacketEnvelope<PacketT> &packet)
+                bool enqueuePacket(const Core::PacketEnvelope<PacketT> &envelope)
                 {
                     if (!packetQueue_)
                         return false;
-                    return packetQueue_->send(packet, 0);
+
+                    return packetQueue_->send(Core::PacketEnvelope<PacketT>(envelope), 0);
                 }
 
                 void registerCommand(std::shared_ptr<ICommand<PacketT>> command)
@@ -94,47 +94,46 @@ namespace FlightProxy
 
                 void eventLoop()
                 {
-                    Core::PacketEnvelope<PacketT> packet;
+                    Core::PacketEnvelope<PacketT> envelope;
                     // Mientras deba correr, esperamos paquetes
                     // Usamos un timeout razonable (ej. 1s) para poder comprobar isRunning_ periódicamente
                     while (isRunning_)
                     {
-                        if (packetQueue_->receive(packet, 1000))
+                        if (packetQueue_->receive(envelope, 1000))
                         {
-                            // FP_LOG_I("CommandManager", "Recibido comando %d", packet.packet->command);
-                            FP_LOG_I("CommandManager", "Recibido comando");
-                            processContext(packet);
+                            std::unique_ptr<const PacketT> packet(envelope.raw_packet_ptr);
+                            FP_LOG_I("CommandManager", "Procesando comando %d", packet->command);
+                            processContext(envelope.channelId, std::move(packet));
                         }
                     }
                     FP_LOG_I("CommandManager", "Tarea finalizada");
                 }
 
-                void processContext(const Core::PacketEnvelope<PacketT> &ctx)
+                void processContext(uint32_t channelId, std::unique_ptr<const PacketT> packet)
                 {
-                    auto it = commandMap_.find(ctx.packet->command);
+                    auto it = commandMap_.find(packet->command);
 
                     if (it != commandMap_.end())
                     {
                         // creamos la lambda de respuesta "al vuelo"
                         // Capturamos el 'sender_' y el 'channelId' específico de este paquete.
-                        uint32_t channelId = ctx.channelId;
-                        ReplyFunc<PacketT> replyCallback = [this, channelId](std::shared_ptr<const PacketT> response)
+                        ReplyFunc<PacketT> replyCallback = [this, channelId](std::unique_ptr<const PacketT> response)
                         {
                             if (this->responsehandler)
                             {
                                 FP_LOG_W("skdhfj", "usando callbak de respuesta");
-                                this->responsehandler(channelId, response);
+                                this->responsehandler(channelId, std::move(response));
                             }
                         };
 
                         FP_LOG_W("skdhfj", "comando encontrado, ejecutamos comando");
 
                         // Ejecutamos el comando pasándole la forma fácil de responder
-                        it->second->execute(ctx.packet, replyCallback);
+                        it->second->execute(std::move(packet), replyCallback);
                     }
                     else
                     {
-                        FP_LOG_W("skdhfj", "comando no encontrado recivimos msg de %d", ctx.packet->command);
+                        FP_LOG_W("skdhfj", "comando no encontrado recivimos msg de %d", packet->command);
                     }
                 }
             };

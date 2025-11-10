@@ -47,11 +47,11 @@ namespace FlightProxy
                     };
                 }
 
-                decoder_->onPacket([this](std::shared_ptr<const PacketT> packet)
+                decoder_->onPacket([this](std::unique_ptr<const PacketT> packet)
                                    { 
                     if (this->onPacket) 
                     { 
-                        this->onPacket(packet);
+                        this->onPacket(std::move(packet));
                     } });
             }
 
@@ -73,7 +73,7 @@ namespace FlightProxy
                 }
             }
 
-            void sendPacket(std::shared_ptr<const PacketT> packet) override
+            void sendPacket(std::unique_ptr<const PacketT> packet) override
             {
                 if (auto transport_ptr = transport_.lock())
                 {
