@@ -18,7 +18,7 @@ namespace FlightProxy
                   m_last_sender_len(sizeof(m_last_sender_addr)),
                   m_has_last_sender(false),
                   eventTaskHandle_(nullptr),
-                  mutex_(xSemaphoreCreateRecursiveMutex())
+                  mutex_(Core::OSAL::Factory::createMutex())
             {
                 memset(&m_last_sender_addr, 0, sizeof(m_last_sender_addr));
                 FP_LOG_I(TAG, "Canal UDP creado para el puerto %u", m_port);
@@ -26,18 +26,12 @@ namespace FlightProxy
 
             SimpleUDP::~SimpleUDP()
             {
-                FP_LOG_I(TAG, "eventTask terminada. Limpiando mutex.");
-                if (mutex_)
-                {
-                    vSemaphoreDelete(mutex_);
-                    mutex_ = nullptr;
-                }
                 FP_LOG_I(TAG, "Canal destruido.");
             }
 
             void SimpleUDP::open()
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                 if (eventTaskHandle_ != nullptr)
                 {
@@ -115,7 +109,7 @@ namespace FlightProxy
 
             void SimpleUDP::close()
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
                 if (m_sock == -1)
                 {
                     return;
@@ -130,7 +124,7 @@ namespace FlightProxy
 
             void SimpleUDP::send(const uint8_t *data, size_t len)
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                 if (m_sock == -1)
                 {
@@ -208,7 +202,7 @@ namespace FlightProxy
                     {
                         // Guardar el remitente para futuros 'send()'
                         {
-                            Core::Utils::MutexGuard lock(mutex_);
+                            std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
                             m_last_sender_addr = sender_addr;
                             m_last_sender_len = sender_len;
                             m_has_last_sender = true;
@@ -242,7 +236,7 @@ namespace FlightProxy
                 int sock_to_close = -1;
 
                 {
-                    Core::Utils::MutexGuard lock(mutex_);
+                    std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
                     if (m_sock != -1)
                     {
                         sock_to_close = m_sock;

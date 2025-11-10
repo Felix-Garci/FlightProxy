@@ -15,7 +15,7 @@ namespace FlightProxy
 }
 #else
 // Asumimos PC si no es ESP32 (o añades más #elif para otras plataformas)
-#include "FlightProxy/PlatformPC/Transport/TransportFactory.h"
+#include "FlightProxy/PlatformWin/Transport/TransportFactory.h"
 
 namespace FlightProxy
 {
@@ -23,7 +23,7 @@ namespace FlightProxy
     {
         namespace Transport
         {
-            using Factory = FlightProxy::PlatformPC::Transport::TransportFactory;
+            using Factory = FlightProxy::PlatformWin::Transport::TransportFactory;
         }
     }
 }

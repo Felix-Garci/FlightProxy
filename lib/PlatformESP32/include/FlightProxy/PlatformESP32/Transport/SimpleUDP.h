@@ -1,10 +1,11 @@
 #pragma once
 #include "FlightProxy/Core/Transport/ITransport.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <memory>
+#include <mutex>
 #include "lwip/sockets.h"
 
 namespace FlightProxy
@@ -44,7 +45,7 @@ namespace FlightProxy
                 bool m_has_last_sender = false; // Flag para saber si podemos enviar
 
                 TaskHandle_t eventTaskHandle_;
-                SemaphoreHandle_t mutex_;
+                std::unique_ptr<Core::OSAL::IMutex> mutex_;
                 void eventTask(std::shared_ptr<SimpleUDP> *self_keep_alive);
                 static void eventTaskAdapter(void *arg);
             };

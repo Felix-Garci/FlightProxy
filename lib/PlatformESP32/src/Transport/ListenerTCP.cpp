@@ -14,7 +14,7 @@ namespace FlightProxy
         {
             static const char *TAG = "ListenerTCP";
 
-            ListenerTCP::ListenerTCP() : m_mutex(xSemaphoreCreateRecursiveMutex())
+            ListenerTCP::ListenerTCP() : m_mutex(Core::OSAL::Factory::createMutex())
             {
             }
 
@@ -28,7 +28,7 @@ namespace FlightProxy
                 {
                     bool task_running;
                     {
-                        Core::Utils::MutexGuard lock(m_mutex);
+                        std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                         task_running = (m_listener_task_handle != NULL);
                     }
 
@@ -46,12 +46,11 @@ namespace FlightProxy
                 }
 
                 FP_LOG_I(TAG, "Tarea de Listener terminada. Borrando mutex.");
-                vSemaphoreDelete(m_mutex);
             }
 
             bool ListenerTCP::startListening(uint16_t port)
             {
-                Core::Utils::MutexGuard lock(m_mutex);
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
 
                 if (m_listener_task_handle != NULL)
                 {
@@ -115,7 +114,7 @@ namespace FlightProxy
 
             void ListenerTCP::stopListening()
             {
-                Core::Utils::MutexGuard lock(m_mutex);
+                std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
 
                 if (m_listener_task_handle == NULL)
                 {
@@ -154,7 +153,7 @@ namespace FlightProxy
                 // para no tener que bloquear el mutex en cada 'accept'
                 int server_sock_local;
                 {
-                    Core::Utils::MutexGuard lock(m_mutex);
+                    std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                     server_sock_local = m_server_sock;
                 }
 
@@ -170,7 +169,7 @@ namespace FlightProxy
                         // Error. Comprobamos si fue un cierre intencional
                         bool was_stopped;
                         {
-                            Core::Utils::MutexGuard lock(m_mutex);
+                            std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                             was_stopped = (m_server_sock == -1);
                         }
 
@@ -210,7 +209,7 @@ namespace FlightProxy
                 // --- Limpieza de la tarea ---
                 FP_LOG_I(TAG, "Tarea de Listener terminada.");
                 {
-                    Core::Utils::MutexGuard lock(m_mutex);
+                    std::lock_guard<Core::OSAL::IMutex> lock(*m_mutex);
                     m_listener_task_handle = NULL; // <-- Avisamos al destructor
                 }
             }

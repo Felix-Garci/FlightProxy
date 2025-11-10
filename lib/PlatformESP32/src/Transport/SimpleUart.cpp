@@ -12,23 +12,18 @@ namespace FlightProxy
             SimpleUart::SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate)
                 : port_(port), txpin_(txpin), rxpin_(rxpin), baudrate_(baudrate), eventTaskHandle_(nullptr),
                   queue_(nullptr), rxBuffer_(nullptr), rxbuffersize_(1024),
-                  mutex_(xSemaphoreCreateRecursiveMutex())
+                  mutex_(Core::OSAL::Factory::createMutex())
             {
             }
 
             SimpleUart::~SimpleUart()
             {
                 close();
-                if (mutex_ != NULL)
-                {
-                    vSemaphoreDelete(mutex_);
-                    mutex_ = NULL;
-                }
             }
 
             void SimpleUart::open()
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                 // 1. Configurar la UART
                 uart_config_t uart_config = {
@@ -95,7 +90,7 @@ namespace FlightProxy
 
             void SimpleUart::close()
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
                 // no se si esta cerrada ya si esto daria erro, esto hay que manejarlo
 
                 // Notificamos a la tarea que queremos cerrar todo.
@@ -104,7 +99,7 @@ namespace FlightProxy
 
             void SimpleUart::send(const uint8_t *data, size_t len)
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                 // Comprovamos si la tarea buffer siguen vivos
                 if (rxBuffer_ == nullptr || eventTaskHandle_ == nullptr)
@@ -156,7 +151,7 @@ namespace FlightProxy
                     // Por lo que si este xQueRecive da true estamos seguros de que no se ha eliminado el driver
                     if (xQueueReceive(queue_, (void *)&event, portMAX_DELAY))
                     {
-                        Core::Utils::MutexGuard lock(mutex_);
+                        std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                         switch (event.type)
                         {
@@ -227,7 +222,7 @@ namespace FlightProxy
                 FP_LOG_I(TAG, "Tarea UART terminando. Realizando limpieza...");
 
                 {
-                    Core::Utils::MutexGuard lock(mutex_);
+                    std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
                     // Hacemos la limpieza
                     if (rxBuffer_ != nullptr)
                     {

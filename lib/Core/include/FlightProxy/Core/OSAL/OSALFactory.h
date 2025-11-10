@@ -16,14 +16,14 @@ namespace FlightProxy
 }
 #else
 // Asumimos PC si no es ESP32 (o añades más #elif para otras plataformas)
-#include "FlightProxy/PlatformPC/OSAL/OSALFactory.h"
+#include "FlightProxy/PlatformWin/OSAL/OSALFactory.h"
 namespace FlightProxy
 {
     namespace Core
     {
         namespace OSAL
         {
-            using Factory = FlightProxy::PlatformPC::PlatformFactory;
+            using Factory = FlightProxy::PlatformWin::OSAL::OSALFactory;
         }
     }
 }

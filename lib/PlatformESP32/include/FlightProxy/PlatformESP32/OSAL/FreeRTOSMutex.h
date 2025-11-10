@@ -13,12 +13,21 @@ namespace FlightProxy
             class FreeRTOSMutex : public Core::OSAL::IMutex
             {
             public:
-                FreeRTOSMutex();
-                virtual ~FreeRTOSMutex();
+                FreeRTOSMutex() { mutexHandle_ = xSemaphoreCreateRecursiveMutex(); }
+                virtual ~FreeRTOSMutex() { vSemaphoreDelete(mutexHandle_); }
 
-                void lock() override;
-                void unlock() override;
-                bool tryLock(uint32_t timeout_ms) override;
+                void lock() override { xSemaphoreTakeRecursive(mutexHandle_, portMAX_DELAY); }
+                void unlock() override { xSemaphoreGiveRecursive(mutexHandle_); }
+                bool tryLock(uint32_t timeout_ms) override
+                {
+                    // Convierte ms a ticks de FreeRTOS
+                    const TickType_t ticksToWait = (timeout_ms == 0) ? 0 : pdMS_TO_TICKS(timeout_ms);
+
+                    BaseType_t result = xSemaphoreTakeRecursive(mutexHandle_, ticksToWait);
+
+                    // pdTRUE (1) si se obtuvo el mutex, pdFALSE (0) si no
+                    return (result == pdTRUE);
+                }
 
             private:
                 SemaphoreHandle_t mutexHandle_;

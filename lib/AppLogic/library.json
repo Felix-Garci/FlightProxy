@@ -7,7 +7,6 @@
   },
   "libDeps": [
     "FlightProxy-Core",
-    "FlightProxy-Connectivity",
     "FlightProxy-Channel"
   ]
 }

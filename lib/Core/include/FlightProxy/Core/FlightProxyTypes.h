@@ -1,8 +1,6 @@
 #pragma once
 #include "FlightProxy/Core/Utils/Logger.h"
 
-#include "esp_debug_helpers.h"
-
 #include <cstdint>
 #include <vector>
 #include <array>

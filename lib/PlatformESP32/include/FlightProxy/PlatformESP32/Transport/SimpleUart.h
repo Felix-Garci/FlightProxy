@@ -1,7 +1,6 @@
 #pragma once
 #include "FlightProxy/Core/Transport/ITransport.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
-
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "freertos/task.h"
@@ -35,7 +34,7 @@ namespace FlightProxy
                 QueueHandle_t queue_;
                 uint8_t *rxBuffer_;
                 size_t rxbuffersize_;
-                SemaphoreHandle_t mutex_;
+                std::unique_ptr<Core::OSAL::IMutex> mutex_;
 
                 void eventTask(std::shared_ptr<SimpleUart> *self_ptr_on_heap);
                 static void eventTaskAdapter(void *arg);

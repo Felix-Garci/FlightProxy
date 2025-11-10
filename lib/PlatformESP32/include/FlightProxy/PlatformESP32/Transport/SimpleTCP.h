@@ -1,10 +1,11 @@
 #pragma once
 #include "FlightProxy/Core/Transport/ITransport.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <memory>
+#include <mutex>
 
 namespace FlightProxy
 {
@@ -30,7 +31,7 @@ namespace FlightProxy
                 char ip_[16];
 
                 TaskHandle_t eventTaskHandle_;
-                SemaphoreHandle_t mutex_;
+                std::unique_ptr<Core::OSAL::IMutex> mutex_;
                 void eventTask(std::shared_ptr<SimpleTCP> *self_keep_alive);
                 static void eventTaskAdapter(void *arg);
             };

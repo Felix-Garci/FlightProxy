@@ -16,14 +16,14 @@ namespace FlightProxy
 
             SimpleTCP::SimpleTCP(int accepted_socket)
                 : m_sock(accepted_socket), port_(0), eventTaskHandle_(nullptr),
-                  mutex_(xSemaphoreCreateRecursiveMutex())
+                  mutex_(Core::OSAL::Factory::createMutex())
             {
                 ip_[0] = '\0';
             }
 
             SimpleTCP::SimpleTCP(const char *ip, uint16_t port)
                 : m_sock(-1), port_(port), eventTaskHandle_(nullptr),
-                  mutex_(xSemaphoreCreateRecursiveMutex())
+                  mutex_(Core::OSAL::Factory::createMutex())
             {
                 if (ip != nullptr)
                 {
@@ -42,18 +42,12 @@ namespace FlightProxy
 
             SimpleTCP::~SimpleTCP()
             {
-                FP_LOG_I(TAG, "eventTask terminada. Limpiando mutex.");
-                if (mutex_)
-                {
-                    vSemaphoreDelete(mutex_);
-                    mutex_ = nullptr;
-                }
                 FP_LOG_I(TAG, "Canal destruido.");
             }
 
             void SimpleTCP::open()
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                 if (eventTaskHandle_ != nullptr)
                 {
@@ -156,7 +150,7 @@ namespace FlightProxy
 
             void SimpleTCP::close()
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
                 if (m_sock == -1)
                 {
                     return;
@@ -172,7 +166,7 @@ namespace FlightProxy
 
             void SimpleTCP::send(const uint8_t *data, size_t len)
             {
-                Core::Utils::MutexGuard lock(mutex_);
+                std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                 if (m_sock == -1)
                 {
@@ -269,7 +263,7 @@ namespace FlightProxy
 
                 // 1. Modificamos el estado del objeto DENTRO del mutex
                 {
-                    Core::Utils::MutexGuard lock(mutex_);
+                    std::lock_guard<Core::OSAL::IMutex> lock(*mutex_);
 
                     // Comprobamos si el socket ya fue cerrado (p.ej. por open() fallido)
                     if (m_sock != -1)

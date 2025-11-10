@@ -1,12 +1,13 @@
 #pragma once
 
 #include "FlightProxy/Core/Transport/ITcpListener.h"
-#include "FlightProxy/Core/Utils/MutexGuard.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include <memory>
+#include <mutex>
 
 namespace FlightProxy
 {
@@ -30,7 +31,7 @@ namespace FlightProxy
 
                 TaskHandle_t m_listener_task_handle = NULL;
                 int m_server_sock = -1;
-                SemaphoreHandle_t m_mutex;
+                std::unique_ptr<Core::OSAL::IMutex> m_mutex;
             };
 
         } // namespace Transport

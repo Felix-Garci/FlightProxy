@@ -1,7 +1,7 @@
 {
-    "name": "FlightProxy-TestMocks",
+    "name": "FlightProxy-PlatformWin",
     "version": "0.1.0",
-    "description": "Mocks e implementaciones de host para pruebas nativas",
+    "description": "Implementaciones de OSAL y plataforma para Win",
     "build": {
         "libArchive": false
     },
