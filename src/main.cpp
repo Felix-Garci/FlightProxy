@@ -8,8 +8,6 @@ static FlightProxy::PlatformESP32::Utils::EspLogger logger;
 static FlightProxy::PlatformWin::Utils::HostLogger logger;
 #endif
 
-#include "AppFactory.h"
-
 // incluimos fabrica de osal
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
 
