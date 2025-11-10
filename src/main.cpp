@@ -84,6 +84,8 @@ void app()
     // Definicion de paquete a usar
     using Packet = FlightProxy::Core::MspPacket;
 
+    //________________________________________COMAND FLUX___________________________________________________________
+
     // Servidor TCP
     auto decoder_factory = []() -> std::shared_ptr<FlightProxy::Core::Protocol::IDecoderT<Packet>>
     {
@@ -134,6 +136,26 @@ void app()
     // commans1.reset();
 
     commandManager->start();
+
+    //________________________________________RC FLUX___________________________________________________________
+
+    // Servidor UDP
+    auto encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+    auto decoder = std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+    auto udp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleUDP(12346);
+    auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Packet>>(encoder, decoder, udp_transport);
+
+    udp_server->onPacket = [blackboard](std::unique_ptr<const Packet> packet)
+    {
+        FP_LOG_I("UDP_SERVER", "Paquete recibido en UDP: Cmd=%u, PayloadSize=%zu", packet->command, packet->payload.size());
+
+        return;
+    };
+
+    udp_server->open();
+
+    // Limpiamos referencia para que solo quede dentro del tasl del udp
+    udp_transport.reset();
 
     while (true)
         FlightProxy::Core::OSAL::Factory::sleep(1000);
