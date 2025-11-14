@@ -16,8 +16,8 @@ namespace FlightProxy
         static const char *TAG = "PersistentChannel";
 
         template <typename PacketT>
-        class PersistentChannelT : public Core::Channel::IChannelT<PacketT>,
-                                   public std::enable_shared_from_this<PersistentChannelT>
+        class ChannelPersistentT : public Core::Channel::IChannelT<PacketT>,
+                                   public std::enable_shared_from_this<ChannelPersistentT>
         {
         public:
             // --- Definición de Tipos (Factorías) ---
@@ -29,7 +29,7 @@ namespace FlightProxy
             using DecoderFactory = std::function<DecoderPtr()>;
             using EncoderFactory = std::function<EncoderPtr()>;
 
-            PersistentChannelT(TransportFactory tf, DecoderFactory df, EncoderFactory ef)
+            ChannelPersistentT(TransportFactory tf, DecoderFactory df, EncoderFactory ef)
                 : m_tf(tf), m_df(df), m_ef(ef), m_running(false),
                   m_mutex(Core::OSAL::Factory::createMutex())
             {
@@ -39,7 +39,7 @@ namespace FlightProxy
                 }
             }
 
-            virtual ~PersistentChannelT()
+            virtual ~ChannelPersistentT()
             {
                 // Paramos la tarea de reconexion
                 close();
@@ -108,7 +108,7 @@ namespace FlightProxy
         private:
             static void reconnectionTaskAdapter(void *arg)
             {
-                PersistentChannelT *instance = static_cast<PersistentChannelT *>(arg);
+                ChannelPersistentT *instance = static_cast<ChannelPersistentT *>(arg);
                 instance->reconnectionTask();
                 vTaskDelete(NULL); // Auto-eliminarse
             }
@@ -143,7 +143,7 @@ namespace FlightProxy
                             newChannel->onOpen = this->onOpen;
 
                             // Usamos weak_ptr para evitar ciclo de referencias en la lambda
-                            std::weak_ptr<PersistentChannelT<PacketT>> weak_self = this->shared_from_this();
+                            std::weak_ptr<ChannelPersistentT<PacketT>> weak_self = this->shared_from_this();
                             newChannel->onClose = [weak_self]()
                             {
                                 if (auto self = weak_self.lock())
