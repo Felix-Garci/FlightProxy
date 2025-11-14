@@ -183,10 +183,28 @@ namespace FlightProxy
 
                 m_isClosed.store(false);
 
-                m_realCHannel->onClose = [this]()
+                m_realChannel->onClose = [this]()
                 {
-                    FP_LOG_I("DemuxFactory", "Canal real cerrado.");
+                    FP_LOG_I("DemuxFactory", "Canal real cerrado. Propagando a canales virtuales...");
                     m_isClosed.store(true);
+
+                    std::vector<std::shared_ptr<VirtualChannelT<PacketT>>> all_live_subscribers;
+
+                    {
+                        std::lock_guard<Core::OSAL::IMutex> lock(*m_routingMutex);
+
+                        for (const auto &pair : m_routingTable)
+                        {
+                            for (const auto &weak_vChan : pair.second)
+                            {
+                                if (auto shared_vChan = weak_vChan.lock())
+                                {
+                                    all_live_subscribers.push_back(shared_vChan);
+                                }
+                            }
+                        }
+                        m_routingTable.clear();
+                    }
 
                     for (const auto &vChannel : all_live_subscribers)
                     {
