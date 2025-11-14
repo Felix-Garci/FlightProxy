@@ -31,11 +31,15 @@ static FlightProxy::PlatformWin::Utils::HostLogger logger;
 #include "FlightProxy/Channel/ChannelT.h"
 #include "FlightProxy/Channel/ChannelServer.h"
 #include "FlightProxy/Channel/ChannelAgregatorT.h"
+#include "FlightProxy/Channel/ChannelDisgregatorT.h"
 
-// App
+// App Logic - Command Manager
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_ReadRCblackboard.h"
+
+// App Logic - Data Nodes
+#include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
 
 void app()
 {
