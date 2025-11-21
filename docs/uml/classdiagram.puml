@@ -93,12 +93,7 @@ interface IPacketChannelT<PacketT>{
     +sendPacket(packet:const PacketT&): void
 }
 
-class SimpleTransportManagerT<PacketT>{
-    {field}+onNewChannel: std::function<void(IPacketChannelT<PacketT> *)>
-    +SimpleTransportManagerT()
-    +~SimpleTransportManagerT()
-    +start(df: std::function<IDecoderT<PacketT>*()>, ef: std::function<IEncoderT<PacketT>*()>,tf: std::function<ITransport *()>;): void
-}
+
 
 class TcpTransportManagerT<PacketT>{
     {field}+onNewChannel: std::function<void(IPacketChannelT<PacketT>*)>
@@ -212,50 +207,52 @@ AlmacenFlexible o-r- "0..*" AlmacenFlexible::DataSlot
 
 AlmacenFlexible::DataSlot ---[hidden]right> UartTransportManagerT
 
-interface ICommand{
-    +execute(): void
-}
 
-class CommandManager<PacketT>{
-    -commands_: std::vector<ICommand*>
-    -commandQueue_: QueueHandle_t<PacketT>
-    -queueMutex_: MutexHandle_t
-    -commandTaskHandle_: TaskHandle_t
 
-    +CommandManager()
-    +~CommandManager()
-    +redgisterCommand(cmd:ICommand*): void
-    +start(): void
-    +stop(): void
-    -commandTask(): void
-    -commandTaskAdapter(arg:void*): void
-}
+' interface ICommand{
+'     +execute(): void
+' }
 
-CommandManager o-r- "0..*" ICommand : comands_
+' class CommandManager<PacketT>{
+'     -commands_: std::vector<ICommand*>
+'     -commandQueue_: QueueHandle_t<PacketT>
+'     -queueMutex_: MutexHandle_t
+'     -commandTaskHandle_: TaskHandle_t
 
-interface IControl{
-    'Aqui cada control se suscribe a los inputs y outputs que le interesen de el almacen flexible
-    +suscribeInputsAndOutputs(): void
-    +update(): void
-}
+'     +CommandManager()
+'     +~CommandManager()
+'     +redgisterCommand(cmd:ICommand*): void
+'     +start(): void
+'     +stop(): void
+'     -commandTask(): void
+'     -commandTaskAdapter(arg:void*): void
+' }
 
-class StateMachine{
-    'aqui no se como ponerlo bien pero tengo un diagrama de estados que tiene que ir aqui.
-    ' el tema es que dependiendo del estado en el que estemos se pueden usar unos oque otros controles
-}
+' CommandManager o-r- "0..*" ICommand : comands_
 
-class controlManager{
-    -controls_: std::vector<IControl*>
-    +controlTaskHandle_: TaskHandle_t
+' interface IControl{
+'     'Aqui cada control se suscribe a los inputs y outputs que le interesen de el almacen flexible
+'     +suscribeInputsAndOutputs(): void
+'     +update(): void
+' }
 
-    +controlManager(StateMachine* sm)
-    +~controlManager()
-    +registerControl(ctrl:IControl*): void
-    +start(): void
-    +stop(): void
-    -controlTask(): void
-    -controlTaskAdapter(arg:void*): void
-}
+' class StateMachine{
+'     'aqui no se como ponerlo bien pero tengo un diagrama de estados que tiene que ir aqui.
+'     ' el tema es que dependiendo del estado en el que estemos se pueden usar unos oque otros controles
+' }
+
+' class controlManager{
+'     -controls_: std::vector<IControl*>
+'     +controlTaskHandle_: TaskHandle_t
+
+'     +controlManager(StateMachine* sm)
+'     +~controlManager()
+'     +registerControl(ctrl:IControl*): void
+'     +start(): void
+'     +stop(): void
+'     -controlTask(): void
+'     -controlTaskAdapter(arg:void*): void
+' }
 
 
 
