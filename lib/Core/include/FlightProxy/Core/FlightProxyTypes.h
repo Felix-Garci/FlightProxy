@@ -16,23 +16,23 @@ namespace FlightProxy
             std::vector<uint8_t> payload;
             MspPacket(char dir, uint8_t cmd, std::vector<uint8_t> pld) : direction(dir), command(cmd), payload(std::move(pld))
             {
-                FP_LOG_I("MspPacket", "Creado con valores en %p", this);
-                // esp_backtrace_print(10);
+                // FP_LOG_I("MspPacket", "Creado con valores en %p", this);
+                //  esp_backtrace_print(10);
             }
             MspPacket()
             {
-                FP_LOG_I("MspPacket", "Creado vacio");
-                // esp_backtrace_print(10);
+                // FP_LOG_I("MspPacket", "Creado vacio");
+                //  esp_backtrace_print(10);
             }
             ~MspPacket()
             {
-                FP_LOG_I("MspPacket", "Destruido MspPacket en %p", this);
-                // esp_backtrace_print(10);
+                // FP_LOG_I("MspPacket", "Destruido MspPacket en %p", this);
+                //  esp_backtrace_print(10);
             }
             MspPacket(const MspPacket &other) : command(other.command), payload(other.payload)
             {
-                FP_LOG_I("MspPacket", "Copiado MspPacket a %p desde %p", this, &other);
-                // esp_backtrace_print(10);
+                // FP_LOG_I("MspPacket", "Copiado MspPacket a %p desde %p", this, &other);
+                //  esp_backtrace_print(10);
             }
         };
 

@@ -39,6 +39,7 @@ static FlightProxy::PlatformWin::Utils::HostLogger logger;
 #include "FlightProxy/AppLogic/Command/Commands/MSP_ReadRCblackboard.h"
 
 // App Logic - Data Nodes
+#include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
 
 void app()
@@ -52,6 +53,7 @@ void app()
     enum DataIDs : FlightProxy::AppLogic::DataID
     {
         ID_RC_Input = 1,
+        ID_IMU_Data = 10,
     };
 
     auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
@@ -150,10 +152,10 @@ void app()
 
     // Servidor UDP
     auto udp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleUDP(12346);
-    auto encoder = std::make_shared<FlightProxy::Core::Protocol::IbusEncoder>();
-    auto decoder = std::make_shared<FlightProxy::Core::Protocol::IbusDecoder>();
+    auto udp_transport_encoder = std::make_shared<FlightProxy::Core::Protocol::IbusEncoder>();
+    auto udp_transport_decoder = std::make_shared<FlightProxy::Core::Protocol::IbusDecoder>();
 
-    auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Bus>>(udp_transport, encoder, decoder);
+    auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Bus>>(udp_transport, udp_transport_encoder, udp_transport_decoder);
 
     std::function<void(Bus::ChannelsT)> rcWriter = blackboard->registrarProductor<Bus::ChannelsT>(ID_RC_Input);
 
@@ -168,10 +170,45 @@ void app()
     // Limpiamos referencia para que solo quede dentro del tasl del udp
     udp_transport.reset();
 
+    //________________________________________MSP to dron___________________________________________________________
+    // Cliente TCP hacia el dron
+    auto msp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleTCP("127.0.0.1", 5760);
+    auto msp_transport_encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+    auto msp_transport_decoder = std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+
+    auto msp_client = std::make_shared<FlightProxy::Channel::ChannelT<Packet>>(msp_transport, msp_transport_encoder, msp_transport_decoder);
+
+    auto msp_client_channel = std::make_shared<FlightProxy::Channel::ChannelDisgregatorT<Packet>>(msp_client,
+                                                                                                  [](const Packet &pkt) -> FlightProxy::Channel::CommandId
+                                                                                                  {
+                                                                                                      return pkt.command;
+                                                                                                  });
+    msp_client->open();
+    //________________________________________Data Nodes___________________________________________________________
+
+    auto dataNodesManager = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodesManager>();
+
+    auto nodoRecepcionIMU = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_IMU>(
+        msp_client_channel->createVirtualChannel(FlightProxy::Core::Protocol::MSP_IMU_DATA),
+        blackboard->registrarProductor<FlightProxy::Core::IMUData>(ID_IMU_Data));
+
+    dataNodesManager->addDataNode(nodoRecepcionIMU, 50); // cada 100 ms
+
+    dataNodesManager->start();
     //________________________________________Bucle infinito___________________________________________________________
 
+    auto getimu = blackboard->registrarConsumidor<FlightProxy::Core::IMUData>(ID_IMU_Data);
+
     while (true)
+    {
+        auto imu = getimu(); // actualiza el dato interno
+        FP_LOG_I("MAIN", "IMU Data: Accel[%d, %d, %d] Gyro[%d, %d, %d] frecuency: %.2f Hz",
+                 imu.accel_x, imu.accel_y, imu.accel_z,
+                 imu.gyro_x, imu.gyro_y, imu.gyro_z,
+                 blackboard->getFrequency(ID_IMU_Data));
+
         FlightProxy::Core::OSAL::Factory::sleep(1000);
+    }
 }
 
 #if defined(ESP_PLATFORM)

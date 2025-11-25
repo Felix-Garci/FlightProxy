@@ -14,7 +14,7 @@ namespace FlightProxy
         {
             namespace DataNodes
             {
-                class Nodo_Recepcion_IMU : public IDataNodeBase
+                class Nodo_Recepcion_IMU : public IDataNodeBase, public std::enable_shared_from_this<Nodo_Recepcion_IMU>
                 {
                 private:
                     std::shared_ptr<Core::Channel::IChannelT<Core::MspPacket>> m_channelIMUData;
@@ -73,6 +73,12 @@ namespace FlightProxy
 
                             m_channelIMUData->sendPacket(std::move(paqueteSolicitud));
                             m_esperandoRespuesta = true;
+                        }
+                        else
+                        {
+                            // Todavía estamos esperando una respuesta, no hacemos nada
+                            // FP_LOG_W("Nodo_Recepcion_IMU", "Aún esperando respuesta de datos IMU, no se envía nueva solicitud.");
+                            m_esperandoRespuesta = false; // Reiniciamos para evitar bloqueo permanente
                         }
                     }
                 };
