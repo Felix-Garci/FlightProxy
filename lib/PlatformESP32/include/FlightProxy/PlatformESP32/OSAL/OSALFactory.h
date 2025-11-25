@@ -43,7 +43,7 @@ namespace FlightProxy
                 }
 
                 // Get current ms time
-                uint64_t getSystemTimeMs()
+                static uint64_t getSystemTimeMs()
                 {
                     return static_cast<uint64_t>(xTaskGetTickCount()) * portTICK_PERIOD_MS;
                 }

@@ -40,7 +40,7 @@ namespace FlightProxy
                 }
 
                 // Get current ms time
-                uint64_t getSystemTimeMs()
+                static uint64_t getSystemTimeMs()
                 {
                     auto now = std::chrono::steady_clock::now();
                     auto duration = now.time_since_epoch();
