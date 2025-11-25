@@ -41,6 +41,7 @@ static FlightProxy::PlatformWin::Utils::HostLogger logger;
 // App Logic - Data Nodes
 #include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
+#include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h"
 
 void app()
 {
@@ -52,8 +53,10 @@ void app()
     // Almacen flexible init
     enum DataIDs : FlightProxy::AppLogic::DataID
     {
+        ID_STATUS_Data = 0,
         ID_RC_Input = 1,
         ID_IMU_Data = 10,
+
     };
 
     auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
@@ -191,13 +194,18 @@ void app()
     auto nodoRecepcionIMU = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_IMU>(
         msp_client_channel->createVirtualChannel(FlightProxy::Core::Protocol::MSP_IMU_DATA),
         blackboard->registrarProductor<FlightProxy::Core::IMUData>(ID_IMU_Data));
+    dataNodesManager->addDataNode(nodoRecepcionIMU, 100); // cada 100 ms
 
-    dataNodesManager->addDataNode(nodoRecepcionIMU, 50); // cada 100 ms
+    auto nodoRecepcionStatus = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_Status>(
+        msp_client_channel->createVirtualChannel(FlightProxy::Core::Protocol::MSP_STATUS_DATA),
+        blackboard->registrarProductor<FlightProxy::Core::StatusData>(ID_STATUS_Data));
+    dataNodesManager->addDataNode(nodoRecepcionStatus, 1000); // cada 1 s
 
     dataNodesManager->start();
     //________________________________________Bucle infinito___________________________________________________________
 
     auto getimu = blackboard->registrarConsumidor<FlightProxy::Core::IMUData>(ID_IMU_Data);
+    auto getstatus = blackboard->registrarConsumidor<FlightProxy::Core::StatusData>(ID_STATUS_Data);
 
     while (true)
     {
@@ -206,6 +214,18 @@ void app()
                  imu.accel_x, imu.accel_y, imu.accel_z,
                  imu.gyro_x, imu.gyro_y, imu.gyro_z,
                  blackboard->getFrequency(ID_IMU_Data));
+
+        auto status = getstatus(); // actualiza el dato interno
+        FP_LOG_I("MAIN", "Status Data: cycleTime=%u i2c_errors=%u sensors=%u boxModeFlags=0x%X currentProfileIndex=%u averageSystemLoadPercent=%u armingFlags=0x%X accCalibrationAxisFlags=0x%X frecuency: %.2f Hz",
+                 status.cycleTime,
+                 status.i2c_errors,
+                 status.sensors,
+                 status.boxModeFlags,
+                 status.currentProfileIndex,
+                 status.averageSystemLoadPercent,
+                 status.armingFlags,
+                 status.accCalibrationAxisFlags,
+                 blackboard->getFrequency(ID_STATUS_Data));
 
         FlightProxy::Core::OSAL::Factory::sleep(1000);
     }

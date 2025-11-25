@@ -101,5 +101,17 @@ namespace FlightProxy
             int16_t gyro_z;
         };
 
+        struct StatusData
+        {
+            uint16_t cycleTime;
+            uint16_t i2c_errors;
+            uint16_t sensors;
+            uint32_t boxModeFlags;
+            uint8_t currentProfileIndex;
+            uint16_t averageSystemLoadPercent;
+            uint16_t armingFlags; // 0 = Ready to Arm. Non-zero = Blocking reason.
+            uint8_t accCalibrationAxisFlags;
+        };
+
     }
 }
