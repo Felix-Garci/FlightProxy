@@ -141,9 +141,9 @@ void app()
     auto commans1 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_BasicRead_Command<Packet>>();
     commandManager->registerCommand(commans1);
 
-    auto commans2 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_ReadRCblackboard<Packet>>(
-        blackboard->registrarConsumidor<FlightProxy::Core::IBUSPacket::ChannelsT>(ID_RC_Input));
-    commandManager->registerCommand(commans2);
+    // auto commans2 = std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_ReadRCblackboard<Packet>>(
+    //     blackboard->registrarConsumidor<FlightProxy::Core::IBUSPacket::ChannelsT>(ID_RC_Input));
+    // commandManager->registerCommand(commans2);
 
     // commans1.reset();
 
@@ -160,11 +160,24 @@ void app()
 
     auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Bus>>(udp_transport, udp_transport_encoder, udp_transport_decoder);
 
-    std::function<void(Bus::ChannelsT)> rcWriter = blackboard->registrarProductor<Bus::ChannelsT>(ID_RC_Input);
+    auto rcWriter = blackboard->registrarProductor<FlightProxy::Core::RCData>(ID_RC_Input);
 
     udp_server->onPacket = [rcWriter](std::unique_ptr<const Bus> packet)
     {
-        rcWriter(packet->channels);
+        FlightProxy::Core::RCData rcData;
+        rcData.roll = packet->channels[0];
+        rcData.pitch = packet->channels[1];
+        rcData.throttle = packet->channels[2];
+        rcData.yaw = packet->channels[3];
+        rcData.aux1 = packet->channels[4];
+        rcData.aux2 = packet->channels[5];
+
+        for (size_t i = 0; i < 8; ++i)
+        {
+            rcData.aux_channels[i] = packet->channels[6 + i];
+        }
+
+        rcWriter(rcData);
         return;
     };
 
@@ -206,26 +219,21 @@ void app()
 
     auto getimu = blackboard->registrarConsumidor<FlightProxy::Core::IMUData>(ID_IMU_Data);
     auto getstatus = blackboard->registrarConsumidor<FlightProxy::Core::StatusData>(ID_STATUS_Data);
+    auto getrc = blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input);
 
     while (true)
     {
         auto imu = getimu(); // actualiza el dato interno
-        FP_LOG_I("MAIN", "IMU Data: Accel[%d, %d, %d] Gyro[%d, %d, %d] frecuency: %.2f Hz",
-                 imu.accel_x, imu.accel_y, imu.accel_z,
-                 imu.gyro_x, imu.gyro_y, imu.gyro_z,
+        FP_LOG_I("MAIN", "IMU Data:  frecuency: %.2f Hz",
                  blackboard->getFrequency(ID_IMU_Data));
 
         auto status = getstatus(); // actualiza el dato interno
-        FP_LOG_I("MAIN", "Status Data: cycleTime=%u i2c_errors=%u sensors=%u boxModeFlags=0x%X currentProfileIndex=%u averageSystemLoadPercent=%u armingFlags=0x%X accCalibrationAxisFlags=0x%X frecuency: %.2f Hz",
-                 status.cycleTime,
-                 status.i2c_errors,
-                 status.sensors,
-                 status.boxModeFlags,
-                 status.currentProfileIndex,
-                 status.averageSystemLoadPercent,
-                 status.armingFlags,
-                 status.accCalibrationAxisFlags,
+        FP_LOG_I("MAIN", "Status Data: frecuency: %.2f Hz",
                  blackboard->getFrequency(ID_STATUS_Data));
+
+        auto rc_input = getrc(); // actualiza el dato interno
+        FP_LOG_I("MAIN", "RC Input: frecuency: %.2f Hz",
+                 blackboard->getFrequency(ID_RC_Input));
 
         FlightProxy::Core::OSAL::Factory::sleep(1000);
     }
