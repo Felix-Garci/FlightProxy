@@ -14,8 +14,6 @@ namespace FlightProxy
         {
             namespace DataNodes
             {
-                const uint16_t MSP_IMU_DATA = 105;
-
                 class Nodo_Recepcion_IMU : public IDataNodeBase
                 {
                 private:
@@ -27,7 +25,10 @@ namespace FlightProxy
                     {
                         m_esperandoRespuesta = false;
                         Core::IMUData datos_imu;
-                        if (pkt->payload.size() >= 18) // Asegurarse de que hay suficientes datos
+                        // Asegurarse de que hay suficientes datos
+                        // 18 ya que son 9 valores de 2 bytes cada uno
+                        // aunque los ultimos 3 no los usamos
+                        if (pkt->payload.size() >= 18)
                         {
                             datos_imu.accel_x = static_cast<int16_t>(pkt->payload[0] | (pkt->payload[1] << 8));
                             datos_imu.accel_y = static_cast<int16_t>(pkt->payload[2] | (pkt->payload[3] << 8));
@@ -43,7 +44,7 @@ namespace FlightProxy
 
                     void onCanalCerrado()
                     {
-                        // Creo que deveriamos soltar el chanel
+                        m_channelIMUData.reset();
                     }
 
                 public:
@@ -67,8 +68,8 @@ namespace FlightProxy
                         if (!m_esperandoRespuesta)
                         {
                             // Construir y enviar el paquete MSP para solicitar datos IMU
-                            std::vector<uint8_t> payload;                                                          // Vacío para solicitud de datos
-                            auto paqueteSolicitud = std::make_unique<Core::MspPacket>('>', MSP_IMU_DATA, payload); // 105 es el comando MSP para IMU
+                            std::vector<uint8_t> payload;                                                                          // Vacío para solicitud de datos
+                            auto paqueteSolicitud = std::make_unique<Core::MspPacket>('>', Core::Protocol::MSP_IMU_DATA, payload); // 105 es el comando MSP para IMU
 
                             m_channelIMUData->sendPacket(std::move(paqueteSolicitud));
                             m_esperandoRespuesta = true;
