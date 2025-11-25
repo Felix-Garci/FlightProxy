@@ -13,6 +13,9 @@ namespace FlightProxy
     {
         namespace Protocol
         {
+            // Comandos MSP
+            const uint16_t MSP_IMU_DATA = 105;
+
             // --- Detalle de implementación de MSP V2 (CRC8) ---
             namespace Detail
             {
