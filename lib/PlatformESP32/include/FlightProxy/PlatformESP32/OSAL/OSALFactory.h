@@ -41,6 +41,12 @@ namespace FlightProxy
                 {
                     vTaskDelay(pdMS_TO_TICKS(ms));
                 }
+
+                // Get current ms time
+                uint64_t getSystemTimeMs()
+                {
+                    return static_cast<uint64_t>(xTaskGetTickCount()) * portTICK_PERIOD_MS;
+                }
             };
         }
     }
