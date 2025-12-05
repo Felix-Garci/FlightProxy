@@ -1,0 +1,41 @@
+FROM ubuntu:22.04
+
+# Optimización de descarga (opcional, pero ayuda)
+RUN sed -i 's/archive.ubuntu.com/us.archive.ubuntu.com/g' /etc/apt/sources.list
+
+# 1. Instalamos dependencias
+# MEZCLA MAESTRA:
+# - build-essential y make: para compilar.
+# - curl y bzip2: para que 'make arm_sdk_install' pueda bajar y descomprimir el compilador.
+# - python3: CRÍTICO, Betaflight usa scripts de Python para configurar la compilación.
+# - net-tools y iputils-ping: para que puedas depurar la red si hace falta.
+RUN apt-get update && apt-get install -y \
+    git \
+    make \
+    build-essential \
+    curl \
+    bzip2 \
+    python3 \
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt
+
+# 2. Clonamos Betaflight
+RUN git clone https://github.com/betaflight/betaflight.git
+WORKDIR /opt/betaflight
+
+RUN git checkout 4.5.1
+
+# 3. Instalamos el compilador (Esto tarda un poco porque baja 150MB aprox)
+RUN make arm_sdk_install
+
+RUN make configs
+
+# 4. Compilamos el SITL
+RUN make TARGET=SITL DEBUG=1
+COPY start_sitl.sh /start_sitl.sh
+RUN chmod +x /start_sitl.sh
+
+ENTRYPOINT ["/start_sitl.sh"]

@@ -7,5 +7,5 @@
 html
 latex
 Doxyfile
-tools
 docs
+.venv

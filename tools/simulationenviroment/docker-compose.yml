@@ -1,0 +1,67 @@
+
+services:
+  sitl:
+    build:
+      context: .
+      dockerfile: Dockerfile.sitl
+    container_name: bf_sitl
+    depends_on:
+      - gateway
+    network_mode: service:gateway
+    volumes:
+      - ./bf_data:/opt/betaflight/data
+
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: gateway
+    # LANZAMIENTO ROBUSTO:
+    # 1. Ejecutamos gz sim directamente (Server mode -s, Run -r)
+    # 2. Cargamos NUESTRO mundo personalizado que ya incluye el plugin.
+    # No dependemos de launch files externos.
+    command: gz sim -v 4 -s -r /root/ros2_ws/install/share/vehicle_gateway/worlds/betaflight_iris_aruco.sdf
+    #command: gz sim -v 4 -s -r /root/ros2_ws/install/share/vehicle_gateway_worlds/worlds/betaflight_iris_aruco.sdf
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+    environment:
+      # Aseguramos que Gazebo encuentre los plugins compilados
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - LD_LIBRARY_PATH=/usr/lib/wsl/lib:/usr/lib/x86_64-linux-gnu
+      - MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
+
+      - GZ_SIM_SYSTEM_PLUGIN_PATH=/root/ros2_ws/install/lib
+      - GZ_SIM_RESOURCE_PATH=/root/betaflight_models
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /mnt/wslg:/mnt/wslg
+      - /usr/lib/wsl:/usr/lib/wsl
+
+      - ./betaflight_models:/root/betaflight_models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    devices:
+      - /dev/dxg:/dev/dxg
+    privileged: true
+    ports:
+      - "5761:5761"
+      - "5762:5762"
+    networks:
+      - sim_net
+
+networks:
+  sim_net:
+    driver: bridge
