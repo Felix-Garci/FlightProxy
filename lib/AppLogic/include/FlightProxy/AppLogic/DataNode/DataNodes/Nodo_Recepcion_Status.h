@@ -69,7 +69,7 @@ namespace FlightProxy
                         {
                             // Construir y enviar el paquete MSP para solicitar datos IMU
                             std::vector<uint8_t> payload;                                                                             // Vacío para solicitud de datos
-                            auto paqueteSolicitud = std::make_unique<Core::MspPacket>('>', Core::Protocol::MSP_STATUS_DATA, payload); // 105 es el comando MSP para Status
+                            auto paqueteSolicitud = std::make_unique<Core::MspPacket>('<', Core::Protocol::MSP_STATUS_DATA, payload); // 105 es el comando MSP para Status
 
                             m_channelStatusData->sendPacket(std::move(paqueteSolicitud));
                             m_esperandoRespuesta = true;

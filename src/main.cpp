@@ -42,6 +42,7 @@ static FlightProxy::PlatformWin::Utils::HostLogger logger;
 #include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h"
+#include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Emision_RC.h"
 
 void app()
 {
@@ -188,7 +189,7 @@ void app()
 
     //________________________________________MSP to dron___________________________________________________________
     // Cliente TCP hacia el dron
-    auto msp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleTCP("127.0.0.1", 5760);
+    auto msp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleTCP("127.0.0.1", 5762);
     auto msp_transport_encoder = std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
     auto msp_transport_decoder = std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
 
@@ -207,12 +208,17 @@ void app()
     auto nodoRecepcionIMU = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_IMU>(
         msp_client_channel->createVirtualChannel(FlightProxy::Core::Protocol::MSP_IMU_DATA),
         blackboard->registrarProductor<FlightProxy::Core::IMUData>(ID_IMU_Data));
-    dataNodesManager->addDataNode(nodoRecepcionIMU, 100); // cada 100 ms
+    dataNodesManager->addDataNode(nodoRecepcionIMU, 500); // cada 500 ms
 
     auto nodoRecepcionStatus = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_Status>(
         msp_client_channel->createVirtualChannel(FlightProxy::Core::Protocol::MSP_STATUS_DATA),
         blackboard->registrarProductor<FlightProxy::Core::StatusData>(ID_STATUS_Data));
     dataNodesManager->addDataNode(nodoRecepcionStatus, 1000); // cada 1 s
+
+    auto nodoEmisionRC = std::make_shared<FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Emision_RC>(
+        msp_client_channel->createVirtualChannel(FlightProxy::Core::Protocol::MSP_RC_DATA),
+        blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input));
+    dataNodesManager->addDataNode(nodoEmisionRC, 50); // cada 200 ms
 
     dataNodesManager->start();
     //________________________________________Bucle infinito___________________________________________________________
@@ -234,6 +240,10 @@ void app()
         auto rc_input = getrc(); // actualiza el dato interno
         FP_LOG_I("MAIN", "RC Input: frecuency: %.2f Hz",
                  blackboard->getFrequency(ID_RC_Input));
+
+        FP_LOG_I("MAIN", "R: %d, P: %d, T: %d, Y: %d, A1: %d, A2: %d",
+                 rc_input.roll, rc_input.pitch, rc_input.throttle,
+                 rc_input.yaw, rc_input.aux1, rc_input.aux2);
 
         FlightProxy::Core::OSAL::Factory::sleep(1000);
     }
