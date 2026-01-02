@@ -1,0 +1,62 @@
+services:
+  sitl:
+    build:
+      context: .
+      dockerfile: Dockerfile.sitl
+    container_name: bf_sitl
+    depends_on:
+      - gateway
+    # Comparte red con gateway para que 127.0.0.1 sea común
+    network_mode: service:gateway
+    volumes:
+      - ./bf_data:/opt/betaflight/data
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: gateway
+    # Comando de lanzamiento de Gazebo
+    command: gz sim -v 4 -s -r /root/ros2_ws/install/share/vehicle_gateway/worlds/betaflight_iris_aruco.sdf
+    
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      
+      # --- CONFIGURACIÓN HYPRLAND / NVIDIA HYBRID ---
+      # Esto fuerza a que el proceso dentro del docker use la GPU NVIDIA
+      # aunque la ventana la gestione la Intel de tu escritorio.
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all,graphics,display
+      - __NV_PRIME_RENDER_OFFLOAD=1
+      - __GLX_VENDOR_LIBRARY_NAME=nvidia
+      
+      # Rutas de plugins de Gazebo (Mantenidas de tu original)
+      - GZ_SIM_SYSTEM_PLUGIN_PATH=/root/ros2_ws/install/lib
+      - GZ_SIM_RESOURCE_PATH=/root/betaflight_models
+
+    volumes:
+      # Socket X11 para interfaz gráfica en Linux
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Modelos y mundos
+      - ./betaflight_models:/root/betaflight_models
+      
+    # Configuración de hardware NVIDIA
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+              
+    privileged: true
+    ports:
+      - "5761:5761"
+      - "5762:5762"
+    networks:
+      - sim_net
+
+networks:
+  sim_net:
+    driver: bridge

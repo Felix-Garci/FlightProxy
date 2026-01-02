@@ -1,0 +1,1 @@
+docker exec -it gateway bash -c "gz service -s /world/empty_betaflight_world/set_pose --reqtype gz.msgs.Pose --reptype gz.msgs.Boolean --timeout 2000 --req 'name: \"iris_with_Betaflight\", position: {x: 0, y: 0, z: 0.2}, orientation: {x: 0, y: 0, z: 0, w: 1}'"

@@ -1,0 +1,325 @@
+[
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -o CMakeFiles/TransponderLinux.dir/main/main.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/main/main.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/main/main.cpp",
+  "output": "CMakeFiles/TransponderLinux.dir/main/main.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/AppLogic",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -std=gnu++17 -g -Wall -o CMakeFiles/AppLogic.dir/src/Control/StateMachine.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/Control/StateMachine.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/Control/StateMachine.cpp",
+  "output": "components/AppLogic/CMakeFiles/AppLogic.dir/src/Control/StateMachine.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/AppLogic",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -std=gnu++17 -g -Wall -o CMakeFiles/AppLogic.dir/src/Control/controlManager.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/Control/controlManager.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/Control/controlManager.cpp",
+  "output": "components/AppLogic/CMakeFiles/AppLogic.dir/src/Control/controlManager.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/AppLogic",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -std=gnu++17 -g -Wall -o CMakeFiles/AppLogic.dir/src/DataNode/DataNodesManagerT.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/DataNode/DataNodesManagerT.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/DataNode/DataNodesManagerT.cpp",
+  "output": "components/AppLogic/CMakeFiles/AppLogic.dir/src/DataNode/DataNodesManagerT.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/AppLogic",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -std=gnu++17 -g -Wall -o CMakeFiles/AppLogic.dir/src/MainController.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/MainController.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/src/MainController.cpp",
+  "output": "components/AppLogic/CMakeFiles/AppLogic.dir/src/MainController.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/OSAL/OSALFactory.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/OSAL/OSALFactory.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/OSAL/OSALFactory.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/OSAL/OSALFactory.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/Transport/ListenerTCP.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/ListenerTCP.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/ListenerTCP.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/Transport/ListenerTCP.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/Transport/SimpleTCP.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/SimpleTCP.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/SimpleTCP.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/Transport/SimpleTCP.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/Transport/SimpleUDP.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/SimpleUDP.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/SimpleUDP.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/Transport/SimpleUDP.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/Transport/SimpleUart.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/SimpleUart.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Transport/SimpleUart.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/Transport/SimpleUart.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/Utils/LinuxLogger.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Utils/LinuxLogger.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/Utils/LinuxLogger.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/Utils/LinuxLogger.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -o CMakeFiles/PlatformLinux.dir/src/placeholder.cpp.o -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/placeholder.cpp",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/src/placeholder.cpp",
+  "output": "components/PlatformLinux/CMakeFiles/PlatformLinux.dir/src/placeholder.cpp.o"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Utils/Logger.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Utils/Logger.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Utils/ILogger.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Utils/ILogger.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Utils/LinuxLogger.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Utils/LinuxLogger.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/OSALFactory.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/OSALFactory.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/OSALFactory.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/OSALFactory.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/LinuxMutex.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/LinuxMutex.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/IMutex.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/IMutex.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/LinuxQueue.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/LinuxQueue.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/IQueue.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/IQueue.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/LinuxTask.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/OSAL/LinuxTask.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/ITask.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/OSAL/ITask.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Transport/TransportFactory.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Transport/TransportFactory.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/TransportFactory.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/TransportFactory.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Transport/ITransport.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Transport/ITransport.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Transport/ITcpListener.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Transport/ITcpListener.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/SimpleUart.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/SimpleUart.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/SimpleUDP.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/SimpleUDP.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/SimpleTCP.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/SimpleTCP.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux/components/PlatformLinux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/ListenerTCP.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include/FlightProxy/PlatformLinux/Transport/ListenerTCP.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/FlightProxyTypes.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/FlightProxyTypes.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/IbusProtocol.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/IbusProtocol.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/IDecoderT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/IDecoderT.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/IEncoderT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/IEncoderT.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/MspProtocol.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Protocol/MspProtocol.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/AlmacenFlexible.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/AlmacenFlexible.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelAgregatorT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelAgregatorT.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Channel/IChannelT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Core/include/FlightProxy/Core/Channel/IChannelT.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelDisgregatorT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelDisgregatorT.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelServer.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelServer.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include/FlightProxy/Channel/ChannelT.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/CommandManager.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/CommandManager.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/ICommand.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/ICommand.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/Commands/MSP_ReadRCblackboard.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/Command/Commands/MSP_ReadRCblackboard.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Emision_RC.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Emision_RC.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/IDataNodeBase.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/IDataNodeBase.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Baro.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Baro.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h"
+},
+
+{
+  "directory": "/home/felix/dev/tfm/code/TransponderLinux/build_linux",
+  "command": "/usr/bin/g++ -DLINUX_PLATFORM -I/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Core/include -I/home/felix/dev/tfm/code/TransponderLinux/components/Channel/include -I/home/felix/dev/tfm/code/TransponderLinux/components/PlatformLinux/include -std=gnu++17 -g -Wall -c /home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodesManagerT.h",
+  "file": "/home/felix/dev/tfm/code/TransponderLinux/components/AppLogic/include/FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
+}
+]

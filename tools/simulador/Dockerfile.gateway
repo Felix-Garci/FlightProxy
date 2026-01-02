@@ -1,0 +1,52 @@
+FROM osrf/ros:humble-desktop
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 1. Instalar herramientas ANTES de usar wget (Incluyendo ca-certificates)
+RUN apt-get update && apt-get install -y \
+    wget \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    git \
+    python3-colcon-common-extensions \
+    socat \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Instalar Gazebo Garden
+RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
+    apt-get update && apt-get install -y gz-garden
+
+# 3. Preparar workspace y clonar Vehicle Gateway
+WORKDIR /root/ros2_ws/src
+RUN git clone https://github.com/osrf/vehicle_gateway.git
+
+# 4. Compilar
+WORKDIR /root/ros2_ws
+RUN . /opt/ros/humble/setup.sh && \
+    colcon build --merge-install --packages-select \
+    vehicle_gateway \
+    vehicle_gateway_models \
+    vehicle_gateway_worlds \
+    betaflight_gazebo \
+    gz_aerial_plugins  
+# betaflight_sim 
+
+# 5. CRÍTICO: Copiar nuestro mundo personalizado (Esto faltaba en tu código nuevo)
+# Asegúrate de tener el archivo custom_world.sdf en la misma carpeta que este Dockerfile
+COPY betaflight_iris_aruco.sdf /root/ros2_ws/install/share/vehicle_gateway/worlds/betaflight_iris_aruco.sdf
+
+
+RUN echo '#!/bin/bash' > /entrypoint_gateway.sh && \
+    echo 'source /opt/ros/humble/setup.bash' >> /entrypoint_gateway.sh && \
+    echo 'source /root/ros2_ws/install/local_setup.bash' >> /entrypoint_gateway.sh && \
+    echo 'echo "================================================="' >> /entrypoint_gateway.sh && \
+    echo 'echo "🔍 BUSCANDO LIBRERIAS DISPONIBLES EN /install/lib:"' >> /entrypoint_gateway.sh && \
+    echo 'find /root/ros2_ws/install/lib -name "*.so"' >> /entrypoint_gateway.sh && \
+    echo 'echo "================================================="' >> /entrypoint_gateway.sh && \
+    echo 'exec "$@"' >> /entrypoint_gateway.sh && \
+    chmod +x /entrypoint_gateway.sh
+
+ENTRYPOINT ["/entrypoint_gateway.sh"]
+CMD ["bash"]
