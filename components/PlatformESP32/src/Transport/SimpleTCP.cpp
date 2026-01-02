@@ -16,14 +16,14 @@ namespace FlightProxy
 
             SimpleTCP::SimpleTCP(int accepted_socket)
                 : m_sock(accepted_socket), port_(0), eventTaskHandle_(nullptr),
-                  mutex_(Core::OSAL::Factory::createMutex())
+                  mutex_(Core::OSAL::OSALFactory::createMutex())
             {
                 ip_[0] = '\0';
             }
 
             SimpleTCP::SimpleTCP(const char *ip, uint16_t port)
                 : m_sock(-1), port_(port), eventTaskHandle_(nullptr),
-                  mutex_(Core::OSAL::Factory::createMutex())
+                  mutex_(Core::OSAL::OSALFactory::createMutex())
             {
                 if (ip != nullptr)
                 {

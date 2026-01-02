@@ -44,7 +44,7 @@ namespace FlightProxy
                 std::chrono::steady_clock::time_point last_update;
                 double frequency_hz = 0.0;
 
-                SlotBase() : slotMutex(Core::OSAL::Factory::createMutex()) {}
+                SlotBase() : slotMutex(Core::OSAL::OSALFactory::createMutex()) {}
                 virtual ~SlotBase() = default;
 
                 // Método virtual para consultar el tipo real almacenado sin usar typeid
@@ -126,7 +126,7 @@ namespace FlightProxy
             }
 
         public:
-            AlmacenFlexible() : m_mapMutex(Core::OSAL::Factory::createMutex()) {}
+            AlmacenFlexible() : m_mapMutex(Core::OSAL::OSALFactory::createMutex()) {}
             ~AlmacenFlexible() = default;
 
             // En la sección public de AlmacenFlexible:

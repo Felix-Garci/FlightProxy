@@ -287,7 +287,7 @@ void app() {
     FP_LOG_I("MAIN", "Baro alt: %f, vel: %f", br_data.altitude,
              br_data.vertical_vel);
 
-    FlightProxy::Core::OSAL::Factory::sleep(1000);
+    FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
   }
 }
 

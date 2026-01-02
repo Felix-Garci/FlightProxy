@@ -18,7 +18,7 @@ namespace FlightProxy
                   m_last_sender_len(sizeof(m_last_sender_addr)),
                   m_has_last_sender(false),
                   eventTaskHandle_(nullptr),
-                  mutex_(Core::OSAL::Factory::createMutex())
+                  mutex_(Core::OSAL::OSALFactory::createMutex())
             {
                 memset(&m_last_sender_addr, 0, sizeof(m_last_sender_addr));
                 FP_LOG_I(TAG, "Canal UDP creado para el puerto %u", m_port);

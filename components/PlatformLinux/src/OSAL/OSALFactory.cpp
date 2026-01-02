@@ -1,22 +1,28 @@
-#include "FlightProxy/PlatformLinux/OSAL/OSALFactory.h"
+#include "FlightProxy/Core/OSAL/OSALFactory.h"
 
 #include "FlightProxy/PlatformLinux/OSAL/LinuxMutex.h"
+#include "FlightProxy/PlatformLinux/OSAL/LinuxQueue.h"
 #include "FlightProxy/PlatformLinux/OSAL/LinuxTask.h"
 
 namespace FlightProxy {
-namespace PlatformLinux {
+namespace Core {
 namespace OSAL {
 
 // Implementación de createTask
-std::unique_ptr<Core::OSAL::ITask>
+std::unique_ptr<ITask>
 OSALFactory::createTask(Core::OSAL::ITask::TaskFunction func,
                         const Core::OSAL::TaskConfig &config) {
-  return std::make_unique<OSAL::LinuxTask>(func, config);
+  return std::make_unique<PlatformLinux::OSAL::LinuxTask>(func, config);
 }
 
 // Implementación de createMutex
-std::unique_ptr<Core::OSAL::IMutex> OSALFactory::createMutex() {
-  return std::make_unique<OSAL::LinuxMutex>();
+std::unique_ptr<IMutex> OSALFactory::createMutex() {
+  return std::make_unique<PlatformLinux::OSAL::LinuxMutex>();
+}
+
+std::unique_ptr<IQueue> OSALFactory::createRawQueue(size_t length,
+                                                    size_t itemSize) {
+  return std::make_unique<PlatformLinux::OSAL::LinuxQueue>(length, itemSize);
 }
 
 // Implementación de sleep
@@ -32,8 +38,6 @@ uint64_t OSALFactory::getSystemTimeMs() {
       .count();
 }
 
-// LA TEMPLATE NO VA AQUÍ
-
 } // namespace OSAL
-} // namespace PlatformLinux
+} // namespace Core
 } // namespace FlightProxy

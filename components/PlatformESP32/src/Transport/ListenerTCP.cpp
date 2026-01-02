@@ -14,7 +14,7 @@ namespace FlightProxy
         {
             static const char *TAG = "ListenerTCP";
 
-            ListenerTCP::ListenerTCP() : m_mutex(Core::OSAL::Factory::createMutex())
+            ListenerTCP::ListenerTCP() : m_mutex(Core::OSAL::OSALFactory::createMutex())
             {
             }
 

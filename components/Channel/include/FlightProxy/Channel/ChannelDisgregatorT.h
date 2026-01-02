@@ -168,7 +168,7 @@ namespace FlightProxy
                                 CommandExtractor extractor)
                 : m_realChannel(realChannel),
                   m_extractor(extractor),
-                  m_routingMutex(Core::OSAL::Factory::createMutex())
+                  m_routingMutex(Core::OSAL::OSALFactory::createMutex())
             {
                 if (!m_realChannel || !m_extractor)
                 {

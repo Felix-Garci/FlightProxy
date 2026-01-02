@@ -1,36 +1,24 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 
-namespace FlightProxy
-{
-    namespace Core
-    {
-        namespace OSAL
-        {
+namespace FlightProxy {
+namespace Core {
+namespace OSAL {
 
-            template <typename T>
-            class IQueue
-            {
-            public:
-                virtual ~IQueue() = default;
+// Esta clase NO la usa el usuario final. Es para los drivers.
+class IQueue {
+public:
+  virtual ~IQueue() = default;
 
-                /**
-                 * @brief Envía un ítem a la cola.
-                 * @param item El ítem a copiar en la cola.
-                 * @param timeout_ms Tiempo de espera en milisegundos.
-                 * @return true si se envió correctamente, false si hubo timeout.
-                 */
-                virtual bool send(const T &item, uint32_t timeout_ms) = 0;
+  // Mueve bytes crudos.
+  // timeoutMs: 0 = no esperar, 0xFFFFFFFF = infinito
+  virtual bool send(const void *itemBuffer, uint32_t timeoutMs) = 0;
+  virtual bool receive(void *itemBuffer, uint32_t timeoutMs) = 0;
 
-                /**
-                 * @brief Recibe un ítem de la cola.
-                 * @param item Referencia donde se copiará el ítem recibido.
-                 * @param timeout_ms Tiempo de espera en milisegundos.
-                 * @return true si se recibió un ítem, false si hubo timeout.
-                 */
-                virtual bool receive(T &item, uint32_t timeout_ms) = 0;
-            };
+  virtual size_t size() const = 0;
+};
 
-        } // namespace OSAL
-    } // namespace Core
+} // namespace OSAL
+} // namespace Core
 } // namespace FlightProxy

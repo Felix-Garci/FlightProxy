@@ -41,7 +41,7 @@ namespace FlightProxy
 
             ChannelServer(DecoderFactory df, EncoderFactory ef, ListenerFactory lf)
                 : m_decoderFactory(df), m_encoderFactory(ef), m_listenerFactory(lf),
-                  m_mutex(Core::OSAL::Factory::createMutex())
+                  m_mutex(Core::OSAL::OSALFactory::createMutex())
             {
                 if (!m_decoderFactory || !m_encoderFactory || !m_listenerFactory)
                 {

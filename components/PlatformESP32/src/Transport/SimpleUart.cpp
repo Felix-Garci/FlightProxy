@@ -12,7 +12,7 @@ namespace FlightProxy
             SimpleUart::SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate)
                 : port_(port), txpin_(txpin), rxpin_(rxpin), baudrate_(baudrate), eventTaskHandle_(nullptr),
                   queue_(nullptr), rxBuffer_(nullptr), rxbuffersize_(1024),
-                  mutex_(Core::OSAL::Factory::createMutex())
+                  mutex_(Core::OSAL::OSALFactory::createMutex())
             {
             }
 

@@ -1,53 +1,35 @@
 #pragma once
 #include "FlightProxy/Core/OSAL/IQueue.h"
-#include <chrono>
 #include <condition_variable>
+#include <cstring> // para memcpy
 #include <mutex>
 #include <queue>
+#include <vector>
 
 namespace FlightProxy {
 namespace PlatformLinux {
 namespace OSAL {
-template <typename T>
-class LinuxQueue : public FlightProxy::Core::OSAL::IQueue<T> {
-public:
-  LinuxQueue(uint32_t queueLength) : max_size_(queueLength) {}
-  virtual ~LinuxQueue() {}
 
-  bool send(const T &item, uint32_t timeout_ms) override {
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    if (!not_full_.wait_for(lock, std::chrono::milliseconds(timeout_ms),
-                            [this]() { return queue_.size() < max_size_; })) {
-      return false; // Timeout
-    }
-
-    queue_.push(item);
-    not_empty_.notify_one();
-    return true;
-  }
-
-  bool receive(T &item, uint32_t timeout_ms) override {
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    if (!not_empty_.wait_for(lock, std::chrono::milliseconds(timeout_ms),
-                             [this]() { return !queue_.empty(); })) {
-      return false; // Timeout
-    }
-
-    item = queue_.front();
-    queue_.pop();
-    not_full_.notify_one();
-    return true;
-  }
-
+class LinuxQueue : public FlightProxy::Core::OSAL::IQueue {
 private:
-  std::queue<T> queue_;
-  const uint32_t max_size_;
-  std::mutex mutex_;
-  std::condition_variable not_empty_;
-  std::condition_variable not_full_;
+  // Como es void*, guardamos vectores de bytes (std::vector<uint8_t>)
+  std::queue<std::vector<uint8_t>> m_queue;
+
+  std::mutex m_mutex;
+  std::condition_variable m_cond;
+
+  size_t m_maxItems;
+  size_t m_itemSize; // Recordamos de qué tamaño son los bloques
+
+public:
+  LinuxQueue(size_t length, size_t itemSize)
+      : m_maxItems(length), m_itemSize(itemSize) {}
+
+  bool send(const void *itemBuffer, uint32_t timeoutMs) override;
+  bool receive(void *itemBuffer, uint32_t timeoutMs) override;
+  size_t size() const override;
 };
+
 } // namespace OSAL
 } // namespace PlatformLinux
 } // namespace FlightProxy

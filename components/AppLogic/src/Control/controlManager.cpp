@@ -24,7 +24,7 @@ void ControlManager::start() {
   config.stackSize = 4096;
   config.priority = 2;
 
-  task_ = Core::OSAL::Factory::createTask(
+  task_ = Core::OSAL::OSALFactory::createTask(
       [this]() { this->eventLoop(); }, // Lambda que llama al bucle
       config);
 

@@ -31,7 +31,7 @@ namespace FlightProxy
 
             ChannelPersistentT(TransportFactory tf, DecoderFactory df, EncoderFactory ef)
                 : m_tf(tf), m_df(df), m_ef(ef), m_running(false),
-                  m_mutex(Core::OSAL::Factory::createMutex())
+                  m_mutex(Core::OSAL::OSALFactory::createMutex())
             {
                 if (!m_tf || !m_df || !m_ef)
                 {
@@ -74,7 +74,7 @@ namespace FlightProxy
                 config.priority = 5;
 
                 // Usar OSAL Factory para crear la tarea
-                m_reconnectTask = Core::OSAL::Factory::createTask(
+                m_reconnectTask = Core::OSAL::OSALFactory::createTask(
                     [this]()
                     { this->reconnectionLoop(); },
                     config);
@@ -176,7 +176,7 @@ namespace FlightProxy
                     // Espera usando OSAL
                     if (m_running)
                     {
-                        Core::OSAL::Factory::sleep(5000);
+                        Core::OSAL::OSALFactory::sleep(5000);
                     }
                 }
 

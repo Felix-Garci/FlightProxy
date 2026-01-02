@@ -18,7 +18,7 @@ namespace FlightProxy
         class ChannelAgregatorT : public std::enable_shared_from_this<ChannelAgregatorT<PacketT>>
         {
         public:
-            ChannelAgregatorT() : m_mutex(Core::OSAL::Factory::createMutex()) {}
+            ChannelAgregatorT() : m_mutex(Core::OSAL::OSALFactory::createMutex()) {}
             ~ChannelAgregatorT() {}
 
             void addChannel(std::shared_ptr<FlightProxy::Core::Channel::IChannelT<PacketT>> channel)

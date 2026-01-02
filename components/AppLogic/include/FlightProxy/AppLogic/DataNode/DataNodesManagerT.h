@@ -40,7 +40,7 @@ namespace FlightProxy
                     Job newJob;
                     newJob.task = dataNode;
                     newJob.period_ms = samplingPeriodMs;
-                    newJob.next_run = Core::OSAL::Factory::getSystemTimeMs() + samplingPeriodMs;
+                    newJob.next_run = Core::OSAL::OSALFactory::getSystemTimeMs() + samplingPeriodMs;
                     m_Jobs.push_back(newJob);
                 }
 
@@ -55,7 +55,7 @@ namespace FlightProxy
                     config.stackSize = 4096;
                     config.priority = 2;
 
-                    eventTask_ = Core::OSAL::Factory::createTask(
+                    eventTask_ = Core::OSAL::OSALFactory::createTask(
                         [this]()
                         { this->eventLoop(); }, // Lambda que llama al bucle
                         config);
@@ -85,7 +85,7 @@ namespace FlightProxy
                 {
                     while (isRunning_)
                     {
-                        uint64_t now = Core::OSAL::Factory::getSystemTimeMs();
+                        uint64_t now = Core::OSAL::OSALFactory::getSystemTimeMs();
                         for (auto &job : m_Jobs)
                         {
                             if (now >= job.next_run)
@@ -94,7 +94,7 @@ namespace FlightProxy
                                 job.next_run = (job.next_run + job.period_ms <= now) ? now : (job.next_run + job.period_ms);
                             }
                         }
-                        // Core::OSAL::Factory::sleep(1); // Evitar busy-waiting
+                        // Core::OSAL::OSALFactory::sleep(1); // Evitar busy-waiting
                     }
                     FP_LOG_I("DataNodesManager", "Tarea finalizada");
                 }
