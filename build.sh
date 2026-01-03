@@ -42,8 +42,6 @@ elif [ "$TARGET" == "esp32" ]; then
         export IDF_TOOLS_PATH="$HOME/.local/share/espressif"
         . $HOME/dev/esp-idf/export.sh
     fi
-
-    # Comando de build estándar de Espressif
     idf.py build
    
     echo "✅ Build ESP32 finalizado."

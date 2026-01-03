@@ -1,65 +1,28 @@
 #pragma once
 
-// 1. Incluimos la Interfaz que vamos a implementar
 #include "FlightProxy/Core/OSAL/IQueue.h"
-
-// 2. Incluimos las dependencias REALES de la plataforma
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include <cstdint>
 
-namespace FlightProxy
-{
-    namespace PlatformESP32
-    {
-        namespace OSAL
-        {
-            // 3. Declaramos la clase que IMPLEMENTA la interfaz
-            template <typename T>
-            class FreeRTOSQueue : public Core::OSAL::IQueue<T>
-            {
-            public:
-                /**
-                 * @brief Crea una cola de FreeRTOS.
-                 * @param queueLength El número máximo de ítems que puede contener.
-                 */
-                FreeRTOSQueue(uint32_t queueLength)
-                {
-                    queueHandle_ = xQueueCreate(queueLength, sizeof(T));
+namespace FlightProxy {
+namespace PlatformESP32 {
+namespace OSAL {
+class FreeRTOSQueue : public Core::OSAL::IQueue {
+public:
+  FreeRTOSQueue(uint32_t itemSize, uint32_t queueLength);
 
-                    // Aquí deberías añadir manejo de error (ej. ESP_ERROR_CHECK)
-                    // si queueHandle_ es NULL (no hay memoria).
-                }
+  virtual ~FreeRTOSQueue();
 
-                virtual ~FreeRTOSQueue()
-                {
-                    vQueueDelete(queueHandle_);
-                }
+  bool send(const void *itemBuffer, uint32_t timeoutMs) override;
 
-                // --- Implementación de la interfaz IQueue ---
+  bool receive(void *itemBuffer, uint32_t timeoutMs) override;
 
-                bool send(const T &item, uint32_t timeout_ms) override
-                {
-                    const TickType_t ticksToWait = pdMS_TO_TICKS(timeout_ms);
+  size_t size() const override;
 
-                    // Usamos &item para pasar la dirección del ítem a la cola
-                    BaseType_t result = xQueueSend(queueHandle_, &item, ticksToWait);
-
-                    return (result == pdTRUE);
-                }
-
-                bool receive(T &item, uint32_t timeout_ms) override
-                {
-                    const TickType_t ticksToWait = pdMS_TO_TICKS(timeout_ms);
-
-                    // Usamos &item para pasar la dirección donde se copiará el ítem
-                    BaseType_t result = xQueueReceive(queueHandle_, &item, ticksToWait);
-
-                    return (result == pdTRUE);
-                }
-
-            private:
-                QueueHandle_t queueHandle_;
-            };
-        }
-    } // namespace PlatformESP32
+private:
+  QueueHandle_t queueHandle_;
+};
+} // namespace OSAL
+} // namespace PlatformESP32
 } // namespace FlightProxy
