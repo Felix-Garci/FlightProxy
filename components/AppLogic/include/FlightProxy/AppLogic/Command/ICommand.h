@@ -11,7 +11,7 @@ using ReplyFunc = std::function<void(std::unique_ptr<const PacketT>)>;
 template <typename PacketT> class ICommand {
 public:
   virtual ~ICommand() = default;
-  virtual void execute(std::unique_ptr<const PacketT> packet,
+  virtual void execute(const std::unique_ptr<const PacketT> &packet,
                        ReplyFunc<PacketT> reply) = 0;
   virtual int getID() = 0;
 };

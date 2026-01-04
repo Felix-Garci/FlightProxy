@@ -11,11 +11,13 @@ namespace FlightProxy {
 namespace Core {
 namespace Protocol {
 // Comandos MSP
-const uint16_t MSP_IMU_DATA = 105;
-const uint16_t MSP_STATUS_DATA = 150;
-const uint16_t MSP_RC_DATA = 200;
-const uint16_t MSP_BARO_DATA = 109;
+const uint16_t MSP_IMU_DATA = 105;    // Get imu data from FC
+const uint16_t MSP_STATUS_DATA = 150; // Get status data from FC
+const uint16_t MSP_RC_DATA = 200;     // Set RC data to FC
+const uint16_t MSP_BARO_DATA = 109;   // Get Baro from FC
 
+const uint16_t MSP_SET_CTRLACTIVE = 200;  // Set Active CTRL to Transponder
+const uint16_t MSP_SET_SAMPLPERIMS = 201; // Set SampTime to Ctrl Transponder
 // --- Detalle de implementación de MSP V2 (CRC8) ---
 namespace Detail {
 // Tabla CRC8 para DVB-S2 (Polinomio 0xD5), usado en MSP V2

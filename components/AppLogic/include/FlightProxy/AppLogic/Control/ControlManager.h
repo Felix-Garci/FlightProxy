@@ -1,6 +1,7 @@
 #pragma once
 #include "FlightProxy/AppLogic/Control/IControl.h"
 #include "FlightProxy/Core/OSAL/ITask.h"
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
@@ -9,26 +10,23 @@
 namespace FlightProxy {
 namespace AppLogic {
 namespace Control {
-class ControlManager {
+class ControlManager : public std::enable_shared_from_this<ControlManager> {
 public:
-  ControlManager(std::function<std::string(void)> activeControlGetter);
+  ControlManager(std::function<std::string(void)> activeControlGetter,
+                 std::function<uint64_t(void)> samplingPeriodMsGetter);
 
   ~ControlManager();
 
-  // Inicializa el control y lo anade a su mapa de controles
   void addControl(std::string name, std::unique_ptr<IControl> control);
-
-  // Genera una tarea que cada sampleTime_ revisa el control activo y le da un
-  // ciclo
   void start();
-
-  // Paramos la tarea
   void stop();
 
 private:
   std::function<std::string(void)> activeControlGetter_;
+  std::function<uint64_t(void)> samplingPeriodMsGetter_;
   std::unique_ptr<Core::OSAL::ITask> task_;
   std::map<std::string, std::unique_ptr<IControl>> controls_;
+  std::atomic<bool> isRunning_{false};
 
   void eventLoop();
 };

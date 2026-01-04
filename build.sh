@@ -20,6 +20,9 @@ if [ "$TARGET" == "linux" ]; then
     
     # Configuración de CMake (tus flags)
     cmake -DBUILD_FOR_LINUX=ON \
+		  -DCMAKE_BUILD_TYPE=Debug \
+		  -DCMAKE_CXX_FLAGS="-fsanitize=address -g" \
+          -DCMAKE_C_FLAGS="-fsanitize=address -g" \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
           -DCMAKE_C_COMPILER=/usr/bin/gcc \
           -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
@@ -42,6 +45,7 @@ elif [ "$TARGET" == "esp32" ]; then
         export IDF_TOOLS_PATH="$HOME/.local/share/espressif"
         . $HOME/dev/esp-idf/export.sh
     fi
+	idf.py reconfigure
     idf.py build
    
     echo "✅ Build ESP32 finalizado."

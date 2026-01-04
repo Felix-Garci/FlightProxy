@@ -35,15 +35,21 @@ static FlightProxy::PlatformLinux::Utils::LinuxLogger logger;
 
 // App Logic - Command Manager
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_BasicRead_Command.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_ReadRCblackboard.h"
+#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_CtrActive.h"
+#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_CtrSampPeriod.h"
 
 // App Logic - Data Nodes
+#include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
+
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Emision_RC.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Baro.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h"
-#include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
+
+// App Logic - Controls
+#include "FlightProxy/AppLogic/Control/ControlManager.h"
+
+#include "FlightProxy/AppLogic/Control/Controls/CtrPassThrow.h"
 
 void app() {
   // Looger init
@@ -55,9 +61,11 @@ void app() {
   enum DataIDs : FlightProxy::AppLogic::DataID {
     ID_STATUS_Data = 0,
     ID_RC_Input = 1,
+    ID_RC_Output = 2,
     ID_IMU_Data = 10,
     ID_BARO_Data = 11,
-
+    ID_ACTIVE_CTR = 100,
+    ID_SAMPPERIOID_CTR = 101,
   };
 
   auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
@@ -142,9 +150,22 @@ void app() {
   };
 
   // Registrar los comandos
-  auto command1 = std::make_shared<FlightProxy::AppLogic::Command::Commands::
-                                       MSP_BasicRead_Command<Packet>>();
-  commandManager->registerCommand(command1);
+  auto setActiveCtr =
+      blackboard->registrarProductor<std::string>(ID_ACTIVE_CTR);
+
+  auto cmdActiveControl = std::make_shared<
+      FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrActive<Packet>>(
+      setActiveCtr);
+
+  commandManager->registerCommand(cmdActiveControl);
+
+  auto setSampMs = blackboard->registrarProductor<uint64_t>(ID_SAMPPERIOID_CTR);
+
+  auto cmdSampMsControl = std::make_shared<
+      FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrSampPeriod<Packet>>(
+      setSampMs);
+
+  commandManager->registerCommand(cmdSampMsControl);
 
   // auto commans2 =
   // std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_ReadRCblackboard<Packet>>(
@@ -237,7 +258,7 @@ void app() {
       FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Emision_RC>(
       msp_client_channel->createVirtualChannel(
           FlightProxy::Core::Protocol::MSP_RC_DATA),
-      blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input));
+      blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Output));
   dataNodesManager->addDataNode(nodoEmisionRC, 50); // cada 200 ms
 
   auto nodoRecepcionBaro = std::make_shared<
@@ -250,43 +271,34 @@ void app() {
 
   dataNodesManager->start();
 
-  //_________Bucle infinito______________________
-  auto getimu =
-      blackboard->registrarConsumidor<FlightProxy::Core::IMUData>(ID_IMU_Data);
+  // __________________Control ______________________________
 
-  auto getstatus =
-      blackboard->registrarConsumidor<FlightProxy::Core::StatusData>(
-          ID_STATUS_Data);
+  auto activeControlGetter =
+      blackboard->registrarConsumidor<std::string>(ID_ACTIVE_CTR);
+
+  auto samplingPeriodMsGetter =
+      blackboard->registrarConsumidor<uint64_t>(ID_SAMPPERIOID_CTR);
+
+  auto ctrManager =
+      std::make_shared<FlightProxy::AppLogic::Control::ControlManager>(
+          activeControlGetter, samplingPeriodMsGetter);
 
   auto getrc =
       blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input);
+  auto setrc =
+      blackboard->registrarProductor<FlightProxy::Core::RCData>(ID_RC_Output);
 
-  auto getbr = blackboard->registrarConsumidor<FlightProxy::Core::BaroData>(
-      ID_BARO_Data);
+  auto passThrow =
+      std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrPassThrow>(
+          getrc, setrc);
+
+  ctrManager->addControl("passThrow", std::move(passThrow));
+
+  ctrManager->start();
+
+  //_________Bucle infinito______________________
 
   while (true) {
-    getimu(); // actualiza el dato interno
-    FP_LOG_I("MAIN", "IMU Data:  frecuency: %.2f Hz",
-             blackboard->getFrequency(ID_IMU_Data));
-
-    auto status = getstatus(); // actualiza el dato interno
-    FP_LOG_I("MAIN", "Status Data: frecuency: %.2f Hz",
-             blackboard->getFrequency(ID_STATUS_Data));
-
-    FP_LOG_I("MAIN", "Status arming flags %d", status.armingFlags);
-
-    auto rc_input = getrc(); // actualiza el dato interno
-    FP_LOG_I("MAIN", "RC Input: frecuency: %.2f Hz",
-             blackboard->getFrequency(ID_RC_Input));
-
-    FP_LOG_I("MAIN", "R: %d, P: %d, T: %d, Y: %d, A1: %d, A2: %d",
-             rc_input.roll, rc_input.pitch, rc_input.throttle, rc_input.yaw,
-             rc_input.aux1, rc_input.aux2);
-
-    auto br_data = getbr();
-    FP_LOG_I("MAIN", "Baro alt: %f, vel: %f", br_data.altitude,
-             br_data.vertical_vel);
-
     FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
   }
 }

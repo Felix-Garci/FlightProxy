@@ -5,6 +5,7 @@
 #include "FlightProxy/Core/OSAL/ITask.h"
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
 
+#include <atomic>
 #include <map>
 #include <memory>
 
