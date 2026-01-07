@@ -18,6 +18,10 @@ const uint16_t MSP_BARO_DATA = 109;   // Get Baro from FC
 
 const uint16_t MSP_SET_CTRLACTIVE = 200;  // Set Active CTRL to Transponder
 const uint16_t MSP_SET_SAMPLPERIMS = 201; // Set SampTime to Ctrl Transponder
+
+const uint16_t MSP_SET_PIDCST = 300;
+const uint16_t MSP_GET_PIDVALS = 301; // Pedir telemetria de control activo
+
 // --- Detalle de implementación de MSP V2 (CRC8) ---
 namespace Detail {
 // Tabla CRC8 para DVB-S2 (Polinomio 0xD5), usado en MSP V2

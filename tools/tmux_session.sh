@@ -13,6 +13,7 @@ then
 	TRANSPONDER_PATH="$SCRIPT_DIR/../build_linux/"
 	REMOTECTRL_PATH="$SCRIPT_DIR/remote_py/"
 	DOCKER_PATH="$SCRIPT_DIR/simulador/"
+	MSP_PATH="$SCRIPT_DIR/msp/"
 
 
     tmux new-session -d -s $SESSION -n "win1"
@@ -21,21 +22,27 @@ then
     tmux send-keys -t $SESSION:win1 "echo 'esperando 20s' && sleep 20 && ./TransponderLinux" C-m
 	#./TransponderLinux" C-m
 
-    tmux split-window -v -p 40 -t $SESSION:win1
+    tmux split-window -v -p 80 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $REMOTECTRL_PATH" C-m
     tmux send-keys -t $SESSION:win1 "source .venv/bin/activate" C-m 
     tmux send-keys -t $SESSION:win1 "python remotecontroller.py" C-m 
 
 
-    tmux split-window -v -t $SESSION:win1
+    tmux split-window -v -p 80 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $DOCKER_PATH" C-m
-    tmux send-keys -t $SESSION:win1 "docker-compose up" C-m
+	tmux send-keys -t $SESSION:win1 "trap 'docker-compose down' EXIT; docker-compose up" C-m
 
-	tmux split-window -v -t $SESSION:win1
+	tmux split-window -v -p 80 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $DOCKER_PATH" C-m
-    tmux send-keys -t $SESSION:win1 "echo 'tecla para lazar vision...'&& read && ./view_simulation.sh" C-m
+    tmux send-keys -t $SESSION:win1 "xhost + && sleep 10 && ./view_simulation.sh" C-m
 
-    tmux select-pane -t $SESSION:win1
+	tmux split-window -v -p 80 -t $SESSION:win1
+    tmux send-keys -t $SESSION:win1 "cd $MSP_PATH" C-m
+	tmux send-keys -t $SESSION:win1 "clear && python main.py" C-m
+
+	tmux split-window -h -p 50 -t $SESSION:win1
+    tmux send-keys -t $SESSION:win1 "cd $DOCKER_PATH && clear" C-m
+
 fi
 
 # si pasamos argumento a attachamos session

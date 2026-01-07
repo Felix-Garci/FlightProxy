@@ -35,8 +35,10 @@ static FlightProxy::PlatformLinux::Utils::LinuxLogger logger;
 
 // App Logic - Command Manager
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
+#include "FlightProxy/AppLogic/Command/Commands/MSP_Get_PIDVals.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_Set_CtrActive.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_Set_CtrSampPeriod.h"
+#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_PIDCts.h"
 
 // App Logic - Data Nodes
 #include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
@@ -49,6 +51,7 @@ static FlightProxy::PlatformLinux::Utils::LinuxLogger logger;
 // App Logic - Controls
 #include "FlightProxy/AppLogic/Control/ControlManager.h"
 
+#include "FlightProxy/AppLogic/Control/Controls/CtrAltHold.h"
 #include "FlightProxy/AppLogic/Control/Controls/CtrPassThrow.h"
 
 void app() {
@@ -66,6 +69,8 @@ void app() {
     ID_BARO_Data = 11,
     ID_ACTIVE_CTR = 100,
     ID_SAMPPERIOID_CTR = 101,
+    ID_PIDVALS_CTR = 102,
+    ID_PIDCST_CTR = 103,
   };
 
   auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
@@ -152,27 +157,32 @@ void app() {
   // Registrar los comandos
   auto setActiveCtr =
       blackboard->registrarProductor<std::string>(ID_ACTIVE_CTR);
-
   auto cmdActiveControl = std::make_shared<
       FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrActive<Packet>>(
       setActiveCtr);
-
   commandManager->registerCommand(cmdActiveControl);
 
   auto setSampMs = blackboard->registrarProductor<uint64_t>(ID_SAMPPERIOID_CTR);
-
   auto cmdSampMsControl = std::make_shared<
       FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrSampPeriod<Packet>>(
       setSampMs);
-
   commandManager->registerCommand(cmdSampMsControl);
 
-  // auto commans2 =
-  // std::make_shared<FlightProxy::AppLogic::Command::Commands::MSP_ReadRCblackboard<Packet>>(
-  //     blackboard->registrarConsumidor<FlightProxy::Core::IBUSPacket::ChannelsT>(ID_RC_Input));
-  // commandManager->registerCommand(commans2);
+  auto getPIDVals =
+      blackboard->registrarConsumidor<FlightProxy::Core::ControlPIDVals>(
+          ID_PIDVALS_CTR);
+  auto cmdPIDVals = std::make_shared<
+      FlightProxy::AppLogic::Command::Commands::MSP_Get_PIDVals<Packet>>(
+      getPIDVals);
+  commandManager->registerCommand(cmdPIDVals);
 
-  // commans1.reset();
+  auto setPIDCst =
+      blackboard->registrarProductor<FlightProxy::Core::ControlPIDCts>(
+          ID_PIDCST_CTR);
+  auto cmdPIDCst = std::make_shared<
+      FlightProxy::AppLogic::Command::Commands::MSP_Set_PIDCts<Packet>>(
+      setPIDCst);
+  commandManager->registerCommand(cmdPIDCst);
 
   commandManager->start();
 
@@ -283,6 +293,7 @@ void app() {
       std::make_shared<FlightProxy::AppLogic::Control::ControlManager>(
           activeControlGetter, samplingPeriodMsGetter);
 
+  // passThrow
   auto getrc =
       blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input);
   auto setrc =
@@ -293,6 +304,23 @@ void app() {
           getrc, setrc);
 
   ctrManager->addControl("passThrow", std::move(passThrow));
+
+  // altHold
+  auto getbaro = blackboard->registrarConsumidor<FlightProxy::Core::BaroData>(
+      ID_BARO_Data);
+  auto getPIDCTS =
+      blackboard->registrarConsumidor<FlightProxy::Core::ControlPIDCts>(
+          ID_PIDCST_CTR);
+
+  auto setPIDVals =
+      blackboard->registrarProductor<FlightProxy::Core::ControlPIDVals>(
+          ID_PIDVALS_CTR);
+
+  auto altHold =
+      std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrAltHold>(
+          getrc, getbaro, setrc, setPIDVals, getPIDCTS);
+
+  ctrManager->addControl("altHold", std::move(altHold));
 
   ctrManager->start();
 

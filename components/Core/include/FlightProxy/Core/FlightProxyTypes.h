@@ -74,7 +74,7 @@ struct MagData {
 
 struct BaroData {
   float altitude;
-  float vertical_vel;
+  float vertical_vel; // cm/s
 };
 
 struct IMUData {
@@ -96,6 +96,19 @@ struct StatusData {
   uint16_t averageSystemLoadPercent;
   uint16_t armingFlags; // 0 = Ready to Arm. Non-zero = Blocking reason.
   uint8_t accCalibrationAxisFlags;
+};
+struct ControlPIDCts {
+  float p;
+  float i;
+  float d;
+};
+struct ControlPIDVals {
+  float reference;
+  float actual;
+
+  float p;
+  float i;
+  float d;
 };
 
 } // namespace Core
