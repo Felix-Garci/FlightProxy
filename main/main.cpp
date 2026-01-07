@@ -163,6 +163,8 @@ void app() {
   commandManager->registerCommand(cmdActiveControl);
 
   auto setSampMs = blackboard->registrarProductor<uint64_t>(ID_SAMPPERIOID_CTR);
+  setSampMs(100);
+
   auto cmdSampMsControl = std::make_shared<
       FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrSampPeriod<Packet>>(
       setSampMs);
