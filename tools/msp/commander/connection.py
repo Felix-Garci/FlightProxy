@@ -27,7 +27,8 @@ class Connection:
             self.connected = True
             return True
 
-        except Exception:
+        except Exception as e:
+            print(f"Error en connection connect: {e}")
             self.connected = False
             return False
 

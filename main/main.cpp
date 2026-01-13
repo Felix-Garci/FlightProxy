@@ -33,6 +33,8 @@ static FlightProxy::PlatformLinux::Utils::LinuxLogger logger;
 #include "FlightProxy/Channel/ChannelServer.h"
 #include "FlightProxy/Channel/ChannelT.h"
 
+// Hellpers para commands y para datanodes
+#include "FlightProxy/AppLogic/AppSetupHelpers.h"
 // App Logic - Command Manager
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_Get_DinamicsTelemetry.h"
@@ -57,27 +59,183 @@ static FlightProxy::PlatformLinux::Utils::LinuxLogger logger;
 #include "FlightProxy/AppLogic/Control/Controls/CtrAltHold.h"
 #include "FlightProxy/AppLogic/Control/Controls/CtrPassThrow.h"
 
-void app() {
-  // Looger init
-  FlightProxy::Core::Utils::Logger::setInstance(logger);
+#include <utility>
 
-  FP_LOG_I("main", "Logger inicializado.");
+using Packet = FlightProxy::Core::MspPacket;
 
-  // Almacen flexible init
-  enum DataIDs : FlightProxy::AppLogic::DataID {
-    ID_STATUS_Data = 0,
-    ID_RC_Input = 1,
-    ID_RC_Output = 2,
-    ID_IMU_Data = 10,
-    ID_BARO_Data = 11,
-    ID_ACTIVE_CTR = 100,
-    ID_SAMPPERIOID_CTR = 101,
-    ID_PIDVALS_CTR = 102,
-    ID_PIDCST_CTR = 103,
-    ID_HOVER = 104,
+namespace FlightProxy::AppLogic {
+enum DataIDs : DataID {
+  ID_STATUS_Data = 0,
+  ID_RC_Input = 1,
+  ID_RC_Output = 2,
+  ID_IMU_Data = 10,
+  ID_BARO_Data = 11,
+  ID_ACTIVE_CTR = 100,
+  ID_SAMPPERIOID_CTR = 101,
+  ID_PIDVALS_CTR = 102,
+  ID_PIDCST_CTR = 103,
+  ID_HOVER = 104,
+};
+}
+
+static void configurarNodos(
+    std::shared_ptr<FlightProxy::AppLogic::DataNode::DataNodesManager> nodeMgr,
+    std::shared_ptr<FlightProxy::Channel::ChannelDisgregatorT<Packet>>
+        disgregator,
+    std::shared_ptr<FlightProxy::AppLogic::AlmacenFlexible> bb) {
+  // Las declaraciones using solo viven dentro de los corchetes de esta función
+  using namespace FlightProxy::AppLogic;
+  using namespace FlightProxy::AppLogic::DataNode::DataNodes;
+  using namespace FlightProxy::Core;
+
+  Setup::addReceptionNode<Nodo_Recepcion_Status, StatusData, MspPacket>(
+      nodeMgr, disgregator, Protocol::MSP_STATUS_DATA, bb, ID_STATUS_Data,
+      1000);
+
+  Setup::addEmissionNode<Nodo_Emision_RC, RCData, MspPacket>(
+      nodeMgr, disgregator, Protocol::MSP_RC_DATA, bb, ID_RC_Output, 50);
+
+  Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, MspPacket>(
+      nodeMgr, disgregator, Protocol::MSP_BARO_DATA, bb, ID_BARO_Data, 100);
+  Setup::addReceptionNode<Nodo_Recepcion_IMU, IMUData, MspPacket>(
+      nodeMgr, disgregator, Protocol::MSP_IMU_DATA, bb, ID_IMU_Data, 500);
+}
+
+static auto setupMspDroneCLient(const char *ip, int port) {
+  auto msp_transport =
+      FlightProxy::Core::Transport::Factory::CreateSimpleTCP(ip, port);
+  auto msp_transport_encoder =
+      std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+  auto msp_transport_decoder =
+      std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+
+  auto msp_client = std::make_shared<FlightProxy::Channel::ChannelT<Packet>>(
+      msp_transport, msp_transport_encoder, msp_transport_decoder);
+
+  auto msp_client_channel =
+      std::make_shared<FlightProxy::Channel::ChannelDisgregatorT<Packet>>(
+          msp_client, [](const Packet &pkt) -> FlightProxy::Channel::CommandId {
+            return pkt.command;
+          });
+  msp_client->open();
+  FP_LOG_D("MSP_Client", "Creado");
+  return msp_client_channel;
+}
+
+static auto
+setupRCReciver(int port,
+               std::shared_ptr<FlightProxy::AppLogic::AlmacenFlexible> bb) {
+  using Bus = FlightProxy::Core::IBUSPacket;
+
+  auto udp_transport =
+      FlightProxy::Core::Transport::Factory::CreateSimpleUDP(port);
+  auto udp_transport_encoder =
+      std::make_shared<FlightProxy::Core::Protocol::IbusEncoder>();
+  auto udp_transport_decoder =
+      std::make_shared<FlightProxy::Core::Protocol::IbusDecoder>();
+
+  auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Bus>>(
+      udp_transport, udp_transport_encoder, udp_transport_decoder);
+
+  auto rcWriter = bb->registrarProductor<FlightProxy::Core::RCData>(
+      FlightProxy::AppLogic::ID_RC_Input);
+
+  udp_server->onPacket = [rcWriter](std::unique_ptr<const Bus> packet) {
+    FlightProxy::Core::RCData rcData;
+    rcData.roll = packet->channels[0];
+    rcData.pitch = packet->channels[1];
+    rcData.throttle = packet->channels[2];
+    rcData.yaw = packet->channels[3];
+    rcData.aux1 = packet->channels[4];
+    rcData.aux2 = packet->channels[5];
+
+    for (size_t i = 0; i < 8; ++i) {
+      rcData.aux_channels[i] = packet->channels[6 + i];
+    }
+
+    rcWriter(rcData);
+    return;
   };
 
-  auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
+  udp_server->open();
+
+  return udp_server;
+}
+
+static std::pair<
+    std::shared_ptr<FlightProxy::Channel::ChannelServer<Packet>>,
+    std::shared_ptr<FlightProxy::Channel::ChannelAgregatorT<Packet>>>
+setupCommandServer(
+    int port,
+    std::shared_ptr<FlightProxy::AppLogic::Command::CommandManager<Packet>>
+        cmdManager) {
+
+  auto decoder_factory = []() {
+    return std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
+  };
+  auto encoder_factory = []() {
+    return std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
+  };
+  auto listener_factory = []() {
+    return FlightProxy::Core::Transport::Factory::CreateListenerTCP();
+  };
+
+  auto tcp_server =
+      std::make_shared<FlightProxy::Channel::ChannelServer<Packet>>(
+          decoder_factory, encoder_factory, listener_factory);
+
+  auto agregadorTcpClients =
+      std::make_shared<FlightProxy::Channel::ChannelAgregatorT<Packet>>();
+
+  tcp_server->onNewChannel =
+      [agregadorTcpClients](
+          std::shared_ptr<FlightProxy::Core::Channel::IChannelT<Packet>>
+              channel) { agregadorTcpClients->addChannel(channel); };
+
+  tcp_server->start(port);
+
+  // Paquetes de ida
+  agregadorTcpClients->onPacketFromAnyChannel =
+      [cmdManager](const FlightProxy::Core::PacketEnvelope<Packet> &envelope) {
+        return cmdManager->enqueuePacket(envelope);
+      };
+  // Paquetes de vuelta
+  cmdManager->responsehandler =
+      [agregadorTcpClients](uint32_t channelId,
+                            std::unique_ptr<const Packet> packet) -> bool {
+    agregadorTcpClients->response(channelId, std::move(packet));
+    return true;
+  };
+
+  return std::make_pair(tcp_server, agregadorTcpClients);
+}
+
+static void setupCommands(
+    std::shared_ptr<FlightProxy::AppLogic::Command::CommandManager<Packet>>
+        cmdMgr,
+    std::shared_ptr<FlightProxy::AppLogic::AlmacenFlexible> bb) {
+
+  using namespace FlightProxy::AppLogic;
+  using namespace FlightProxy::AppLogic::Command::Commands;
+  using namespace FlightProxy::Core;
+
+  Setup::registerProductorCommand<MSP_Set_InputRCData<Packet>, RCData, Packet>(
+      cmdMgr, bb, ID_RC_Input);
+  Setup::registerProductorCommand<MSP_Set_Hover<Packet>, uint16_t, Packet>(
+      cmdMgr, bb, ID_HOVER);
+  Setup::registerProductorCommand<MSP_Set_CtrActive<Packet>, std::string,
+                                  Packet>(cmdMgr, bb, ID_ACTIVE_CTR);
+  Setup::registerProductorCommand<MSP_Set_CtrSampPeriod<Packet>, uint64_t,
+                                  Packet>(cmdMgr, bb, ID_SAMPPERIOID_CTR);
+  Setup::registerProductorCommand<MSP_Set_PIDCts<Packet>, ControlPIDCts,
+                                  Packet>(cmdMgr, bb, ID_PIDCST_CTR);
+
+  Setup::registerConsumerCommand<MSP_Get_PIDVals<Packet>, ControlPIDVals,
+                                 Packet>(cmdMgr, bb, ID_PIDVALS_CTR);
+}
+
+void app() {
+  FlightProxy::Core::Utils::Logger::setInstance(logger);
 
   // Network
   // UDP input
@@ -137,226 +295,46 @@ void app() {
   }
 #endif
 
-  // Definicion de paquete a usar
-  using Packet = FlightProxy::Core::MspPacket;
+  auto blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
 
-  //________________________COMAND FLUX_______________________
-
-  // Servidor TCP
-  auto decoder_factory =
-      []() -> std::shared_ptr<FlightProxy::Core::Protocol::IDecoderT<Packet>> {
-    return std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
-  };
-  auto encoder_factory =
-      []() -> std::shared_ptr<FlightProxy::Core::Protocol::IEncoderT<Packet>> {
-    return std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
-  };
-  auto listener_factory =
-      []() -> std::shared_ptr<FlightProxy::Core::Transport::ITcpListener> {
-    return FlightProxy::Core::Transport::Factory::CreateListenerTCP();
-  };
-  auto tcp_server =
-      std::make_shared<FlightProxy::Channel::ChannelServer<Packet>>(
-          decoder_factory, encoder_factory, listener_factory);
-
-  auto agregadorTcpClients =
-      std::make_shared<FlightProxy::Channel::ChannelAgregatorT<Packet>>();
-
-  tcp_server->onNewChannel =
-      [agregadorTcpClients](
-          std::shared_ptr<FlightProxy::Core::Channel::IChannelT<Packet>>
-              channel) { agregadorTcpClients->addChannel(channel); };
-
-  tcp_server->start(TCP_PORT_INPUT);
-
-  // Command Manager
   auto commandManager = std::make_shared<
       FlightProxy::AppLogic::Command::CommandManager<Packet>>();
 
-  // Conectamos agregator con command manager
-  // Paquetes de ida
-  agregadorTcpClients->onPacketFromAnyChannel =
-      [commandManager](
-          const FlightProxy::Core::PacketEnvelope<Packet> &envelope) {
-        return commandManager->enqueuePacket(envelope);
-      };
-  // Paquetes de vuelta
-  commandManager->responsehandler =
-      [agregadorTcpClients](uint32_t channelId,
-                            std::unique_ptr<const Packet> packet) -> bool {
-    agregadorTcpClients->response(channelId, std::move(packet));
-    return true;
-  };
-
-  // Registrar los comandos
-  auto setRCInput =
-      blackboard->registrarProductor<FlightProxy::Core::RCData>(ID_RC_Input);
-  auto cmdRCInput = std::make_shared<
-      FlightProxy::AppLogic::Command::Commands::MSP_Set_InputRCData<Packet>>(
-      setRCInput);
-  commandManager->registerCommand(cmdRCInput);
-
-  auto setHover = blackboard->registrarProductor<uint16_t>(ID_HOVER);
-  auto cmdHover = std::make_shared<
-      FlightProxy::AppLogic::Command::Commands::MSP_Set_Hover<Packet>>(
-      setHover);
-  commandManager->registerCommand(cmdHover);
-
-  auto setActiveCtr =
-      blackboard->registrarProductor<std::string>(ID_ACTIVE_CTR);
-  setActiveCtr("passThrow");
-  auto cmdActiveControl = std::make_shared<
-      FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrActive<Packet>>(
-      setActiveCtr);
-  commandManager->registerCommand(cmdActiveControl);
-
-  auto setSampMs = blackboard->registrarProductor<uint64_t>(ID_SAMPPERIOID_CTR);
-  setSampMs(100);
-  auto cmdSampMsControl = std::make_shared<
-      FlightProxy::AppLogic::Command::Commands::MSP_Set_CtrSampPeriod<Packet>>(
-      setSampMs);
-  commandManager->registerCommand(cmdSampMsControl);
-
-  auto getPIDVals =
-      blackboard->registrarConsumidor<FlightProxy::Core::ControlPIDVals>(
-          ID_PIDVALS_CTR);
-  auto cmdPIDVals = std::make_shared<
-      FlightProxy::AppLogic::Command::Commands::MSP_Get_PIDVals<Packet>>(
-      getPIDVals);
-  commandManager->registerCommand(cmdPIDVals);
-
-  auto setPIDCst =
-      blackboard->registrarProductor<FlightProxy::Core::ControlPIDCts>(
-          ID_PIDCST_CTR);
-  auto cmdPIDCst = std::make_shared<
-      FlightProxy::AppLogic::Command::Commands::MSP_Set_PIDCts<Packet>>(
-      setPIDCst);
-  commandManager->registerCommand(cmdPIDCst);
-
-  auto rcGetter =
-      blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input);
-  auto baroGetter =
-      blackboard->registrarConsumidor<FlightProxy::Core::BaroData>(
-          ID_BARO_Data);
-  auto cmdDinamicsTel =
-      std::make_shared<FlightProxy::AppLogic::Command::Commands::
-                           MSP_Get_DinamicsTelemetry<Packet>>(rcGetter,
-                                                              baroGetter);
-  commandManager->registerCommand(cmdDinamicsTel);
+  auto [tcp_server, agregadorTcpClients] =
+      setupCommandServer(TCP_PORT_INPUT, commandManager);
+  setupCommands(commandManager, blackboard);
 
   commandManager->start();
 
-  //________________________RC FLUX_________________________
-  using Bus = FlightProxy::Core::IBUSPacket;
-
-  // Servidor UDP
-  auto udp_transport =
-      FlightProxy::Core::Transport::Factory::CreateSimpleUDP(UDP_PORT_INPUT);
-  auto udp_transport_encoder =
-      std::make_shared<FlightProxy::Core::Protocol::IbusEncoder>();
-  auto udp_transport_decoder =
-      std::make_shared<FlightProxy::Core::Protocol::IbusDecoder>();
-
-  auto udp_server = std::make_shared<FlightProxy::Channel::ChannelT<Bus>>(
-      udp_transport, udp_transport_encoder, udp_transport_decoder);
-
-  auto rcWriter =
-      blackboard->registrarProductor<FlightProxy::Core::RCData>(ID_RC_Input);
-
-  udp_server->onPacket = [rcWriter](std::unique_ptr<const Bus> packet) {
-    FlightProxy::Core::RCData rcData;
-    rcData.roll = packet->channels[0];
-    rcData.pitch = packet->channels[1];
-    rcData.throttle = packet->channels[2];
-    rcData.yaw = packet->channels[3];
-    rcData.aux1 = packet->channels[4];
-    rcData.aux2 = packet->channels[5];
-
-    for (size_t i = 0; i < 8; ++i) {
-      rcData.aux_channels[i] = packet->channels[6 + i];
-    }
-
-    rcWriter(rcData);
-    return;
-  };
-
-  udp_server->open();
-  // Limpiamos referencia para que solo quede dentro del tasl del udp
-  udp_transport.reset();
-
-  //___________MSP to dron_______________
-
-  // Cliente TCP hacia el dron
-  auto msp_transport = FlightProxy::Core::Transport::Factory::CreateSimpleTCP(
-      TCP_IP_OUTPUT.c_str(), TCP_PORT_OUTPUT);
-  auto msp_transport_encoder =
-      std::make_shared<FlightProxy::Core::Protocol::MspEncoder>();
-  auto msp_transport_decoder =
-      std::make_shared<FlightProxy::Core::Protocol::MspDecoder>();
-
-  auto msp_client = std::make_shared<FlightProxy::Channel::ChannelT<Packet>>(
-      msp_transport, msp_transport_encoder, msp_transport_decoder);
+  auto rc_server = setupRCReciver(UDP_PORT_INPUT, blackboard);
 
   auto msp_client_channel =
-      std::make_shared<FlightProxy::Channel::ChannelDisgregatorT<Packet>>(
-          msp_client, [](const Packet &pkt) -> FlightProxy::Channel::CommandId {
-            return pkt.command;
-          });
-  msp_client->open();
-
-  //__________________Data Nodes____________________________
+      setupMspDroneCLient(TCP_IP_OUTPUT.c_str(), TCP_PORT_OUTPUT);
 
   auto dataNodesManager =
       std::make_shared<FlightProxy::AppLogic::DataNode::DataNodesManager>();
 
-  auto nodoRecepcionIMU = std::make_shared<
-      FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_IMU>(
-      msp_client_channel->createVirtualChannel(
-          FlightProxy::Core::Protocol::MSP_IMU_DATA),
-      blackboard->registrarProductor<FlightProxy::Core::IMUData>(ID_IMU_Data));
-  dataNodesManager->addDataNode(nodoRecepcionIMU, 500);
+  configurarNodos(dataNodesManager, msp_client_channel, blackboard);
 
-  auto nodoRecepcionStatus = std::make_shared<
-      FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_Status>(
-      msp_client_channel->createVirtualChannel(
-          FlightProxy::Core::Protocol::MSP_STATUS_DATA),
-      blackboard->registrarProductor<FlightProxy::Core::StatusData>(
-          ID_STATUS_Data));
-  dataNodesManager->addDataNode(nodoRecepcionStatus, 1000);
-
-  auto nodoEmisionRC = std::make_shared<
-      FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Emision_RC>(
-      msp_client_channel->createVirtualChannel(
-          FlightProxy::Core::Protocol::MSP_RC_DATA),
-      blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Output));
-  dataNodesManager->addDataNode(nodoEmisionRC, 50);
-
-  auto nodoRecepcionBaro = std::make_shared<
-      FlightProxy::AppLogic::DataNode::DataNodes::Nodo_Recepcion_Baro>(
-      msp_client_channel->createVirtualChannel(
-          FlightProxy::Core::Protocol::MSP_BARO_DATA),
-      blackboard->registrarProductor<FlightProxy::Core::BaroData>(
-          ID_BARO_Data));
-  dataNodesManager->addDataNode(nodoRecepcionBaro, 100);
   dataNodesManager->start();
 
   // __________________Control ______________________________
 
-  auto activeControlGetter =
-      blackboard->registrarConsumidor<std::string>(ID_ACTIVE_CTR);
+  auto activeControlGetter = blackboard->registrarConsumidor<std::string>(
+      FlightProxy::AppLogic::ID_ACTIVE_CTR);
 
-  auto samplingPeriodMsGetter =
-      blackboard->registrarConsumidor<uint64_t>(ID_SAMPPERIOID_CTR);
+  auto samplingPeriodMsGetter = blackboard->registrarConsumidor<uint64_t>(
+      FlightProxy::AppLogic::ID_SAMPPERIOID_CTR);
 
   auto ctrManager =
       std::make_shared<FlightProxy::AppLogic::Control::ControlManager>(
           activeControlGetter, samplingPeriodMsGetter);
 
   // passThrow
-  auto getrc =
-      blackboard->registrarConsumidor<FlightProxy::Core::RCData>(ID_RC_Input);
-  auto setrc =
-      blackboard->registrarProductor<FlightProxy::Core::RCData>(ID_RC_Output);
+  auto getrc = blackboard->registrarConsumidor<FlightProxy::Core::RCData>(
+      FlightProxy::AppLogic::ID_RC_Input);
+  auto setrc = blackboard->registrarProductor<FlightProxy::Core::RCData>(
+      FlightProxy::AppLogic::ID_RC_Output);
 
   auto passThrow =
       std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrPassThrow>(
@@ -366,15 +344,16 @@ void app() {
 
   // altHold
   auto getbaro = blackboard->registrarConsumidor<FlightProxy::Core::BaroData>(
-      ID_BARO_Data);
+      FlightProxy::AppLogic::ID_BARO_Data);
   auto getPIDCTS =
       blackboard->registrarConsumidor<FlightProxy::Core::ControlPIDCts>(
-          ID_PIDCST_CTR);
+          FlightProxy::AppLogic::ID_PIDCST_CTR);
 
   auto setPIDVals =
       blackboard->registrarProductor<FlightProxy::Core::ControlPIDVals>(
-          ID_PIDVALS_CTR);
-  auto getHover = blackboard->registrarConsumidor<uint16_t>(ID_HOVER);
+          FlightProxy::AppLogic::ID_PIDVALS_CTR);
+  auto getHover = blackboard->registrarConsumidor<uint16_t>(
+      FlightProxy::AppLogic::ID_HOVER);
 
   auto altHold =
       std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrAltHold>(

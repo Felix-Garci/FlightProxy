@@ -52,6 +52,8 @@ void ControlManager::eventLoop() {
 
     Core::OSAL::OSALFactory::sleep(samplingPeriodMs);
     samplingPeriodMs = samplingPeriodMsGetter_();
+    samplingPeriodMs = (samplingPeriodMs < 5) ? 100 : samplingPeriodMs;
+
     activeCOntrol = activeControlGetter_();
 
     if (controls_.count(activeCOntrol) == 1) {
