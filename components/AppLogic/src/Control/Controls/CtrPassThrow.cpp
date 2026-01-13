@@ -1,4 +1,5 @@
 #include "FlightProxy/AppLogic/Control/Controls/CtrPassThrow.h"
+#include "FlightProxy/Core/Utils/Logger.h"
 
 namespace FlightProxy {
 namespace AppLogic {
@@ -14,7 +15,11 @@ CtrPassThrow::~CtrPassThrow() {}
 
 void CtrPassThrow::init() {}
 
+void CtrPassThrow::reset() {}
+
 void CtrPassThrow::step() {
+
+  // FP_LOG_D("Passthrow", "Step");
 
   Core::RCData data = RCInputGetter_();
   RCOutputSetter_(data);

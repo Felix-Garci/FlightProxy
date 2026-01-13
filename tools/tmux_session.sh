@@ -38,7 +38,7 @@ then
 
 	tmux split-window -v -p 80 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $MSP_PATH" C-m
-	tmux send-keys -t $SESSION:win1 "clear && python main.py" C-m
+	tmux send-keys -t $SESSION:win1 "clear && python manual.py" C-m
 
 	tmux split-window -h -p 50 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $DOCKER_PATH && clear" C-m

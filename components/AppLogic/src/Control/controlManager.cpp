@@ -1,5 +1,6 @@
 #include "FlightProxy/AppLogic/Control/ControlManager.h"
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
+#include "FlightProxy/Core/Utils/Logger.h"
 
 namespace FlightProxy {
 namespace AppLogic {
@@ -43,17 +44,23 @@ void ControlManager::stop() {
 }
 
 void ControlManager::eventLoop() {
-  uint64_t samplingPeriodMs;
-  std::string activeCOntrol;
+  uint64_t samplingPeriodMs = 100;
+  std::string activeCOntrol = activeControlGetter_().c_str();
+  std::string prev_activeCOntrol = activeCOntrol;
 
   while (isRunning_) {
+
+    Core::OSAL::OSALFactory::sleep(samplingPeriodMs);
     samplingPeriodMs = samplingPeriodMsGetter_();
     activeCOntrol = activeControlGetter_();
 
-    Core::OSAL::OSALFactory::sleep(samplingPeriodMs);
-
-    if (controls_.count(activeCOntrol) == 1)
+    if (controls_.count(activeCOntrol) == 1) {
+      if (prev_activeCOntrol != activeCOntrol) {
+        controls_[activeCOntrol]->reset();
+        prev_activeCOntrol = activeCOntrol;
+      }
       controls_[activeCOntrol]->step();
+    }
   }
 }
 

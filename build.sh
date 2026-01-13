@@ -47,6 +47,8 @@ elif [ "$TARGET" == "esp32" ]; then
     fi
 	idf.py reconfigure
     idf.py build
+	idf.py flash
+	idf.py monitor
    
     echo "✅ Build ESP32 finalizado."
 

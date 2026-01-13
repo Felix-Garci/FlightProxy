@@ -93,7 +93,9 @@ private:
     while (isRunning_) {
       if (packetQueue_->receive(envelope, 1000)) {
         std::unique_ptr<const PacketT> packet(envelope.raw_packet_ptr);
-        FP_LOG_I("CommandManager", "Procesando comando %d", packet->command);
+        if (packet->command != 301 && packet->command != 250 &&
+            packet->command != 270)
+          FP_LOG_I("CommandManager", "Procesando comando %d", packet->command);
         processContext(envelope.channelId, std::move(packet));
       }
     }
@@ -110,12 +112,12 @@ private:
       ReplyFunc<PacketT> replyCallback =
           [this, channelId](std::unique_ptr<const PacketT> response) {
             if (this->responsehandler) {
-              FP_LOG_W("skdhfj", "usando callbak de respuesta");
+              // FP_LOG_W("skdhfj", "usando callbak de respuesta");
               this->responsehandler(channelId, std::move(response));
             }
           };
 
-      FP_LOG_W("skdhfj", "comando encontrado, ejecutamos comando");
+      // FP_LOG_W("skdhfj", "comando encontrado, ejecutamos comando");
 
       // Ejecutamos el comando pasándole la forma fácil de responder
       it->second->execute(std::move(packet), replyCallback);

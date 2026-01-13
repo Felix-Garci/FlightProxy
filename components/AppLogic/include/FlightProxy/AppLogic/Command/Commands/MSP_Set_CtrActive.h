@@ -29,7 +29,7 @@ public:
                ReplyFunc<PacketT> reply) override {
     std::string activeControl =
         std::string(packet->payload.begin(), packet->payload.end());
-    FP_LOG_D("Main", activeControl.c_str());
+    FP_LOG_D("MSP_SET_CTRLACTIVE", activeControl.c_str());
     activeControlSetter_(activeControl);
 
     auto replyPacket =

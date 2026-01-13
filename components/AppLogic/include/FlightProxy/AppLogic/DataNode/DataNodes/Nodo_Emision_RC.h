@@ -39,6 +39,8 @@ public:
   }
 
   virtual void transact() override {
+    if (!m_channelRCData)
+      return;
     if (m_channelRCData && !m_esperandoRespuesta) {
       Core::RCData rcData = m_consumidor();
 

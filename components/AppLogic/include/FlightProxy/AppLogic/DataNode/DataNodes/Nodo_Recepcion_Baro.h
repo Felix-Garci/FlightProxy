@@ -52,6 +52,8 @@ public:
     m_channelBaroData->onClose = [this]() { this->onCanalCerrado(); };
   }
   void transact() override {
+    if (!m_channelBaroData)
+      return;
     if (!m_esperandoRespuesta) {
       // Construir y enviar el paquete MSP para solicitar datos Baro
       std::vector<uint8_t> payload; // Vacío para solicitud de datos

@@ -17,6 +17,14 @@ private:
   std::function<void(FlightProxy::Core::RCData)> RCOutputSetter_;
   std::function<void(FlightProxy::Core::ControlPIDVals)> PIDValsSetter_;
   std::function<FlightProxy::Core::ControlPIDCts(void)> PIDCtsGetter_;
+  std::function<uint16_t(void)> HoverGetter_;
+
+  uint64_t prev_time = 0;
+  float prev_error = 0;
+  float integral = 0;
+  bool was_unarmed = false;
+  uint64_t armed_time = 0;
+  float target_altitud = 0;
 
 public:
   CtrAltHold(
@@ -24,11 +32,13 @@ public:
       std::function<FlightProxy::Core::BaroData(void)> BaroDataGetter,
       std::function<void(FlightProxy::Core::RCData)> RCOutputSetter,
       std::function<void(FlightProxy::Core::ControlPIDVals)> PIDValsSetter,
-      std::function<FlightProxy::Core::ControlPIDCts(void)> PIDCtsGetter);
+      std::function<FlightProxy::Core::ControlPIDCts(void)> PIDCtsGetter,
+      std::function<uint16_t(void)> HoverGetter);
 
   ~CtrAltHold();
 
   void init() override;
+  void reset() override;
   void step() override;
 };
 } // namespace Controls

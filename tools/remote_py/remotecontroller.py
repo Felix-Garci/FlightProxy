@@ -1,4 +1,5 @@
 import os
+
 os.environ["SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"] = "1"
 import pygame
 import socket
@@ -66,7 +67,8 @@ try:
         roll = map_standard_axis(joystick.get_axis(3))
         pitch = map_standard_axis(joystick.get_axis(4), inverted=True)
         yaw = map_standard_axis(joystick.get_axis(0))
-        throttle = map_throttle_special(joystick.get_axis(1))
+        # throttle = map_throttle_special(joystick.get_axis(1))
+        throttle = map_standard_axis(joystick.get_axis(1), inverted=True)
 
         # --- 2. LEER BOTÓN X (Canal 5 - AUX1) ---
         # El botón X suele ser el ID 2 en mandos Xbox en Windows.

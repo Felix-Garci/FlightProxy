@@ -29,7 +29,6 @@ public:
 
   void addDataNode(std::shared_ptr<IDataNodeBase> dataNode,
                    uint64_t samplingPeriodMs) {
-    // m_dataNodes.push_back(dataNode);
     Job newJob;
     newJob.task = dataNode;
     newJob.period_ms = samplingPeriodMs;
@@ -97,8 +96,6 @@ private:
       // Si timeToNextJob es 0, significa que vamos retrasados o toca ya, no
       // dormimos. Si es mayor a 0, dormimos lo justo y necesario.
       if (timeToNextJob > 0) {
-        // Asegúrate de que tu sleep soporte ms, si no usa
-        // std::this_thread::sleep_for
         Core::OSAL::OSALFactory::sleep(timeToNextJob);
       }
     }

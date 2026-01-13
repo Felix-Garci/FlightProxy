@@ -7,6 +7,7 @@ class IControl {
 public:
   virtual ~IControl() = default;
   virtual void init() = 0;
+  virtual void reset() = 0;
   virtual void step() = 0;
 };
 } // namespace Control

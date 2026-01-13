@@ -2,6 +2,7 @@
 
 #include "FlightProxy/AppLogic/Command/ICommand.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
+#include "FlightProxy/Core/Utils/Logger.h"
 #include <functional>
 #include <memory>
 
@@ -26,9 +27,10 @@ public:
   void execute(const std::unique_ptr<const PacketT> &packet,
                ReplyFunc<PacketT> reply) override {
     uint64_t periodMs = 0;
-    for (int i = 0; i < packet->payload.size(); i++) {
+    for (size_t i = 0; i < packet->payload.size(); i++) {
       periodMs |= (uint64_t)packet->payload[i] << (8 * i);
     }
+    FP_LOG_D("MSP_SET_SAMPLPERIMS", "%d", periodMs);
     samplePeriodMsSetter_(periodMs);
 
     auto replyPacket =

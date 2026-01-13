@@ -21,6 +21,7 @@ public:
   ~CtrPassThrow();
 
   void init() override;
+  void reset() override;
   void step() override;
 };
 } // namespace Controls

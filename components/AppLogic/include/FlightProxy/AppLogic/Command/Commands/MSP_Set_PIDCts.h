@@ -2,6 +2,7 @@
 
 #include "FlightProxy/AppLogic/Command/ICommand.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
+#include "FlightProxy/Core/Utils/Logger.h"
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -40,6 +41,8 @@ public:
       memcpy(&cts.i, &packet->payload[4], sizeof(float));
       memcpy(&cts.d, &packet->payload[8], sizeof(float));
     }
+
+    FP_LOG_D("MSP_SET_PIDCST", "%.2f %.2f %.2f", cts.p, cts.i, cts.d);
 
     setterPIDCts_(cts);
 
