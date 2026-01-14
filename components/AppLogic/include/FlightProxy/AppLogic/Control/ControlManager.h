@@ -12,10 +12,12 @@ namespace AppLogic {
 namespace Control {
 class ControlManager : public std::enable_shared_from_this<ControlManager> {
 public:
-  ControlManager(std::function<std::string(void)> activeControlGetter,
-                 std::function<uint64_t(void)> samplingPeriodMsGetter);
+  ControlManager();
 
   ~ControlManager();
+
+  void init(std::function<std::string(void)> activeControlGetter,
+            std::function<uint64_t(void)> samplingPeriodMsGetter);
 
   void addControl(std::string name, std::unique_ptr<IControl> control);
   void start();

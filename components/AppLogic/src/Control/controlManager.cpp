@@ -5,14 +5,16 @@
 namespace FlightProxy {
 namespace AppLogic {
 namespace Control {
-ControlManager::ControlManager(
+ControlManager::ControlManager() {}
+
+ControlManager::~ControlManager() {}
+
+void ControlManager::init(
     std::function<std::string(void)> activeControlGetter,
     std::function<uint64_t(void)> samplingPeriodMsGetter) {
   activeControlGetter_ = activeControlGetter;
   samplingPeriodMsGetter_ = samplingPeriodMsGetter;
 }
-
-ControlManager::~ControlManager() {}
 
 void ControlManager::addControl(std::string name,
                                 std::unique_ptr<IControl> control) {

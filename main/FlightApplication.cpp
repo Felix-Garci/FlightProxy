@@ -58,8 +58,8 @@ FlightApplication::FlightApplication() {
       FlightProxy::AppLogic::Command::CommandManager<Packet>>();
   dataNodesManager =
       std::make_shared<FlightProxy::AppLogic::DataNode::DataNodesManager>();
-  // controlManager =
-  // std::make_shared<FlightProxy::AppLogic::Control::ControlManager>();
+  controlManager =
+      std::make_shared<FlightProxy::AppLogic::Control::ControlManager>();
 }
 
 void FlightApplication::initialize() {
@@ -265,9 +265,7 @@ void FlightApplication::setupControlSystem() {
   auto samplingPeriodMsGetter = blackboard->registrarConsumidor<uint64_t>(
       FlightProxy::AppLogic::ID_SAMPPERIOID_CTR);
 
-  this->controlManager =
-      std::make_shared<FlightProxy::AppLogic::Control::ControlManager>(
-          activeControlGetter, samplingPeriodMsGetter);
+  this->controlManager->init(activeControlGetter, samplingPeriodMsGetter);
 
   // passThrow
   auto getrc = blackboard->registrarConsumidor<FlightProxy::Core::RCData>(
@@ -309,17 +307,4 @@ void FlightApplication::start() {
   commandManager->start();
   dataNodesManager->start();
   controlManager->start();
-
-  auto consumidorRCOut =
-      this->blackboard->registrarConsumidor<FlightProxy::Core::RCData>(
-          FlightProxy::AppLogic::ID_RC_Output);
-
-  FP_LOG_I("APP", "Sistemas iniciados correctamente");
-  while (true) {
-
-    FP_LOG_I(
-        "APP", "%.2f",
-        this->blackboard->getFrequency(FlightProxy::AppLogic::ID_RC_Input));
-    FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
-  }
 }
