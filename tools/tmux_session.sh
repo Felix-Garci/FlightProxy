@@ -20,15 +20,14 @@ then
 
     tmux send-keys -t $SESSION:win1 "cd $TRANSPONDER_PATH" C-m
     tmux send-keys -t $SESSION:win1 "echo 'esperando 20s' && sleep 20 && ./TransponderLinux" C-m
-	#./TransponderLinux" C-m
 
-    tmux split-window -v -p 80 -t $SESSION:win1
+    tmux split-window -v -p 70 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $REMOTECTRL_PATH" C-m
     tmux send-keys -t $SESSION:win1 "source .venv/bin/activate" C-m 
     tmux send-keys -t $SESSION:win1 "python remotecontroller.py" C-m 
 
 
-    tmux split-window -v -p 80 -t $SESSION:win1
+    tmux split-window -v -p 90 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $DOCKER_PATH" C-m
 	tmux send-keys -t $SESSION:win1 "trap 'docker-compose down' EXIT; docker-compose up" C-m
 
@@ -38,7 +37,8 @@ then
 
 	tmux split-window -v -p 80 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $MSP_PATH" C-m
-	tmux send-keys -t $SESSION:win1 "clear && python manual.py" C-m
+    tmux send-keys -t $SESSION:win1 "source .venv/bin/activate" C-m
+	tmux send-keys -t $SESSION:win1 "clear && python main.py" C-m
 
 	tmux split-window -h -p 50 -t $SESSION:win1
     tmux send-keys -t $SESSION:win1 "cd $DOCKER_PATH && clear" C-m

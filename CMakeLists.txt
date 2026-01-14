@@ -50,7 +50,9 @@ else()
         endif()
     endforeach() 
 
-	add_executable(TransponderLinux main/main.cpp)
+	add_executable(TransponderLinux 
+	main/main.cpp
+	main/FlightApplication.cpp)
 
 	target_link_libraries(TransponderLinux 
 		PRIVATE

@@ -48,6 +48,8 @@ void ControlManager::eventLoop() {
   std::string activeCOntrol = activeControlGetter_().c_str();
   std::string prev_activeCOntrol = activeCOntrol;
 
+  FP_LOG_I("CtrlMgr", "Started");
+
   while (isRunning_) {
 
     Core::OSAL::OSALFactory::sleep(samplingPeriodMs);
@@ -60,6 +62,7 @@ void ControlManager::eventLoop() {
       if (prev_activeCOntrol != activeCOntrol) {
         controls_[activeCOntrol]->reset();
         prev_activeCOntrol = activeCOntrol;
+        FP_LOG_I("CtrlMgr", activeCOntrol.c_str());
       }
       controls_[activeCOntrol]->step();
     }

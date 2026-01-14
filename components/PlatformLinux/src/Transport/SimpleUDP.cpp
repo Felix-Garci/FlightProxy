@@ -13,7 +13,7 @@ namespace Transport {
 static const char *TAG = "SimpleUDP_Linux";
 
 SimpleUDP::SimpleUDP(uint16_t port)
-    : m_port(port), m_last_sender_len(sizeof(m_last_sender_addr)) {
+    : m_sock(-1), m_port(port), m_last_sender_len(sizeof(m_last_sender_addr)) {
   memset(&m_last_sender_addr, 0, sizeof(m_last_sender_addr));
 }
 
@@ -24,6 +24,7 @@ SimpleUDP::~SimpleUDP() {
 
 void SimpleUDP::open() {
   std::lock_guard<std::recursive_mutex> lock(mutex_);
+  FP_LOG_I(TAG, "Abriendo UDP");
 
   if (isRunning_.load()) {
     FP_LOG_W(TAG, "Hilo de eventos ya iniciado.");

@@ -22,6 +22,8 @@ void CtrPassThrow::step() {
   // FP_LOG_D("Passthrow", "Step");
 
   Core::RCData data = RCInputGetter_();
+  // FP_LOG_D("Passthrow", "throtle : %d", data.throttle);
+  // FP_LOG_D("Passthrow", "aux1 : %d", data.aux1);
   RCOutputSetter_(data);
 }
 
