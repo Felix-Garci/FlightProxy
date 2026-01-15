@@ -13,7 +13,8 @@ namespace AppLogic {
 class AlmacenFlexible;
 namespace Command {
 template <typename T> class CommandManager;
-}
+template <typename T> class AutoCommandFactory;
+} // namespace Command
 namespace DataNode {
 class DataNodesManager;
 }

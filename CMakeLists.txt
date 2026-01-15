@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Definimos una opción que podemos activar manualmente desde terminal
 option(BUILD_FOR_LINUX "Forzar build para PC/Linux" OFF)
 
@@ -29,7 +32,7 @@ if(IS_ESP_PLATFORM)
 
 else()
     project(TransponderLinux CXX)
-    set(CMAKE_CXX_STANDARD 17)
+	#//set(CMAKE_CXX_STANDARD 17)
 
     add_compile_definitions(LINUX_PLATFORM)
     

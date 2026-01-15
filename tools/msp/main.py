@@ -76,6 +76,16 @@ class DroneApp:
 
 
 if __name__ == "__main__":
-    app = DroneApp("localhost", 12345)
-    dpg.set_primary_window("PrimaryWindow", True)
-    app.run()
+    c = getc("localhost", 12345, print(""))
+    c.client.connect()
+    print("|", end="")
+    print(c.process(101), end="")
+    print("|")
+
+    print("|", end="")
+    print(c.process(201), end="")
+    print("|")
+
+# app = DroneApp("localhost", 12345)
+# dpg.set_primary_window("PrimaryWindow", True)
+# app.run()

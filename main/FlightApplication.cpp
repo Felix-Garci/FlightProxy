@@ -28,7 +28,10 @@
 
 // Hellpers para commands y para datanodes
 #include "FlightProxy/AppLogic/AppSetupHelpers.h"
+
 // App Logic - Command Manager
+#include "FlightProxy/AppLogic/Command/AutoCommand.h"
+#include "FlightProxy/AppLogic/Command/AutoCommandFactory.h"
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_Get_DinamicsTelemetry.h"
 #include "FlightProxy/AppLogic/Command/Commands/MSP_Get_PIDVals.h"
@@ -136,7 +139,7 @@ void FlightApplication::setupTCPchannel_in() {
         this->channelAgregatorTCP_in->addChannel(channel);
       };
 
-  //
+  this->channelServerTCP_in->start(this->tcpPortInput);
 
   this->channelAgregatorTCP_in->onPacketFromAnyChannel =
       [this](const FlightProxy::Core::PacketEnvelope<Packet> &envelope) {
@@ -213,27 +216,40 @@ void FlightApplication::setupCommandSystem() {
   using namespace FlightProxy::AppLogic::Command::Commands;
   using namespace FlightProxy::Core;
 
-  Setup::registerProductorCommand<MSP_Set_InputRCData<Packet>, RCData, Packet>(
-      this->commandManager, this->blackboard, ID_RC_Input);
+  auto cmdFactory = Command::AutoCommandFactory<Packet>(this->blackboard);
 
-  Setup::registerProductorCommand<MSP_Set_Hover<Packet>, uint16_t, Packet>(
-      this->commandManager, this->blackboard, ID_HOVER);
+  cmdFactory.produceCMD<RCData>(ID_RC_Input);
+  cmdFactory.produceCMD<uint16_t>(ID_HOVER);
+  cmdFactory.produceCMD<std::string>(ID_ACTIVE_CTR);
+  cmdFactory.produceCMD<uint64_t>(ID_SAMPPERIOID_CTR);
+  cmdFactory.produceCMD<ControlPIDCts>(ID_PIDCST_CTR);
+  cmdFactory.produceCMD<ControlPIDVals>(ID_PIDVALS_CTR);
+  cmdFactory.loadCMDS(this->commandManager);
 
-  Setup::registerProductorCommand<MSP_Set_CtrActive<Packet>, std::string,
-                                  Packet>(this->commandManager,
-                                          this->blackboard, ID_ACTIVE_CTR);
+  /*
+    Setup::registerProductorCommand<MSP_Set_InputRCData<Packet>, RCData,
+    Packet>( this->commandManager, this->blackboard, ID_RC_Input);
 
-  Setup::registerProductorCommand<MSP_Set_CtrSampPeriod<Packet>, uint64_t,
-                                  Packet>(this->commandManager,
-                                          this->blackboard, ID_SAMPPERIOID_CTR);
+    Setup::registerProductorCommand<MSP_Set_Hover<Packet>, uint16_t, Packet>(
+        this->commandManager, this->blackboard, ID_HOVER);
 
-  Setup::registerProductorCommand<MSP_Set_PIDCts<Packet>, ControlPIDCts,
-                                  Packet>(this->commandManager,
-                                          this->blackboard, ID_PIDCST_CTR);
+    Setup::registerProductorCommand<MSP_Set_CtrActive<Packet>, std::string,
+                                    Packet>(this->commandManager,
+                                            this->blackboard, ID_ACTIVE_CTR);
 
-  Setup::registerConsumerCommand<MSP_Get_PIDVals<Packet>, ControlPIDVals,
-                                 Packet>(this->commandManager, this->blackboard,
-                                         ID_PIDVALS_CTR);
+    Setup::registerProductorCommand<MSP_Set_CtrSampPeriod<Packet>, uint64_t,
+                                    Packet>(this->commandManager,
+                                            this->blackboard,
+    ID_SAMPPERIOID_CTR);
+
+    Setup::registerProductorCommand<MSP_Set_PIDCts<Packet>, ControlPIDCts,
+                                    Packet>(this->commandManager,
+                                            this->blackboard, ID_PIDCST_CTR);
+
+    Setup::registerConsumerCommand<MSP_Get_PIDVals<Packet>, ControlPIDVals,
+                                   Packet>(this->commandManager,
+    this->blackboard, ID_PIDVALS_CTR);
+          */
 }
 
 void FlightApplication::setupDataNodes() {
@@ -300,10 +316,6 @@ void FlightApplication::setupControlSystem() {
 }
 
 void FlightApplication::start() {
-  this->channelServerTCP_in->start(this->tcpPortInput);
-
-  // this->channelDisgregatorTCP_out->open();
-
   commandManager->start();
   dataNodesManager->start();
   controlManager->start();

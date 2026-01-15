@@ -12,6 +12,7 @@ static FlightProxy::PlatformLinux::Utils::LinuxLogger logger;
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
 
 void app() {
+
   FlightProxy::Core::Utils::Logger::setInstance(logger);
   auto app = FlightApplication();
 

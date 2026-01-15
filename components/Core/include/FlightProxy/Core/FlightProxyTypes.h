@@ -1,34 +1,27 @@
 #pragma once
-#include "FlightProxy/Core/Utils/Logger.h"
 
+#include "TypeSignature.h"
 #include <array>
 #include <cstdint>
 #include <vector>
 
 namespace FlightProxy {
 namespace Core {
+
+// Alias para evitar la coma dentro de las macros X
+using AuxChannels = std::array<uint16_t, 8>;
+
 struct MspPacket {
   char direction;
   uint16_t command;
   std::vector<uint8_t> payload;
   MspPacket(char dir, uint8_t cmd, std::vector<uint8_t> pld)
-      : direction(dir), command(cmd), payload(std::move(pld)) {
-    // FP_LOG_I("MspPacket", "Creado con valores en %p", this);
-    //  esp_backtrace_print(10);
-  }
-  MspPacket() {
-    // FP_LOG_I("MspPacket", "Creado vacio");
-    //  esp_backtrace_print(10);
-  }
-  ~MspPacket() {
-    // FP_LOG_I("MspPacket", "Destruido MspPacket en %p", this);
-    //  esp_backtrace_print(10);
-  }
+      : direction(dir), command(cmd), payload(std::move(pld)) {}
+  MspPacket() {}
+  ~MspPacket() {}
   MspPacket(const MspPacket &other)
-      : command(other.command), payload(other.payload) {
-    // FP_LOG_I("MspPacket", "Copiado MspPacket a %p desde %p", this, &other);
-    //  esp_backtrace_print(10);
-  }
+      : direction(other.direction), command(other.command),
+        payload(other.payload) {}
 };
 
 struct IBUSPacket {
@@ -38,79 +31,62 @@ struct IBUSPacket {
 };
 
 template <typename PacketT> struct PacketEnvelope {
-  const PacketT *raw_packet_ptr; // El paquete de datos real
-  uint32_t channelId;            // ID del canal para saber a quién responder
-};
-
-// Tipos de datos comunes para el sistema
-struct RCData {
-  // 4 canales principales
-  uint16_t roll;
-  uint16_t pitch;
-  uint16_t throttle;
-  uint16_t yaw;
-
-  // Canales auxiliares primarios
-  uint16_t aux1;
-  uint16_t aux2;
-
-  // Canales auxiliares 8 secundarios
-  std::array<uint16_t, 8> aux_channels;
-};
-
-struct GPSData {
-  double latitude;
-  double longitude;
-  float altitude;
-  float speed;
-  float heading;
-};
-
-struct MagData {
-  float mag_x;
-  float mag_y;
-  float mag_z;
-};
-
-struct BaroData {
-  float altitude;
-  float vertical_vel; // cm/s
-};
-
-struct IMUData {
-  // Con singo
-  int16_t accel_x;
-  int16_t accel_y;
-  int16_t accel_z;
-  int16_t gyro_x;
-  int16_t gyro_y;
-  int16_t gyro_z;
-};
-
-struct StatusData {
-  uint16_t cycleTime;
-  uint16_t i2c_errors;
-  uint16_t sensors;
-  uint32_t boxModeFlags;
-  uint8_t currentProfileIndex;
-  uint16_t averageSystemLoadPercent;
-  uint16_t armingFlags; // 0 = Ready to Arm. Non-zero = Blocking reason.
-  uint8_t accCalibrationAxisFlags;
-};
-struct ControlPIDCts {
-  float p;
-  float i;
-  float d;
-};
-struct ControlPIDVals {
-  float reference;
-  float actual;
-  float output;
-
-  float p;
-  float i;
-  float d;
+  const PacketT *raw_packet_ptr;
+  uint32_t channelId;
 };
 
 } // namespace Core
 } // namespace FlightProxy
+
+// --- DEFINICIÓN DE CAMPOS ---
+
+#define RC_DATA_FIELDS(X)                                                      \
+  X(uint16_t, roll)                                                            \
+  X(uint16_t, pitch)                                                           \
+  X(uint16_t, throttle)                                                        \
+  X(uint16_t, yaw)                                                             \
+  X(uint16_t, aux1)                                                            \
+  X(uint16_t, aux2) X(FlightProxy::Core::AuxChannels, aux_channels)
+
+REGISTER_FP_STRUCT(RCData, RC_DATA_FIELDS)
+
+#define GPS_DATA_FIELDS(X)                                                     \
+  X(double, latitude)                                                          \
+  X(double, longitude) X(float, altitude) X(float, speed) X(float, heading)
+
+REGISTER_FP_STRUCT(GPSData, GPS_DATA_FIELDS)
+
+#define MAG_DATA_FIELDS(X) X(float, mag_x) X(float, mag_y) X(float, mag_z)
+
+REGISTER_FP_STRUCT(MagData, MAG_DATA_FIELDS)
+
+#define BARO_DATA_FIELDS(X) X(float, altitude) X(float, vertical_vel)
+
+REGISTER_FP_STRUCT(BaroData, BARO_DATA_FIELDS)
+
+#define IMU_DATA_FIELDS(X)                                                     \
+  X(int16_t, accel_x)                                                          \
+  X(int16_t, accel_y)                                                          \
+  X(int16_t, accel_z) X(int16_t, gyro_x) X(int16_t, gyro_y) X(int16_t, gyro_z)
+
+REGISTER_FP_STRUCT(IMUData, IMU_DATA_FIELDS)
+
+#define CONTROL_PID_VALS_FIELDS(X)                                             \
+  X(float, reference)                                                          \
+  X(float, actual) X(float, output) X(float, p) X(float, i) X(float, d)
+
+REGISTER_FP_STRUCT(ControlPIDVals, CONTROL_PID_VALS_FIELDS)
+
+#define STATUS_DATA_FIELDS(X)                                                  \
+  X(uint16_t, cycleTime)                                                       \
+  X(uint16_t, i2c_errors)                                                      \
+  X(uint16_t, sensors)                                                         \
+  X(uint32_t, boxModeFlags)                                                    \
+  X(uint8_t, currentProfileIndex)                                              \
+  X(uint16_t, averageSystemLoadPercent)                                        \
+  X(uint16_t, armingFlags) X(uint8_t, accCalibrationAxisFlags)
+
+REGISTER_FP_STRUCT(StatusData, STATUS_DATA_FIELDS)
+
+#define CONTROL_PID_CTS_FIELDS(X) X(float, p) X(float, i) X(float, d)
+REGISTER_FP_STRUCT(ControlPIDCts, CONTROL_PID_CTS_FIELDS)
