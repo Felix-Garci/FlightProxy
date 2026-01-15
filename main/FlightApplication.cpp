@@ -218,12 +218,13 @@ void FlightApplication::setupCommandSystem() {
 
   auto cmdFactory = Command::AutoCommandFactory<Packet>(this->blackboard);
 
-  cmdFactory.produceCMD<RCData>(ID_RC_Input);
-  cmdFactory.produceCMD<uint16_t>(ID_HOVER);
-  cmdFactory.produceCMD<std::string>(ID_ACTIVE_CTR);
-  cmdFactory.produceCMD<uint64_t>(ID_SAMPPERIOID_CTR);
-  cmdFactory.produceCMD<ControlPIDCts>(ID_PIDCST_CTR);
-  cmdFactory.produceCMD<ControlPIDVals>(ID_PIDVALS_CTR);
+  cmdFactory.produceCMD<RCData>(ID_RC_Input, 0, 1);
+  cmdFactory.produceCMD<uint16_t>(ID_HOVER, 0, 1, "hover");
+  cmdFactory.produceCMD<std::string>(ID_ACTIVE_CTR, 0, 1, "activeCtrl");
+  cmdFactory.produceCMD<uint64_t>(ID_SAMPPERIOID_CTR, 0, 1,
+                                  "sampleperiodCtrlMs");
+  cmdFactory.produceCMD<ControlPIDCts>(ID_PIDCST_CTR, 0, 1);
+  cmdFactory.produceCMD<ControlPIDVals>(ID_PIDVALS_CTR, 1, 0);
   cmdFactory.loadCMDS(this->commandManager);
 
   /*

@@ -16,7 +16,8 @@ public:
   ~AutoCommandFactory() {}
 
   template <typename T>
-  void produceCMD(uint32_t id, std::string customName = "") {
+  void produceCMD(uint32_t id, bool on_consumidor, bool on_productor,
+                  std::string customName = "") {
     std::function<T(void)> consumidor;
     std::function<void(T)> productor;
 
@@ -32,9 +33,13 @@ public:
     auto serializer = this->s_;
 
     uint32_t she_id = 100 + id;
-    AutoComandHandler she_handler = [serializer](const std::vector<uint8_t> &) {
+    AutoComandHandler she_handler = [serializer, on_consumidor, on_productor](
+                                        const std::vector<uint8_t> &) {
       std::vector<uint8_t> buffer;
       std::string sig = Core::TypeSignature<T>::Get();
+      sig += (on_consumidor ? "1" : "0");
+      sig += (on_productor ? "1" : "0");
+
       serializer->serialize(sig, buffer);
       return buffer;
     };
@@ -51,39 +56,45 @@ public:
       return buffer;
     };
 
-    uint32_t get_id = 300 + id;
-    AutoComandHandler get_handler = [serializer,
-                                     consumidor](const std::vector<uint8_t> &) {
-      std::vector<uint8_t> buffer;
-      if (consumidor) {
-        T data = consumidor();
-        serializer->serialize(data, buffer);
-      }
-      return buffer;
-    };
-
-    uint32_t set_id = 400 + id;
-    AutoComandHandler set_handler =
-        [serializer, productor](const std::vector<uint8_t> &payload) {
-          if (!productor || payload.empty())
-            return std::vector<uint8_t>{0x00};
-
-          T data;
-          size_t offset = 0;
-          try {
-            serializer->deserialize(data, payload, offset);
-            productor(data);
-            return std::vector<uint8_t>{0x01};
-          } catch (...) {
-            return std::vector<uint8_t>{0x00};
-          }
-        };
-
     // rellenamos los handlers;
     cmds_[she_id] = std::make_shared<AutoCommand<PacketT>>(she_id, she_handler);
     cmds_[nme_id] = std::make_shared<AutoCommand<PacketT>>(nme_id, nme_handler);
-    cmds_[get_id] = std::make_shared<AutoCommand<PacketT>>(get_id, get_handler);
-    cmds_[set_id] = std::make_shared<AutoCommand<PacketT>>(set_id, set_handler);
+
+    if (on_consumidor) {
+      uint32_t get_id = 300 + id;
+      AutoComandHandler get_handler =
+          [serializer, consumidor](const std::vector<uint8_t> &) {
+            std::vector<uint8_t> buffer;
+            if (consumidor) {
+              T data = consumidor();
+              serializer->serialize(data, buffer);
+            }
+            return buffer;
+          };
+      cmds_[get_id] =
+          std::make_shared<AutoCommand<PacketT>>(get_id, get_handler);
+    }
+
+    if (on_productor) {
+      uint32_t set_id = 400 + id;
+      AutoComandHandler set_handler =
+          [serializer, productor](const std::vector<uint8_t> &payload) {
+            if (!productor || payload.empty())
+              return std::vector<uint8_t>{0x00};
+
+            T data;
+            size_t offset = 0;
+            try {
+              serializer->deserialize(data, payload, offset);
+              productor(data);
+              return std::vector<uint8_t>{0x01};
+            } catch (...) {
+              return std::vector<uint8_t>{0x00};
+            }
+          };
+      cmds_[set_id] =
+          std::make_shared<AutoCommand<PacketT>>(set_id, set_handler);
+    }
   }
 
   void loadCMDS(std::shared_ptr<CommandManager<PacketT>> cmdMgr) {
