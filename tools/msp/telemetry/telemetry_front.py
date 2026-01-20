@@ -1,143 +1,231 @@
 import dearpygui.dearpygui as dpg
+import time
 import csv
 
 
 class TelemetryTab:
-    def __init__(self, bus, telemetry_manager, available_vars):
+    def __init__(self, bus, telemetry_manager):
         self.bus = bus
         self.telemetry = telemetry_manager
-        self.vars = available_vars
-        self.plots_config = {}
+        self.plots_config = {}  # {plot_id: [lista_variables_pintandose]}
         self.plot_count = 0
+        self.frame_update = 0.1
+        self.prev_update = 0
 
-        # Tags para poder actualizar los elementos desde fuera
-        self.btn_run_id = "btn_start_stop_telemetry"
-        self.input_time_id = "input_buffer_time"
-        self.input_freq_id = "input_buffer_freq"
-
-        self.bus.register_provider("GET_TELEMETRY_DATA", self._provide_data_to_bus)
-
-    def _provide_data_to_bus(self):
-        raw_data = self.telemetry.get_data([])
-        return {"data": list(raw_data), "columns": ["tiempo"] + self.vars}
+        # Guardaremos los IDs de los contenedores de checkboxes para refrescarlos
+        self.selector_groups = {}
 
     def create(self, tab_bar):
         with dpg.tab(label="Telemetría RT", parent=tab_bar):
+            # Barra de Herramientas Superior
             with dpg.group(horizontal=True):
-                # 1. Botón Único Start/Stop
-                dpg.add_button(
+                self.btn_start = dpg.add_button(
                     label="START",
                     callback=self.cb_toggle_running,
-                    tag=self.btn_run_id,
                     width=80,
                 )
-
-                dpg.add_spacer(width=20)
-
-                # 2. Configuración del Buffer
-                dpg.add_text("Buffer:")
-                dpg.add_input_int(
+                dpg.add_spacer(width=10)
+                self.in_time = dpg.add_input_int(
                     label="Segundos",
-                    default_value=self.telemetry.timeframeS,
-                    width=100,
-                    tag=self.input_time_id,
+                    default_value=self.telemetry.get_timeframeS(),
+                    width=90,
                 )
-                dpg.add_input_int(
+                self.in_freq = dpg.add_input_int(
                     label="Hz",
-                    default_value=self.telemetry.samplesperS,
-                    width=100,
-                    tag=self.input_freq_id,
+                    default_value=self.telemetry.get_samplesperS(),
+                    width=90,
                 )
-                dpg.add_button(label="Actualizar", callback=self.cb_update_config)
-
-                dpg.add_spacer(width=20)
-                dpg.add_button(label="+ Añadir Gráfico", callback=self.cb_add_plot)
+                dpg.add_button(label="Aplicar Config", callback=self.cb_update_config)
 
             dpg.add_separator()
-            dpg.add_group(tag="plots_container")
+
+            with dpg.group(horizontal=True):
+                # COLUMNA IZQUIERDA: Menú de Variables (Suscripción)
+                with dpg.child_window(width=250, height=-1):
+                    dpg.add_text("Menú de Variables", color=[0, 255, 255])
+                    dpg.add_button(label="Refrescar Menú", callback=self.refresh_menu)
+                    self.menu_container = dpg.add_group()
+
+                # COLUMNA DERECHA: Zona de Gráficos
+                with dpg.group():
+                    dpg.add_button(label="+ Añadir Gráfico", callback=self.cb_add_plot)
+                    self.plots_container = dpg.add_group()
+
+        self.refresh_menu()
+
+    def refresh_menu(self):
+        dpg.delete_item(self.menu_container, children_only=True)
+        menu = self.telemetry.get_menu()
+        active_vars = self.telemetry.get_active_vars()
+
+        for cmd_sig, vars_list in menu.items():
+            with dpg.tree_node(label=cmd_sig, parent=self.menu_container):
+                for var_id in vars_list:
+                    dpg.add_checkbox(
+                        label=var_id,
+                        default_value=var_id in active_vars,
+                        callback=self.cb_menu_subscription,
+                        user_data=var_id,
+                    )
+
+    def cb_menu_subscription(self, sender, app_data, var_id):
+        if app_data:
+            self.telemetry.add_variables([var_id])
+        else:
+            self.telemetry.remove_variables([var_id])
+
+        # Como el Manager hace stop(), actualizamos UI
+        dpg.set_item_label(self.btn_start, "START")
+
+        # ¡IMPORTANTE! Actualizamos los selectores de todos los gráficos abiertos
+        self.refresh_all_plot_selectors()
+
+    def refresh_all_plot_selectors(self):
+        """Actualiza los checkboxes de cada gráfico con las variables actualmente activas"""
+        active_vars = self.telemetry.get_active_vars()
+        for p_id, group_id in self.selector_groups.items():
+            dpg.delete_item(group_id, children_only=True)
+            for var in active_vars:
+                # Mantener el check si ya se estaba pintando
+                already_plotting = var in self.plots_config.get(p_id, [])
+                dpg.add_checkbox(
+                    label=var,
+                    parent=group_id,
+                    default_value=already_plotting,
+                    callback=self.cb_toggle_series,
+                    user_data=[p_id, var],
+                )
 
     def cb_toggle_running(self):
-        """Alterna entre Start y Stop"""
-        if self.telemetry.running:
+        if self.telemetry.is_running():
             self.telemetry.stop()
+            dpg.set_item_label(self.btn_start, "START")
         else:
-            self.telemetry.start()
+            self.telemetry.start()  # Aquí el Gatherer regenera el buffer
+            dpg.set_item_label(self.btn_start, "STOP")
 
     def cb_update_config(self):
-        """Recoge los valores de la UI y actualiza el buffer"""
-        new_time = dpg.get_value(self.input_time_id)
-        new_freq = dpg.get_value(self.input_freq_id)
-        self.telemetry.update_buffer(new_time, new_freq)
-        print(f"Buffer actualizado: {new_time}s a {new_freq}Hz")
+        t = dpg.get_value(self.in_time)
+        f = dpg.get_value(self.in_freq)
+        self.telemetry.update_buffer_size(t, f)
 
-    def update_plots(self):
-        # --- SINCRONIZACIÓN AUTOMÁTICA DEL BOTÓN ---
-        # Si el manager dice que no corre, pero el botón dice STOP, lo cambiamos.
-        # Esto cubre el caso de errores en el thread o cierre inesperado.
-        is_running = self.telemetry.running
-        current_label = dpg.get_item_label(self.btn_run_id)
-
-        if is_running and current_label == "START":
-            dpg.configure_item(self.btn_run_id, label="STOP")
-            # Opcional: Cambiar color a rojo
-            # dpg.bind_item_theme(self.btn_run_id, theme_rojo)
-        elif not is_running and current_label == "STOP":
-            dpg.configure_item(self.btn_run_id, label="START")
-
-        if not is_running:
-            return
-
-        # --- LÓGICA DE ACTUALIZACIÓN DE GRÁFICOS ---
-        data_list = list(self.telemetry.get_data([]))
-        if len(data_list) > 0 and len(data_list[0]) > 0:
-            times = data_list[0]
-            for p_id, active_vars in self.plots_config.items():
-                for var in active_vars:
-                    var_idx = self.vars.index(var) + 1
-                    tag = f"series_{p_id}_{var}"
-                    if dpg.does_item_exist(tag):
-                        dpg.set_value(tag, [times, data_list[var_idx]])
-                dpg.fit_axis_data(f"x_{p_id}")
-                dpg.fit_axis_data(f"y_{p_id}")
-
-    # (El resto de métodos cb_add_plot, cb_toggle, cb_download, cb_remove se mantienen igual)
     def cb_add_plot(self):
         self.plot_count += 1
         p_id = f"plot_{self.plot_count}"
         self.plots_config[p_id] = []
-        with dpg.group(parent="plots_container", tag=f"group_{p_id}"):
+
+        with dpg.group(parent=self.plots_container) as group_root:
             with dpg.group(horizontal=True):
                 dpg.add_text(f"Gráfico {self.plot_count}", color=[255, 200, 0])
                 dpg.add_button(
-                    label="Descargar", callback=lambda: self.cb_download(p_id)
+                    label="Exportar CSV",
+                    callback=self.cb_export_csv,
+                    user_data=p_id,
+                    small=True,
                 )
-                dpg.add_button(label="Eliminar", callback=lambda: self.cb_remove(p_id))
-            with dpg.group(horizontal=True):
-                for var in self.vars:
-                    dpg.add_checkbox(
-                        label=var, callback=self.cb_toggle, user_data=[p_id, var]
-                    )
-            with dpg.plot(height=300, width=-1, tag=p_id):
-                dpg.add_plot_legend()
-                dpg.add_plot_axis(dpg.mvXAxis, label="S", tag=f"x_{p_id}")
-                dpg.add_plot_axis(dpg.mvYAxis, label="V", tag=f"y_{p_id}")
+                dpg.add_button(
+                    label="Eliminar",
+                    callback=lambda: self.cb_remove_plot(p_id, group_root),
+                )
 
-    def cb_toggle(self, sender, app_data, user_data):
+            # Contenedor dinámico de variables para este gráfico
+            self.selector_groups[p_id] = dpg.add_group(horizontal=True)
+
+            with dpg.plot(height=250, width=-1, tag=p_id):
+                dpg.add_plot_legend()
+                dpg.add_plot_axis(dpg.mvXAxis, label="s", tag=f"x_{p_id}")
+                dpg.add_plot_axis(dpg.mvYAxis, label="v", tag=f"y_{p_id}")
+
+        self.refresh_all_plot_selectors()
+
+    def cb_toggle_series(self, sender, app_data, user_data):
         p_id, var = user_data
         tag = f"series_{p_id}_{var}"
         if app_data:
-            self.plots_config[p_id].append(var)
-            dpg.add_line_series([], [], label=var, parent=f"y_{p_id}", tag=tag)
+            if var not in self.plots_config[p_id]:
+                self.plots_config[p_id].append(var)
+            if not dpg.does_item_exist(tag):
+                dpg.add_line_series([], [], label=var, parent=f"y_{p_id}", tag=tag)
         else:
-            self.plots_config[p_id].remove(var)
-            dpg.delete_item(tag)
+            if var in self.plots_config[p_id]:
+                self.plots_config[p_id].remove(var)
+            if dpg.does_item_exist(tag):
+                dpg.delete_item(tag)
 
-    def cb_download(self, p_id):
-        data = self.telemetry.get_data(self.plots_config[p_id])
-        with open(f"datos_{p_id}.csv", "w", newline="") as f:
-            csv.writer(f).writerows(zip(*data))
+    def update_plots(self):
+        if not self.telemetry.is_running():
+            dpg.set_item_label(self.btn_start, "START")
+            return
 
-    def cb_remove(self, p_id):
-        dpg.delete_item(f"group_{p_id}")
+        if time.time() - self.prev_update < self.frame_update:
+            return
+
+        # Pedimos solo las variables que realmente queremos pintar para ahorrar CPU
+        # O pedimos todas ([]) y mapeamos con cuidado.
+        active_vars = self.telemetry.get_active_vars()
+        data_gen = self.telemetry.get_data([])
+        data_list = list(data_gen)
+
+        if not data_list or len(data_list[0]) == 0:
+            return
+
+        times = data_list[0]
+        # Crear un mapa rápido {nombre_variable: lista_de_datos}
+        # El buffer del gatherer tiene [timestamp, var1, var2...]
+        data_map = {"timestamp": times}
+        for i, var_name in enumerate(active_vars):
+            data_map[var_name] = data_list[i + 1]
+
+        for p_id, series_list in self.plots_config.items():
+            for var in series_list:
+                if var in data_map:
+                    tag = f"series_{p_id}_{var}"
+                    if dpg.does_item_exist(tag):
+                        dpg.set_value(tag, [list(times), list(data_map[var])])
+
+            dpg.fit_axis_data(f"x_{p_id}")
+            dpg.fit_axis_data(f"y_{p_id}")
+
+        self.prev_update = time.time()
+
+    def cb_export_csv(self, sender, app_data, p_id):
+        """Exporta los datos actuales de las variables asignadas a este gráfico"""
+        vars_to_export = self.plots_config.get(p_id, [])
+
+        if not vars_to_export:
+            print(f"Error: El gráfico {p_id} no tiene variables seleccionadas.")
+            return
+
+        # Obtenemos los datos filtrados por las variables del gráfico
+        # get_data devuelve un generador: [timestamp, var1, var2...]
+        data_gen = self.telemetry.get_data(vars_to_export)
+        data_list = list(data_gen)
+
+        if not data_list or len(data_list[0]) == 0:
+            print("Error: No hay datos en el buffer para exportar.")
+            return
+
+        filename = f"telemetry_export_{p_id}_{int(time.time())}.csv"
+
+        try:
+            with open(filename, mode="w", newline="") as file:
+                writer = csv.writer(file)
+
+                # Cabecera: ['timestamp', 'var_name1', 'var_name2'...]
+                header = ["timestamp"] + vars_to_export
+                writer.writerow(header)
+
+                # Transponemos las listas de datos para escribir filas [t, v1, v2]
+                # zip(*data_list) agrupa el i-ésimo elemento de cada sublista
+                rows = zip(*data_list)
+                writer.writerows(rows)
+
+            print(f"Datos exportados exitosamente a {filename}")
+
+        except Exception as e:
+            print(f"Error al guardar el CSV: {e}")
+
+    def cb_remove_plot(self, p_id, group_root):
+        dpg.delete_item(group_root)
         self.plots_config.pop(p_id, None)
-
+        self.selector_groups.pop(p_id, None)

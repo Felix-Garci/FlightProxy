@@ -5,11 +5,14 @@ from typing import Any, Dict, List, Tuple
 
 class FlightProxyParser:
     TYPE_MAP = {
+        "i64": "q",
         "i32": "i",
+        "i16": "h",
+        "i8": "b",
+        "u64": "Q",
         "u32": "I",
         "u16": "H",
         "u8": "B",
-        "i16": "h",
         "f32": "f",
         "f64": "d",
         "b": "?",

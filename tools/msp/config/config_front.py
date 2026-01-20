@@ -3,7 +3,10 @@ import dearpygui.dearpygui as dpg
 
 class SettingsTab:
     def __init__(self, commander):
-        self.c = commander
+        self.set_ctrl = commander.get_cmd(12)
+        self.set_hover = commander.get_cmd(16)
+        self.set_periodMS = commander.get_cmd(13)
+        self.set_pidcts = commander.get_cmd(15)
 
     def create(self, tab_bar):
         with dpg.tab(label="Settings", parent=tab_bar):
@@ -59,7 +62,8 @@ class SettingsTab:
                 dpg.add_button(label="Ejecutar", callback=self.cb_enviar_periodoMS)
 
     def cb_enviar_control(self):
-        self.c.process(200, dpg.get_value("input_ctrlName"))
+        selected_ctrl = dpg.get_value("input_ctrlName")
+        self.set_ctrl.set(selected_ctrl)
 
     def cb_cargar_pid(self):
         p, i, d = (
@@ -67,10 +71,12 @@ class SettingsTab:
             float(dpg.get_value("input_i")),
             float(dpg.get_value("input_d")),
         )
-        self.c.process(300, [p, i, d])
+        self.set_pidcts.set([p, i, d])
 
     def cb_enviar_periodoMS(self):
-        self.c.process(201, int(dpg.get_value("input_periodMS")))
+        period_ms = int(dpg.get_value("input_periodMS"))
+        self.set_periodMS.set(period_ms)
 
     def cb_cargar_hover(self):
-        self.c.process(302, int(dpg.get_value("input_hover")))
+        hover = int(dpg.get_value("input_hover"))
+        self.set_hover.set(hover)

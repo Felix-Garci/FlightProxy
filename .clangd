@@ -1,4 +1,6 @@
 CompileFlags:
+  Add:
+    - "-D__LONG_MAX__=2147483647L"
   Remove:
     - -mlongcalls
     - -fno-shrink-wrap

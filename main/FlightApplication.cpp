@@ -2,6 +2,8 @@
 // incluimos fabrica de osal
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
 
+#include "FlightProxy/Core/Utils/Logger.h"
+
 // incluimos fabrica de transportes
 #include "FlightProxy/Core/Transport/TransportFactory.h"
 
@@ -33,13 +35,6 @@
 #include "FlightProxy/AppLogic/Command/AutoCommand.h"
 #include "FlightProxy/AppLogic/Command/AutoCommandFactory.h"
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Get_DinamicsTelemetry.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Get_PIDVals.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_CtrActive.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_CtrSampPeriod.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_Hover.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_InputRCData.h"
-#include "FlightProxy/AppLogic/Command/Commands/MSP_Set_PIDCts.h"
 
 // App Logic - Data Nodes
 #include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
@@ -218,13 +213,15 @@ void FlightApplication::setupCommandSystem() {
 
   auto cmdFactory = Command::AutoCommandFactory<Packet>(this->blackboard);
 
-  cmdFactory.produceCMD<RCData>(ID_RC_Input, 0, 1);
+  cmdFactory.produceCMD<RCData>(ID_RC_Input, 1, 1);
+  cmdFactory.produceCMD<RCData>(ID_RC_Output, 1, 0);
   cmdFactory.produceCMD<uint16_t>(ID_HOVER, 0, 1, "hover");
   cmdFactory.produceCMD<std::string>(ID_ACTIVE_CTR, 0, 1, "activeCtrl");
   cmdFactory.produceCMD<uint64_t>(ID_SAMPPERIOID_CTR, 0, 1,
                                   "sampleperiodCtrlMs");
   cmdFactory.produceCMD<ControlPIDCts>(ID_PIDCST_CTR, 0, 1);
   cmdFactory.produceCMD<ControlPIDVals>(ID_PIDVALS_CTR, 1, 0);
+  cmdFactory.produceCMD<BaroData>(ID_BARO_Data, 1, 0);
   cmdFactory.loadCMDS(this->commandManager);
 
   /*
@@ -320,4 +317,10 @@ void FlightApplication::start() {
   commandManager->start();
   dataNodesManager->start();
   controlManager->start();
+  while (true) {
+    FP_LOG_D(
+        "MAIN", "RC recived %.2f",
+        this->blackboard->getFrequency(FlightProxy::AppLogic::ID_RC_Input));
+    FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
+  }
 }

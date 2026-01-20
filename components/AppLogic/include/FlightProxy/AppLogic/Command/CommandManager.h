@@ -93,13 +93,9 @@ private:
     while (isRunning_) {
       if (packetQueue_->receive(envelope, 1000)) {
         std::unique_ptr<const PacketT> packet(envelope.raw_packet_ptr);
-        if (packet->command != 301 && packet->command != 250 &&
-            packet->command != 270)
-          FP_LOG_I("CommandManager", "Procesando comando %d", packet->command);
         processContext(envelope.channelId, std::move(packet));
       }
     }
-    FP_LOG_I("CommandManager", "Tarea finalizada");
   }
 
   void processContext(uint32_t channelId,

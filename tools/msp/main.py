@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
-from commander import init as getc
-from telemetry.telemetryManager import TelemetryManager
+from commands import init as getc
+from telemetry.telemetryMgr import TelemetryMgr
 from remote.remote import Remote
 from utils.bus import SignalBus
 
@@ -18,22 +18,24 @@ class DroneApp:
         self.bus = SignalBus()
 
         # Managers
-        self.c = getc(ip, port, self.mostrar_desconectado)
+        self.telemetry = TelemetryMgr()
 
-        # self.avalible_vars = ["throttle", "altura", "velocidad"]
-        # self.telemetry = TelemetryManager(
-        #    lambda: self.c.process(250), self.avalible_vars
-        # )
-        self.avalible_vars = ["reference", "actual", "throttle", "p", "i", "d"]
-        self.telemetry = TelemetryManager(
-            lambda: self.c.process(301), self.avalible_vars
-        )
+        callbacks = [self.mostrar_desconectado]
 
-        self.remote = Remote(lambda data: self.c.process(270, data))
+        self.c = getc(ip, port, callbacks)
+
+        self.telemetry.add_cmd(self.c.get_cmd(1))
+        self.telemetry.add_cmd(self.c.get_cmd(2))
+        self.telemetry.add_cmd(self.c.get_cmd(11))
+        self.telemetry.add_cmd(self.c.get_cmd(14))
+        # self.telemetry.add_cmd(self.c.get_cmd())
+
+        rc_cmd = self.c.get_cmd(1)
+        self.remote = Remote(lambda data: rc_cmd.set(data))
 
         # Instanciar Pestañas
         self.tab_settings = SettingsTab(self.c)
-        self.tab_telemetry = TelemetryTab(self.bus, self.telemetry, self.avalible_vars)
+        self.tab_telemetry = TelemetryTab(self.bus, self.telemetry)
         self.tab_remote = RemoteTab(self.remote)
         self.tab_design = DesignTab(self.bus)
         self.tab_iden = IdenTab(self.bus)
@@ -49,7 +51,7 @@ class DroneApp:
         dpg.configure_item("status_text", color=[255, 0, 0])
 
     def cb_conectar(self):
-        if self.c.client.connect():
+        if self.c.connect():
             dpg.set_value("status_text", "CONECTADO")
             dpg.configure_item("status_text", color=[0, 255, 0])
 
@@ -75,6 +77,7 @@ class DroneApp:
         dpg.destroy_context()
 
 
+"""
 if __name__ == "__main__":
     c = getc("localhost", 12345, print(""))
     c.client.connect()
@@ -85,7 +88,8 @@ if __name__ == "__main__":
     print("|", end="")
     print(c.process(201), end="")
     print("|")
+"""
 
-# app = DroneApp("localhost", 12345)
-# dpg.set_primary_window("PrimaryWindow", True)
-# app.run()
+app = DroneApp("localhost", 12345)
+dpg.set_primary_window("PrimaryWindow", True)
+app.run()

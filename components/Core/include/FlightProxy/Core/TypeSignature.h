@@ -12,8 +12,9 @@ template <typename T> struct TypeSignature {
 };
 
 // Alfabeto de tipos básicos
-template <> struct TypeSignature<int32_t> {
-  static std::string Get() { return "i32"; }
+
+template <> struct TypeSignature<uint64_t> {
+  static std::string Get() { return "u64"; }
 };
 template <> struct TypeSignature<uint32_t> {
   static std::string Get() { return "u32"; }
@@ -24,8 +25,17 @@ template <> struct TypeSignature<uint16_t> {
 template <> struct TypeSignature<uint8_t> {
   static std::string Get() { return "u8"; }
 };
+template <> struct TypeSignature<int64_t> {
+  static std::string Get() { return "i64"; }
+};
+template <> struct TypeSignature<int32_t> {
+  static std::string Get() { return "i32"; }
+};
 template <> struct TypeSignature<int16_t> {
   static std::string Get() { return "i16"; }
+};
+template <> struct TypeSignature<int8_t> {
+  static std::string Get() { return "i8"; }
 };
 template <> struct TypeSignature<float> {
   static std::string Get() { return "f32"; }

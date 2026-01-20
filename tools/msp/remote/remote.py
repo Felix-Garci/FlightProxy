@@ -46,10 +46,15 @@ class Remote:
             self.currentval_rpty[idx] = val
 
     def get_actual_rc(self):
+        data = []
+
         with self.lock:
-            data = list(self.currentval_rpty)
+            data += list(self.currentval_rpty)
+
         data.append(2000 if self.armed else 1000)
         data.append(1500)
+        data.append([1500 for _ in range(8)])
+
         return data
 
     def update_loop(self):

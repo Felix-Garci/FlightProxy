@@ -1,0 +1,9 @@
+dearpygui
+numpy
+pandas
+pip
+python_dateutil
+pytz
+scipy
+six
+tzdata

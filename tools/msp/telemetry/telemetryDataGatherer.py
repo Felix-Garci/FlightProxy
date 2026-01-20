@@ -1,12 +1,17 @@
+from commands.cmd import cmd
+
 from collections import deque
 import time
 import threading
 
 
-class TelemetryManager:
-    def __init__(self, dataGeter, datapts, timeframeS=10, samplesperS=100):
-        self.dataGetter = dataGeter
-        self.datapts = datapts
+class TelemetryDataGatherer:
+    def __init__(self, variables, active_cmds, cmds, timeframeS=10, samplesperS=100):
+        self.variables_ = variables
+        self.active_cmds_ = active_cmds
+
+        self.cmds_: dict[int, cmd] = cmds
+
         self.timeframeS = timeframeS
         self.samplesperS = samplesperS
         self.max_samples = None
@@ -20,8 +25,7 @@ class TelemetryManager:
 
     def start(self):
         # limpiamos
-        for elemento in self.buffer:
-            self.buffer[elemento].clear()
+        self.update_buffer()
 
         if self.thread is None or not self.thread.is_alive():
             self.running = True
@@ -33,38 +37,63 @@ class TelemetryManager:
         if self.thread:
             self.thread.join()
 
-    def update_buffer(self, new_timeframeS, new_samplesperS):
+    def update_buffer(self, new_timeframeS=None, new_samplesperS=None):
         self.stop()
         with self.lock:
-            self.timeframeS = new_timeframeS
-            self.samplesperS = new_samplesperS
+            if new_timeframeS is not None:
+                self.timeframeS = new_timeframeS
+            if new_samplesperS is not None:
+                self.samplesperS = new_samplesperS
 
             self.max_samples = self.timeframeS * self.samplesperS
 
             self.buffer = {
                 "timestamp": deque(maxlen=self.max_samples),
             }
-            for datapt in self.datapts:
-                self.buffer[datapt] = deque(maxlen=self.max_samples)
+            for variable in self.variables_:
+                self.buffer[variable] = deque(maxlen=self.max_samples)
 
     def update_loop(self):
         try:
             start_time = time.time()
+            periodo = 1 / self.samplesperS
             while self.running:
-                now = time.time() - start_time
-                data = self.dataGetter()
+                t_inicio_ciclo = time.time()
 
-                if data is not None and len(data) == len(self.datapts):
-                    with self.lock:
-                        self.buffer["timestamp"].append(now)
-                        for i, datapt in enumerate(self.datapts):
-                            self.buffer[datapt].append(data[i])
-                else:
-                    raise
+                now = t_inicio_ciclo - start_time
 
-                time.sleep(1 / self.samplesperS)
+                data = self.consume_cmds()
+
+                with self.lock:
+                    self.buffer["timestamp"].append(now)
+                    for var in self.variables_:
+                        self.buffer[var].append(data[var])
+
+                sleep_time = periodo - (time.time() - t_inicio_ciclo)
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
         finally:
             self.running = False
+
+    def consume_cmds(self):
+        """
+        llamamos a todos los comandos activos
+        mapeamos los valores recividos con nuestra
+        self.variables_
+        """
+        data = {name: 0 for name in self.variables_}
+
+        for id_active_cmd in self.active_cmds_:
+            active_cmd = self.cmds_[id_active_cmd]
+            response = active_cmd.get()
+            if response is not None:
+                for name in list(response.keys()):
+                    index = str(id_active_cmd) + "_" + name
+                    if index in list(data.keys()):
+                        data[index] = response[name]
+            else:
+                self.running = False
+        return data
 
     def get_data(self, names):
         """

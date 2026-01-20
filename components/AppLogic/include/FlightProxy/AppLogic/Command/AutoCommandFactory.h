@@ -3,6 +3,7 @@
 #include "FlightProxy/AppLogic/AlmacenFlexible.h"
 #include "FlightProxy/AppLogic/Command/CommandManager.h"
 #include "FlightProxy/AppLogic/Serializer.h"
+#include "FlightProxy/Core/Utils/Logger.h"
 
 namespace FlightProxy {
 namespace AppLogic {
@@ -87,6 +88,7 @@ public:
             try {
               serializer->deserialize(data, payload, offset);
               productor(data);
+
               return std::vector<uint8_t>{0x01};
             } catch (...) {
               return std::vector<uint8_t>{0x00};

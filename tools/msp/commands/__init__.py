@@ -1,31 +1,15 @@
-from commander.commandMGR import commandMGR
-from commander.cmd_transformer import Cmd
-from commander.connection import Connection
-from commander.msp import MSP
+from commands.commandsMgr import CommandsMgr
+from commands.connection import Connection
 
 
-def init_cmds() -> list[Cmd]:
-    cmds = []
+def init(ip, port, callbacks) -> CommandsMgr:
+    client = Connection(ip, port)
+    for callback in callbacks:
+        client.add_callback_ondisconect(callback)
 
-    cmds.append(Cmd(101, "", "str"))
-    cmds.append(Cmd(201, "", "str"))
-    # cmds.append(Cmd(200, "str", ""))  # Set ctrl
-    # cmds.append(Cmd(201, "H", ""))  # Set ctrl period
-    # cmds.append(Cmd(250, "", "3f"))  # get dinamix telemetry
-    # cmds.append(Cmd(270, "6H", ""))  # Set RC setpoints
-    # cmds.append(Cmd(300, "3f", ""))  # Set P I D cts
-    # cmds.append(Cmd(301, "", "6f"))  # Get pid telemetry
-    # cmds.append(Cmd(302, "H", ""))  # set Hover
+    cmdMgr = CommandsMgr(client)
 
-    return cmds
-
-
-def init(ip, port, callback) -> commandMGR:
-    client = Connection(ip, port, callback)
-    msp = MSP()
-    cmdMgr = commandMGR(msp, client)
-
-    for cmd in init_cmds():
+    for cmd in [1, 2, 11, 12, 13, 14, 15, 16]:
         cmdMgr.add(cmd)
 
     return cmdMgr

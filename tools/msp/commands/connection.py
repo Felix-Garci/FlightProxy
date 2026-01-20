@@ -3,10 +3,10 @@ import threading
 
 
 class Connection:
-    def __init__(self, ip, port, on_disconnect=None):
+    def __init__(self, ip, port):
         self.target_ip = ip
         self.target_port = port
-        self.on_disconnect = on_disconnect
+        self.on_disconnect = []
 
         self.client = None
         self.connected = False
@@ -32,14 +32,17 @@ class Connection:
             self.connected = False
             return False
 
+    def add_callback_ondisconect(self, callback):
+        self.on_disconnect.append(callback)
+
     def handle_failure(self):
         self.connected = False
         if self.client:
             self.client.close()
         self.client = None
 
-        if self.on_disconnect:
-            self.on_disconnect()
+        for cbk in self.on_disconnect:
+            cbk()
 
     def close(self):
         """Cierra la conexión limpiamente."""
