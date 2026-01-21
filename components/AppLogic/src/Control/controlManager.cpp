@@ -9,16 +9,22 @@ ControlManager::ControlManager() {}
 
 ControlManager::~ControlManager() {}
 
-void ControlManager::init(
-    std::function<std::string(void)> activeControlGetter,
-    std::function<uint64_t(void)> samplingPeriodMsGetter) {
+void ControlManager::init(std::function<Core::RCData(void)> inRcGetter,
+                          std::function<uint16_t(void)> isArmedGetter,
+                          std::function<uint16_t(void)> selectorModeGetter,
+                          std::function<std::string(void)> activeControlGetter,
+                          std::function<uint64_t(void)> samplingPeriodMsGetter,
+                          std::function<void(Core::RCData)> outRcSetter) {
+  inRcGetter_ = inRcGetter;
+  isArmedGetter_ = isArmedGetter;
+  selectorModeGetter_ = selectorModeGetter;
   activeControlGetter_ = activeControlGetter;
   samplingPeriodMsGetter_ = samplingPeriodMsGetter;
+  outRcSetter_ = outRcSetter;
 }
-
 void ControlManager::addControl(std::string name,
-                                std::unique_ptr<IControl> control) {
-  controls_[name] = std::move(control);
+                                std::shared_ptr<IControl> control) {
+  controls_[name] = control;
   controls_[name]->init();
 }
 

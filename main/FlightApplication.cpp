@@ -163,24 +163,31 @@ void FlightApplication::setupUDPchannel_in() {
   auto rcWriter =
       this->blackboard->registrarProductor<FlightProxy::Core::RCData>(
           FlightProxy::AppLogic::ID_RC_Input);
+  auto rcArmedWriter = this->blackboard->registrarProductor<uint16_t>(
+      FlightProxy::AppLogic::ID_RC_InArmed);
 
-  this->channelUDP_in->onPacket =
-      [rcWriter](std::unique_ptr<const Bus> packet) {
-        FlightProxy::Core::RCData rcData;
-        rcData.roll = packet->channels[0];
-        rcData.pitch = packet->channels[1];
-        rcData.throttle = packet->channels[2];
-        rcData.yaw = packet->channels[3];
-        rcData.aux1 = packet->channels[4];
-        rcData.aux2 = packet->channels[5];
+  auto rcModeWriter = this->blackboard->registrarProductor<uint16_t>(
+      FlightProxy::AppLogic::ID_RC_InMode);
 
-        for (size_t i = 0; i < 8; ++i) {
-          rcData.aux_channels[i] = packet->channels[6 + i];
-        }
+  this->channelUDP_in->onPacket = [rcWriter, rcArmedWriter, rcModeWriter](
+                                      std::unique_ptr<const Bus> packet) {
+    FlightProxy::Core::RCData rcData;
+    rcData.roll = packet->channels[0];
+    rcData.pitch = packet->channels[1];
+    rcData.throttle = packet->channels[2];
+    rcData.yaw = packet->channels[3];
+    rcData.aux1 = packet->channels[4];
+    rcData.aux2 = packet->channels[5];
 
-        rcWriter(rcData);
-        return;
-      };
+    for (size_t i = 0; i < 8; ++i) {
+      rcData.aux_channels[i] = packet->channels[6 + i];
+    }
+
+    rcWriter(rcData);
+    rcArmedWriter(rcData.aux1);
+    rcModeWriter(rcData.aux2);
+    return;
+  };
 }
 
 void FlightApplication::setupTCPchannel_out() {
@@ -201,8 +208,6 @@ void FlightApplication::setupTCPchannel_out() {
           [](const Packet &pkt) -> FlightProxy::Channel::CommandId {
             return pkt.command;
           });
-  // ojo que esto se deve quitar
-  // la idea es que el open se traslade al channelDIsgregator que le absorbe.
   channelTCP_out->open();
 }
 
@@ -279,14 +284,21 @@ void FlightApplication::setupControlSystem() {
   auto samplingPeriodMsGetter = blackboard->registrarConsumidor<uint64_t>(
       FlightProxy::AppLogic::ID_SAMPPERIOID_CTR);
 
-  this->controlManager->init(activeControlGetter, samplingPeriodMsGetter);
-
-  // passThrow
   auto getrc = blackboard->registrarConsumidor<FlightProxy::Core::RCData>(
       FlightProxy::AppLogic::ID_RC_Input);
+
+  auto getarmed = blackboard->registrarConsumidor<uint16_t>(
+      FlightProxy::AppLogic::ID_RC_InArmed);
+
+  auto getmode = blackboard->registrarConsumidor<uint16_t>(
+      FlightProxy::AppLogic::ID_RC_InMode);
+
   auto setrc = blackboard->registrarProductor<FlightProxy::Core::RCData>(
       FlightProxy::AppLogic::ID_RC_Output);
 
+  this->controlManager->init(activeControlGetter, samplingPeriodMsGetter);
+
+  // passThrow
   auto passThrow =
       std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrPassThrow>(
           getrc, setrc);
