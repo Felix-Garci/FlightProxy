@@ -54,7 +54,7 @@ public:
     if (eventTask_) {
       isRunning_ = true;
       eventTask_->start();
-      FP_LOG_I("CommandManager", "Tarea iniciada");
+      FP_LOG_I("DataNodesManager", "Tarea iniciada");
     }
   }
 

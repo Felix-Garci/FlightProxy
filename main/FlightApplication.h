@@ -20,8 +20,9 @@ namespace DataNode {
 class DataNodesManager;
 }
 namespace Control {
-class ControlManager;
-}
+// class ControlManager;
+class ControlMaster;
+} // namespace Control
 } // namespace AppLogic
 namespace Channel {
 template <typename T> class ChannelAgregatorT;
@@ -79,6 +80,7 @@ private:
   // Almacen
   std::shared_ptr<FlightProxy::AppLogic::AlmacenFlexible> blackboard;
   // Ctrl Mgr
-  std::shared_ptr<FlightProxy::AppLogic::Control::ControlManager>
-      controlManager;
+  std::shared_ptr<FlightProxy::AppLogic::Control::ControlMaster> controlMaster_;
+  // std::shared_ptr<FlightProxy::AppLogic::Control::ControlManager>
+  // controlManager;
 };

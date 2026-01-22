@@ -45,10 +45,12 @@
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h"
 
 // App Logic - Controls
-#include "FlightProxy/AppLogic/Control/ControlManager.h"
+// #include "FlightProxy/AppLogic/Control/ControlManager.h"
 
-#include "FlightProxy/AppLogic/Control/Controls/CtrAltHold.h"
-#include "FlightProxy/AppLogic/Control/Controls/CtrPassThrow.h"
+// #include "FlightProxy/AppLogic/Control/Controls/CtrAltHold.h"
+// #include "FlightProxy/AppLogic/Control/Controls/CtrPassThrow.h"
+
+#include "FlightProxy/AppLogic/Control/ControlMaster.h"
 
 FlightApplication::FlightApplication() {
   blackboard = std::make_shared<FlightProxy::AppLogic::AlmacenFlexible>();
@@ -56,8 +58,8 @@ FlightApplication::FlightApplication() {
       FlightProxy::AppLogic::Command::CommandManager<Packet>>();
   dataNodesManager =
       std::make_shared<FlightProxy::AppLogic::DataNode::DataNodesManager>();
-  controlManager =
-      std::make_shared<FlightProxy::AppLogic::Control::ControlManager>();
+  controlMaster_ =
+      std::make_shared<FlightProxy::AppLogic::Control::ControlMaster>();
 }
 
 void FlightApplication::initialize() {
@@ -163,31 +165,23 @@ void FlightApplication::setupUDPchannel_in() {
   auto rcWriter =
       this->blackboard->registrarProductor<FlightProxy::Core::RCData>(
           FlightProxy::AppLogic::ID_RC_Input);
-  auto rcArmedWriter = this->blackboard->registrarProductor<uint16_t>(
-      FlightProxy::AppLogic::ID_RC_InArmed);
+  this->channelUDP_in->onPacket =
+      [rcWriter](std::unique_ptr<const Bus> packet) {
+        FlightProxy::Core::RCData rcData;
+        rcData.roll = packet->channels[0];
+        rcData.pitch = packet->channels[1];
+        rcData.throttle = packet->channels[2];
+        rcData.yaw = packet->channels[3];
+        rcData.aux1 = packet->channels[4];
+        rcData.aux2 = packet->channels[5];
 
-  auto rcModeWriter = this->blackboard->registrarProductor<uint16_t>(
-      FlightProxy::AppLogic::ID_RC_InMode);
+        for (size_t i = 0; i < 8; ++i) {
+          rcData.aux_channels[i] = packet->channels[6 + i];
+        }
 
-  this->channelUDP_in->onPacket = [rcWriter, rcArmedWriter, rcModeWriter](
-                                      std::unique_ptr<const Bus> packet) {
-    FlightProxy::Core::RCData rcData;
-    rcData.roll = packet->channels[0];
-    rcData.pitch = packet->channels[1];
-    rcData.throttle = packet->channels[2];
-    rcData.yaw = packet->channels[3];
-    rcData.aux1 = packet->channels[4];
-    rcData.aux2 = packet->channels[5];
-
-    for (size_t i = 0; i < 8; ++i) {
-      rcData.aux_channels[i] = packet->channels[6 + i];
-    }
-
-    rcWriter(rcData);
-    rcArmedWriter(rcData.aux1);
-    rcModeWriter(rcData.aux2);
-    return;
-  };
+        rcWriter(rcData);
+        return;
+      };
 }
 
 void FlightApplication::setupTCPchannel_out() {
@@ -220,13 +214,32 @@ void FlightApplication::setupCommandSystem() {
 
   cmdFactory.produceCMD<RCData>(ID_RC_Input, 1, 1);
   cmdFactory.produceCMD<RCData>(ID_RC_Output, 1, 0);
-  cmdFactory.produceCMD<uint16_t>(ID_HOVER, 0, 1, "hover");
-  cmdFactory.produceCMD<std::string>(ID_ACTIVE_CTR, 0, 1, "activeCtrl");
-  cmdFactory.produceCMD<uint64_t>(ID_SAMPPERIOID_CTR, 0, 1,
-                                  "sampleperiodCtrlMs");
-  cmdFactory.produceCMD<ControlPIDCts>(ID_PIDCST_CTR, 0, 1);
-  cmdFactory.produceCMD<ControlPIDVals>(ID_PIDVALS_CTR, 1, 0);
+  cmdFactory.produceCMD<RCNORMData>(ID_RC_InputNorm, 1, 0);
+
   cmdFactory.produceCMD<BaroData>(ID_BARO_Data, 1, 0);
+  // IMU
+  // GPS
+
+  cmdFactory.produceCMD<uint8_t>(ID_CTRL_LVL, 0, 1, "ctrlLevel");
+
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_LATVEL_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_LATVEL_OUT, 1, 0);
+
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_FRNTVEL_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_FRNTVEL_OUT, 1, 0);
+
+  cmdFactory.produceCMD<PidCtrlVertVelIn>(ID_CTRL_VERTVEL_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_VERTVEL_OUT, 1, 0);
+
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_ANGVEL_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_ANGVEL_OUT, 1, 0);
+
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_HORPOS_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_HORPOS_OUT, 1, 0);
+
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_VERTPOS_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_VERTPOS_OUT, 1, 0);
+
   cmdFactory.loadCMDS(this->commandManager);
 
   /*
@@ -266,7 +279,7 @@ void FlightApplication::setupDataNodes() {
 
   Setup::addEmissionNode<Nodo_Emision_RC, RCData, MspPacket>(
       this->dataNodesManager, this->channelDisgregatorTCP_out,
-      Protocol::MSP_RC_DATA, this->blackboard, ID_RC_Output, 50);
+      Protocol::MSP_RC_DATA, this->blackboard, ID_RC_Output, 10);
 
   Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, MspPacket>(
       this->dataNodesManager, this->channelDisgregatorTCP_out,
@@ -278,61 +291,19 @@ void FlightApplication::setupDataNodes() {
 }
 
 void FlightApplication::setupControlSystem() {
-  auto activeControlGetter = blackboard->registrarConsumidor<std::string>(
-      FlightProxy::AppLogic::ID_ACTIVE_CTR);
 
-  auto samplingPeriodMsGetter = blackboard->registrarConsumidor<uint64_t>(
-      FlightProxy::AppLogic::ID_SAMPPERIOID_CTR);
-
-  auto getrc = blackboard->registrarConsumidor<FlightProxy::Core::RCData>(
-      FlightProxy::AppLogic::ID_RC_Input);
-
-  auto getarmed = blackboard->registrarConsumidor<uint16_t>(
-      FlightProxy::AppLogic::ID_RC_InArmed);
-
-  auto getmode = blackboard->registrarConsumidor<uint16_t>(
-      FlightProxy::AppLogic::ID_RC_InMode);
-
-  auto setrc = blackboard->registrarProductor<FlightProxy::Core::RCData>(
-      FlightProxy::AppLogic::ID_RC_Output);
-
-  this->controlManager->init(activeControlGetter, samplingPeriodMsGetter);
-
-  // passThrow
-  auto passThrow =
-      std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrPassThrow>(
-          getrc, setrc);
-
-  this->controlManager->addControl("passThrow", std::move(passThrow));
-
-  // altHold
-  auto getbaro = blackboard->registrarConsumidor<FlightProxy::Core::BaroData>(
-      FlightProxy::AppLogic::ID_BARO_Data);
-  auto getPIDCTS =
-      blackboard->registrarConsumidor<FlightProxy::Core::ControlPIDCts>(
-          FlightProxy::AppLogic::ID_PIDCST_CTR);
-
-  auto setPIDVals =
-      blackboard->registrarProductor<FlightProxy::Core::ControlPIDVals>(
-          FlightProxy::AppLogic::ID_PIDVALS_CTR);
-  auto getHover = blackboard->registrarConsumidor<uint16_t>(
-      FlightProxy::AppLogic::ID_HOVER);
-
-  auto altHold =
-      std::make_unique<FlightProxy::AppLogic::Control::Controls::CtrAltHold>(
-          getrc, getbaro, setrc, setPIDVals, getPIDCTS, getHover);
-
-  this->controlManager->addControl("altHold", std::move(altHold));
+  this->controlMaster_->init(this->blackboard);
 }
 
 void FlightApplication::start() {
   commandManager->start();
   dataNodesManager->start();
-  controlManager->start();
+  // controlManager->start();
+  controlMaster_->start();
   while (true) {
-    FP_LOG_D(
-        "MAIN", "RC recived %.2f",
-        this->blackboard->getFrequency(FlightProxy::AppLogic::ID_RC_Input));
+    // FP_LOG_D(
+    //     "MAIN", "RC recived %.2f",
+    //     this->blackboard->getFrequency(FlightProxy::AppLogic::ID_RC_Input));
     FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
   }
 }

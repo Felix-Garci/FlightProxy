@@ -3,10 +3,12 @@ import dearpygui.dearpygui as dpg
 
 class SettingsTab:
     def __init__(self, commander):
-        self.set_ctrl = commander.get_cmd(12)
-        self.set_hover = commander.get_cmd(16)
-        self.set_periodMS = commander.get_cmd(13)
-        self.set_pidcts = commander.get_cmd(15)
+        self.set_ctrllvl = commander.get_cmd(19)
+        # todos tienen [p i d]
+        self.map_pids = {}
+        self.pid_vertvel = 24
+        for pids in [20, 22, 24, 26]:
+            self.map_pids[pids] = commander.get_cmd(pids)
 
     def create(self, tab_bar):
         with dpg.tab(label="Settings", parent=tab_bar):
@@ -14,69 +16,60 @@ class SettingsTab:
             dpg.add_text("SETTINGS")
 
             # SECCIÓN 1: Control
-            dpg.add_text("Seleccionar Control", color=[100, 150, 255])
+            dpg.add_text("Seleccionar Nivel de Control", color=[100, 150, 255])
             with dpg.group(horizontal=True):
-                dpg.add_input_text(
+                dpg.add_input_int(
                     label="Control",
                     tag="input_ctrlName",
                     width=100,
-                    default_value="altHold",
+                    default_value=2,
                 )
                 dpg.add_button(label="Enviar", callback=self.cb_enviar_control)
 
             dpg.add_separator()
-            # SECCIÓN 2: Hover
-            dpg.add_text("Seleccionar Hover", color=[100, 255, 150])
-            with dpg.group(horizontal=True):
-                dpg.add_input_int(
-                    label="hover", tag="input_hover", width=100, default_value=1540
-                )
-                dpg.add_button(label="Cargar Hover", callback=self.cb_cargar_hover)
-
-            dpg.add_separator()
 
             # SECCIÓN 2: PID
-            dpg.add_text("Ajuste de Constantes PID", color=[100, 255, 150])
-            with dpg.group(horizontal=True):
-                dpg.add_input_text(
-                    label="P", tag="input_p", width=60, default_value="1.0"
+            for pids in list(self.map_pids.keys()):
+                dpg.add_text(
+                    f"Ajuste de Constantes PID [{pids}]", color=[100, 255, 150]
                 )
-                dpg.add_input_text(
-                    label="I", tag="input_i", width=60, default_value="0.1"
-                )
-                dpg.add_input_text(
-                    label="D", tag="input_d", width=60, default_value="0.05"
-                )
-                dpg.add_button(label="Cargar PID", callback=self.cb_cargar_pid)
+                with dpg.group(horizontal=True):
+                    dpg.add_input_text(
+                        label="P", tag=f"input_p{pids}", width=60, default_value="1.0"
+                    )
+                    dpg.add_input_text(
+                        label="I", tag=f"input_i{pids}", width=60, default_value="0.1"
+                    )
+                    dpg.add_input_text(
+                        label="D", tag=f"input_d{pids}", width=60, default_value="0.05"
+                    )
+                    if pids == self.pid_vertvel:
+                        dpg.add_input_text(
+                            label="Throttle",
+                            tag="input_throttle",
+                            width=60,
+                            default_value="1540",
+                        )
 
-            dpg.add_separator()
-            # SECCIÓN 3: Muestreo
-            dpg.add_text("Seleccionar periodo de muestreo", color=[255, 100, 100])
-            with dpg.group(horizontal=True):
-                dpg.add_input_text(
-                    label="periodo MS",
-                    default_value="10",
-                    tag="input_periodMS",
-                    width=100,
-                )
-                dpg.add_button(label="Ejecutar", callback=self.cb_enviar_periodoMS)
+                    dpg.add_button(
+                        label="Cargar PID", callback=self.cb_cargar_pid, user_data=pids
+                    )
+
+                dpg.add_separator()
 
     def cb_enviar_control(self):
         selected_ctrl = dpg.get_value("input_ctrlName")
-        self.set_ctrl.set(selected_ctrl)
+        self.set_ctrllvl.set(selected_ctrl)
 
-    def cb_cargar_pid(self):
+    def cb_cargar_pid(self, sender, app_data, user_data):
         p, i, d = (
-            float(dpg.get_value("input_p")),
-            float(dpg.get_value("input_i")),
-            float(dpg.get_value("input_d")),
+            float(dpg.get_value(f"input_p{user_data}")),
+            float(dpg.get_value(f"input_i{user_data}")),
+            float(dpg.get_value(f"input_d{user_data}")),
         )
-        self.set_pidcts.set([p, i, d])
+        ret = [p, i, d]
+        if user_data == self.pid_vertvel:
+            throttle = float(dpg.get_value("input_throttle"))
+            ret.append(throttle)
 
-    def cb_enviar_periodoMS(self):
-        period_ms = int(dpg.get_value("input_periodMS"))
-        self.set_periodMS.set(period_ms)
-
-    def cb_cargar_hover(self):
-        hover = int(dpg.get_value("input_hover"))
-        self.set_hover.set(hover)
+        self.map_pids[user_data].set(ret)

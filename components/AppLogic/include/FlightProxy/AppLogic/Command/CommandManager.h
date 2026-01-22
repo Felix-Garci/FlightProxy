@@ -4,6 +4,7 @@
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/Core/OSAL/ITask.h"
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
+#include "FlightProxy/Core/Utils/Logger.h"
 
 #include <atomic>
 #include <map>

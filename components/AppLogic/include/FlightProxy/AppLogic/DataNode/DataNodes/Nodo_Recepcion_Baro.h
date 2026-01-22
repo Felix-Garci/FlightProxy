@@ -26,11 +26,11 @@ private:
         (int32_t)((uint32_t)pkt->payload[0] | ((uint32_t)pkt->payload[1] << 8) |
                   ((uint32_t)pkt->payload[2] << 16) |
                   ((uint32_t)pkt->payload[3] << 24));
-    datos_baro.altitude = (float)raw_alt;
+    datos_baro.altitude = (float)raw_alt / 1000.0f;
 
     int16_t raw_vel =
         (int16_t)((uint16_t)pkt->payload[4] | ((uint16_t)pkt->payload[5] << 8));
-    datos_baro.vertical_vel = (float)raw_vel;
+    datos_baro.vertical_vel = (float)raw_vel / 1000.0f;
 
     m_productor(datos_baro);
   }

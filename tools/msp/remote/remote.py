@@ -5,7 +5,7 @@ import threading
 class Remote:
     def __init__(self, rcSetter, periodMS=10, default_cn=None):
         self.rcSetter = rcSetter
-        self.default_cn = list(default_cn) if default_cn else [1500, 1500, 1000, 1500]
+        self.default_cn = list(default_cn) if default_cn else [1500, 1500, 1500, 1500]
         self.currentval_rpty = list(self.default_cn)
         self.armed = False
         self.periodS = periodMS / 1000.0
