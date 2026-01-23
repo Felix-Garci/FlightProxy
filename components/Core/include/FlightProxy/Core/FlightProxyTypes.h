@@ -36,9 +36,9 @@ template <typename PacketT> struct PacketEnvelope {
 };
 
 struct I2CPacket {
-
   uint8_t device_addr;
   uint8_t reg_addr;
+  bool is_read;
   uint8_t payload_len;
   std::vector<uint8_t> payload;
 };
