@@ -313,9 +313,10 @@ void FlightApplication::setupDataNodes() {
       this->dataNodesManager, this->channelDisgregatorTCP_out,
       Protocol::MSP_IMU_DATA, this->blackboard, ID_IMU_Data, 500);
 
-  Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, MspPacket>(
-      this->dataNodesManager, this->channelDisgregatorTCP_out,
-      Protocol::MSP_BARO_DATA, this->blackboard, ID_BARO_Data, 100);
+  Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, I2CPacket>(
+      this->dataNodesManager, this->channelDisgregatorI2C,
+      Nodo_Recepcion_Baro::BMP390_I2C_ADDR, this->blackboard, ID_BARO_Data,
+      100);
 }
 
 void FlightApplication::setupControlSystem() {

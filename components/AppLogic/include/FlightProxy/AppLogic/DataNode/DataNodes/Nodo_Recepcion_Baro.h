@@ -15,8 +15,11 @@ namespace DataNodes {
 class Nodo_Recepcion_Baro
     : public IDataNodeBase,
       public std::enable_shared_from_this<Nodo_Recepcion_Baro> {
-private:
+public:
   static constexpr uint8_t BMP390_I2C_ADDR = 0x77;
+
+private:
+  static constexpr bool IS_REAL_SENSOR = false;
   static constexpr uint8_t REG_CALIB = 0x31;
   static constexpr uint8_t REG_PWR_CTRL = 0x1B;
   static constexpr uint8_t REG_DATA = 0x04;
@@ -137,7 +140,11 @@ private:
   Core::BaroData processRawData(uint32_t presion_raw, uint32_t temp_raw) {
     Core::BaroData datos_baro;
 
-    float presion_compensada = bmp390_compensar_presion(presion_raw, temp_raw);
+    float presion_compensada;
+    if (IS_REAL_SENSOR)
+      presion_compensada = bmp390_compensar_presion(presion_raw, temp_raw);
+    else
+      presion_compensada = presion_raw;
 
     float altitud_m =
         44330.0 * (1.0 - pow(presion_compensada / PRESION_NIVEL_MAR, 0.1903));
