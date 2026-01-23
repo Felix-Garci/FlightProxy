@@ -1,7 +1,10 @@
-# Flash 
-CONFIG_ESPTOOLPY_FLASHSIZE_2MB=y
+# Flash (Configurado para 4MB)
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
-# Logs
+# Tabla de Particiones Personalizada
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"# Logs
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 
 # FreeRTOS (mediciones y estabilidad)

@@ -1,44 +1,42 @@
 #pragma once
-#include "FlightProxy/Core/Transport/ITransport.h"
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
-#include "driver/uart.h"
+#include "FlightProxy/Core/Transport/ITransport.h"
 #include "driver/gpio.h"
+#include "driver/uart.h"
 #include "freertos/task.h"
 
 #include <memory>
 
-namespace FlightProxy
-{
-    namespace PlatformESP32
-    {
-        namespace Transport
-        {
-            class SimpleUart : public FlightProxy::Core::Transport::ITransport,
-                               public std::enable_shared_from_this<SimpleUart>
-            {
-            public:
-                SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin, uint32_t baudrate);
-                ~SimpleUart() override;
+namespace FlightProxy {
+namespace PlatformESP32 {
+namespace Transport {
 
-                void open() override;
-                void close() override;
-                void send(const uint8_t *data, size_t len) override;
+class SimpleUart : public FlightProxy::Core::Transport::ITransport,
+                   public std::enable_shared_from_this<SimpleUart> {
+public:
+  SimpleUart(uart_port_t port, gpio_num_t txpin, gpio_num_t rxpin,
+             uint32_t baudrate);
+  ~SimpleUart() override;
 
-            private:
-                uart_port_t port_;
-                gpio_num_t txpin_;
-                gpio_num_t rxpin_;
-                uint32_t baudrate_;
+  void open() override;
+  void close() override;
+  void send(const uint8_t *data, size_t len) override;
 
-                TaskHandle_t eventTaskHandle_;
-                QueueHandle_t queue_;
-                uint8_t *rxBuffer_;
-                size_t rxbuffersize_;
-                std::unique_ptr<Core::OSAL::IMutex> mutex_;
+private:
+  uart_port_t port_;
+  gpio_num_t txpin_;
+  gpio_num_t rxpin_;
+  uint32_t baudrate_;
 
-                void eventTask(std::shared_ptr<SimpleUart> *self_ptr_on_heap);
-                static void eventTaskAdapter(void *arg);
-            };
-        }
-    }
-}
+  TaskHandle_t eventTaskHandle_;
+  QueueHandle_t queue_;
+  uint8_t *rxBuffer_;
+  size_t rxbuffersize_;
+  std::unique_ptr<Core::OSAL::IMutex> mutex_;
+
+  void eventTask(std::shared_ptr<SimpleUart> *self_ptr_on_heap);
+  static void eventTaskAdapter(void *arg);
+};
+} // namespace Transport
+} // namespace PlatformESP32
+} // namespace FlightProxy

@@ -43,7 +43,7 @@ elif [ "$TARGET" == "esp32" ]; then
     # Si no lo es, cargamos el export.sh
     if ! command -v idf.py &> /dev/null; then
         export IDF_TOOLS_PATH="$HOME/.local/share/espressif"
-        . $HOME/dev/esp-idf/export.sh
+        source $HOME/dev/esp-idf/export.sh
     fi
 	idf.py reconfigure
     idf.py build

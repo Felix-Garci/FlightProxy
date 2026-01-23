@@ -43,16 +43,19 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
 
     // x,y,z,grad = pathplaner(newxWP)
 
+    [[fallthrough]];
   case 4: // Coordinates + orientation
 
     // roll,pitch=posicion_horizontal(x,y,gps)->(-1,1)(-1,1)/horizontal_abs_vel_ref
     // throttle=posicion_vertical(z,baro)->(-1,1)/vertical_vel_ref
     // yaw=horientazion(abs_grad,brujula)->(-1,1)/angular_vel_ref
 
+    [[fallthrough]];
   case 3: // Absolute vel + w
 
     // roll,pitch=reff_transform(roll(-1,1),pitch(-1,1),brujula)->(-1,1)(-1,1)/horizontal_rel_vel
 
+    [[fallthrough]];
   case 2: // Relative vel + w
 
     // roll=lateral_vel(roll(-1,1),imu+gps)->roll(-1,1)
@@ -62,6 +65,7 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
         velocity_vertical_.step(rcNormData.throttle, baroData_.vertical_vel);
     // yaw = angular_vel(yaw(-1,1),brujula)->yaw(-1,1)
 
+    [[fallthrough]];
   case 1: // Pass Throw
     if (rcNormData.throttle < 0)
       rcNormData.throttle = 0;
