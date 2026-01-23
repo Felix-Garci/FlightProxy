@@ -16,10 +16,23 @@ class I2CEncoder : public IEncoderT<I2CPacket> {
 public:
   std::vector<uint8_t>
   encode(std::unique_ptr<const I2CPacket> packet) override {
-    std::vector<uint8_t> buffer(3);
-    buffer[0] = packet->device_addr;
-    buffer[1] = packet->reg_addr;
-    buffer[2] = packet->payload_len;
+    size_t total_size = 4;
+    if (!packet->is_read) {
+      total_size += packet->payload.size();
+    }
+
+    std::vector<uint8_t> buffer;
+    buffer.reserve(total_size);
+
+    buffer.push_back(packet->device_addr);
+    buffer.push_back(packet->reg_addr);
+    buffer.push_back(packet->is_read ? 1 : 0);
+    buffer.push_back(packet->payload_len);
+
+    if (!packet->is_read) {
+      buffer.insert(buffer.end(), packet->payload.begin(),
+                    packet->payload.end());
+    }
 
     return buffer;
   }
@@ -27,18 +40,19 @@ public:
 
 class I2CDecoder : public IDecoderT<I2CPacket> {
 public:
-  void feed(const uint8_t *data, size_t len) {
-    if (len < 3)
+  void feed(const uint8_t *data, size_t len) override {
+    if (len < 4)
       return;
 
     auto packet = std::make_unique<I2CPacket>();
 
     packet->device_addr = data[0];
     packet->reg_addr = data[1];
-    packet->payload_len = data[2];
+    packet->is_read = static_cast<bool>(data[2]);
+    packet->payload_len = data[3];
 
-    if (len >= 3 + packet->payload_len) {
-      packet->payload.assign(data + 3, data + 3 + packet->payload_len);
+    if (len >= 4 + packet->payload_len) {
+      packet->payload.assign(data + 4, data + 4 + packet->payload_len);
     }
 
     if (onPacketHandler_) {
@@ -46,11 +60,12 @@ public:
     }
   }
 
-  void onPacket(std::function<void(std::unique_ptr<const I2CPacket>)> handler) {
-    onPacketHandler_ = handler;
+  void onPacket(
+      std::function<void(std::unique_ptr<const I2CPacket>)> handler) override {
+    onPacketHandler_ = std::move(handler);
   }
 
-  void reset() {}
+  void reset() override {}
 
 private:
   std::function<void(std::unique_ptr<const I2CPacket>)> onPacketHandler_;
