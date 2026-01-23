@@ -8,7 +8,9 @@ namespace FlightProxy {
 namespace Core {
 class MspPacket;
 class IBUSPacket;
+class I2CPacket;
 } // namespace Core
+//
 namespace AppLogic {
 class AlmacenFlexible;
 namespace Command {
@@ -47,6 +49,7 @@ private:
   void setupTCPchannel_in();
   void setupUDPchannel_in();
   void setupTCPchannel_out();
+  void setupI2Cchannel_in();
 
   void setupCommandSystem();
   void setupDataNodes();
@@ -71,9 +74,14 @@ private:
   std::string droneIp = "127.0.0.1";
   // int dronePort = 15762;
   int dronePort = 5762;
+  int droneI2CPort = 5800;
 
   std::shared_ptr<FlightProxy::Channel::ChannelDisgregatorT<Packet>>
       channelDisgregatorTCP_out;
+  std::shared_ptr<
+      FlightProxy::Channel::ChannelDisgregatorT<FlightProxy::Core::I2CPacket>>
+      channelDisgregatorI2C;
+
   std::shared_ptr<FlightProxy::AppLogic::DataNode::DataNodesManager>
       dataNodesManager;
 

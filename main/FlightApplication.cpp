@@ -10,6 +10,7 @@
 
 // incluimos tipos
 #include "FlightProxy/Core/FlightProxyTypes.h"
+#include "FlightProxy/Core/Protocol/I2CProtocol.h"
 #include "FlightProxy/Core/Protocol/IbusProtocol.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
 
@@ -68,6 +69,7 @@ void FlightApplication::initialize() {
   setupTCPchannel_in();
   setupUDPchannel_in();
   setupTCPchannel_out();
+  setupI2Cchannel_in();
 
   setupCommandSystem();
   setupDataNodes();
@@ -208,6 +210,29 @@ void FlightApplication::setupTCPchannel_out() {
   channelTCP_out->open();
 }
 
+void FlightApplication::setupI2Cchannel_in() {
+  auto i2c_transport =
+      FlightProxy::Core::Transport::TransportFactory::CreateSimpleTCP(
+          this->droneIp.c_str(), this->droneI2CPort);
+
+  auto i2c_transport_encoder =
+      std::make_shared<FlightProxy::Core::Protocol::I2CEncoder>();
+  auto i2c_transport_decoder =
+      std::make_shared<FlightProxy::Core::Protocol::I2CDecoder>();
+
+  auto channelI2C = std::make_shared<
+      FlightProxy::Channel::ChannelT<FlightProxy::Core::I2CPacket>>(
+      i2c_transport, i2c_transport_encoder, i2c_transport_decoder);
+
+  this->channelDisgregatorI2C = std::make_shared<
+      FlightProxy::Channel::ChannelDisgregatorT<FlightProxy::Core::I2CPacket>>(
+      channelI2C,
+      [](const FlightProxy::Core::I2CPacket &pkt)
+          -> FlightProxy::Channel::CommandId { return pkt.device_addr; });
+
+  channelI2C->open();
+}
+
 void FlightApplication::setupCommandSystem() {
   using namespace FlightProxy::AppLogic;
   using namespace FlightProxy::AppLogic::Command::Commands;
@@ -284,13 +309,13 @@ void FlightApplication::setupDataNodes() {
       this->dataNodesManager, this->channelDisgregatorTCP_out,
       Protocol::MSP_RC_DATA, this->blackboard, ID_RC_Output, 10);
 
-  Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, MspPacket>(
-      this->dataNodesManager, this->channelDisgregatorTCP_out,
-      Protocol::MSP_BARO_DATA, this->blackboard, ID_BARO_Data, 100);
-
   Setup::addReceptionNode<Nodo_Recepcion_IMU, IMUData, MspPacket>(
       this->dataNodesManager, this->channelDisgregatorTCP_out,
       Protocol::MSP_IMU_DATA, this->blackboard, ID_IMU_Data, 500);
+
+  Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, MspPacket>(
+      this->dataNodesManager, this->channelDisgregatorTCP_out,
+      Protocol::MSP_BARO_DATA, this->blackboard, ID_BARO_Data, 100);
 }
 
 void FlightApplication::setupControlSystem() {

@@ -4,6 +4,16 @@
 
 TARGET=$1
 
+if [ "$TARGET" == "" ]; then
+	read -r PREV_TARGET < .current_target
+	if [ "$PREV_TARGET" == "linux" ];then
+		TARGET="esp32"
+	else
+		TARGET="linux"
+	fi
+fi
+
+
 if [ "$TARGET" == "linux" ]; then
     echo ">> Cambiando entorno a: LINUX"
     

@@ -55,8 +55,17 @@ void SimpleI2C::send(const uint8_t *data, size_t len) {
   // 4. Salida (El Resultado)
   if (ret == ESP_OK) {
     if (onData) {
-      // Inyectamos los datos crudos hacia arriba (al Decoder Passthrough)
-      onData(rxBuffer.data(), readSize);
+      std::vector<uint8_t> responseBuffer;
+      responseBuffer.reserve(3 + readSize);
+
+      responseBuffer.push_back(deviceAddr);
+      responseBuffer.push_back(regAddr);
+      responseBuffer.push_back(readSize);
+
+      responseBuffer.insert(responseBuffer.end(), rawI2CData.begin(),
+                            rawI2CData.end());
+
+      onData(responseBuffer.data(), responseBuffer.size());
     }
   } else {
     FP_LOG_W("I2C_TRANS", "Error leyendo Dev 0x%02X Reg 0x%02X: %s", deviceAddr,

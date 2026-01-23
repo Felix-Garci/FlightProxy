@@ -35,6 +35,14 @@ template <typename PacketT> struct PacketEnvelope {
   uint32_t channelId;
 };
 
+struct I2CPacket {
+
+  uint8_t device_addr;
+  uint8_t reg_addr;
+  uint8_t payload_len;
+  std::vector<uint8_t> payload;
+};
+
 } // namespace Core
 } // namespace FlightProxy
 
