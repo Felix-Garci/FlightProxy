@@ -37,7 +37,6 @@ RUN . /opt/ros/humble/setup.sh && \
 # Asegúrate de tener el archivo custom_world.sdf en la misma carpeta que este Dockerfile
 COPY betaflight_iris_aruco.sdf /root/ros2_ws/install/share/vehicle_gateway/worlds/betaflight_iris_aruco.sdf
 
-
 RUN echo '#!/bin/bash' > /entrypoint_gateway.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /entrypoint_gateway.sh && \
     echo 'source /root/ros2_ws/install/local_setup.bash' >> /entrypoint_gateway.sh && \

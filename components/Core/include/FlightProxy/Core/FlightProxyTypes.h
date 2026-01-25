@@ -75,8 +75,8 @@ REGISTER_FP_STRUCT(RCData, RC_DATA_FIELDS)
 REGISTER_FP_STRUCT(RCNORMData, RCNORM_DATA_FIELDS)
 
 #define GPS_DATA_FIELDS(X)                                                     \
-  X(double, latitude)                                                          \
-  X(double, longitude) X(float, altitude) X(float, speed) X(float, heading)
+  X(float, latitude)                                                           \
+  X(float, longitude) X(float, altitude) X(float, speed) X(float, heading)
 REGISTER_FP_STRUCT(GPSData, GPS_DATA_FIELDS)
 
 #define MAG_DATA_FIELDS(X) X(float, mag_x) X(float, mag_y) X(float, mag_z)

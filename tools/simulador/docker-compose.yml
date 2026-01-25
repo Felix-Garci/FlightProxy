@@ -40,6 +40,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       # Modelos y mundos
       - ./betaflight_models:/root/betaflight_models
+      - ./gzDataExtractor:/root/ros2_ws/gzExtractor
       
     # Configuración de hardware NVIDIA
     deploy:
@@ -54,6 +55,7 @@ services:
     ports:
       - "5761:5761"
       - "5762:5762"
+      - "5800:5800"
     networks:
       - sim_net
 

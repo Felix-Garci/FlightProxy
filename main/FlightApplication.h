@@ -50,6 +50,7 @@ private:
   void setupUDPchannel_in();
   void setupTCPchannel_out();
   void setupI2Cchannel_in();
+  void setupGPSchannel_in();
 
   void setupCommandSystem();
   void setupDataNodes();
@@ -75,6 +76,7 @@ private:
   // int dronePort = 15762;
   int dronePort = 5762;
   int droneI2CPort = 5800;
+  int droneGpsPort = 5810;
 
   std::shared_ptr<FlightProxy::Channel::ChannelDisgregatorT<Packet>>
       channelDisgregatorTCP_out;

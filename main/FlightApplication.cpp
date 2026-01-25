@@ -66,10 +66,11 @@ FlightApplication::FlightApplication() {
 
 void FlightApplication::initialize() {
   setupNetwork();
-  setupTCPchannel_in();
-  setupUDPchannel_in();
-  setupTCPchannel_out();
-  setupI2Cchannel_in();
+  setupTCPchannel_in();  // MSP in
+  setupUDPchannel_in();  // Ibus in
+  setupTCPchannel_out(); // MSP out
+  setupI2Cchannel_in();  // I2c in
+  setupGPSchannel_in();
 
   setupCommandSystem();
   setupDataNodes();
@@ -233,6 +234,29 @@ void FlightApplication::setupI2Cchannel_in() {
   channelI2C->open();
 }
 
+void FlightApplication::setupGPSchannel_in() {
+  auto uart_transport =
+      FlightProxy::Core::Transport::TransportFactory::CreateSimpleTCP(
+          this->droneIp.c_str(), this->droneGpsPort);
+
+  auto uart_transport_encoder =
+      std::make_shared<FlightProxy::Core::Protocol::I2CEncoder>();
+  auto uart_transport_decoder =
+      std::make_shared<FlightProxy::Core::Protocol::I2CDecoder>();
+
+  auto channelUart = std::make_shared<
+      FlightProxy::Channel::ChannelT<FlightProxy::Core::Packet>>(
+      uart_transport, uart_transport_encoder, uart_transport_decoder);
+
+  this->channelDisgregatorI2C = std::make_shared<
+      FlightProxy::Channel::ChannelDisgregatorT<FlightProxy::Core::I2CPacket>>(
+      channelUart,
+      [](const FlightProxy::Core::I2CPacket &pkt)
+          -> FlightProxy::Channel::CommandId { return pkt.device_addr; });
+
+  channelUart->open();
+}
+
 void FlightApplication::setupCommandSystem() {
   using namespace FlightProxy::AppLogic;
   using namespace FlightProxy::AppLogic::Command::Commands;
@@ -330,9 +354,9 @@ void FlightApplication::start() {
   // controlManager->start();
   controlMaster_->start();
   while (true) {
-    // FP_LOG_D(
-    //     "MAIN", "RC recived %.2f",
-    //     this->blackboard->getFrequency(FlightProxy::AppLogic::ID_RC_Input));
+    FP_LOG_D(
+        "MAIN", "RC recived %.2f",
+        this->blackboard->getFrequency(FlightProxy::AppLogic::ID_BARO_Data));
     FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
   }
 }
