@@ -290,7 +290,7 @@ void FlightApplication::setupCommandSystem() {
   cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_FRNTVEL_IN, 0, 1);
   cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_FRNTVEL_OUT, 1, 0);
 
-  cmdFactory.produceCMD<PidCtrlVertVelIn>(ID_CTRL_VERTVEL_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_VERTVEL_IN, 0, 1);
   cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_VERTVEL_OUT, 1, 0);
 
   cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_ANGVEL_IN, 0, 1);

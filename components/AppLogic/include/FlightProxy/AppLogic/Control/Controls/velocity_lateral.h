@@ -10,7 +10,7 @@ namespace AppLogic {
 namespace Control {
 namespace Controls {
 
-class velocity_vertical {
+class velocity_lateral {
 private:
   std::function<Core::PidCtrlIn(void)> paramGetter_;
   std::function<void(Core::PidCtrlOut)> telSetter_;
@@ -22,7 +22,7 @@ private:
   float prevError_ = 0;
 
 public:
-  velocity_vertical();
+  velocity_lateral();
 
   void init(std::function<Core::PidCtrlIn(void)> paramGetter,
             std::function<void(Core::PidCtrlOut)> telSetter);

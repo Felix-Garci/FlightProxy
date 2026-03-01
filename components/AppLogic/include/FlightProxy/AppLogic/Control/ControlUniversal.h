@@ -4,6 +4,8 @@
 
 #include "Controls/velocity_frontal.h"
 
+#include "Controls/velocity_lateral.h"
+
 #include "FlightProxy/AppLogic/AlmacenFlexible.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
 
@@ -51,6 +53,8 @@ private:
       Controls::position_vertical();
 
   Controls::velocity_frontal velocity_frontal_ = Controls::velocity_frontal();
+
+  Controls::velocity_lateral velocity_lateral_ = Controls::velocity_lateral();
 
   // Math funcions
   void magCompensation();

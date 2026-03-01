@@ -15,7 +15,9 @@ class SettingsTab:
         self.pid_setup(24, [0.4, 0.2, 0, 0.54], "vertical velocity")
         self.pid_setup(42, [0.5, 0, 0, 0], "vertical position")
 
-        self.pid_setup(22, [0, 0, 0, 0], "frontal velocity")
+        self.pid_setup(22, [0.5, 0.05, 0, -0.12], "frontal velocity")
+
+        self.pid_setup(20, [0.5, 0.05, 0, 0], "lateral velocity")
 
     def create(self, tab_bar):
         with dpg.tab(label="Settings", parent=tab_bar):
@@ -75,7 +77,9 @@ class SettingsTab:
         if name == "":
             name = str(control_code)
 
-        dpg.add_text(f"Ajuste de Constantes PID [{name}]", color=[100, 255, 150])
+        dpg.add_text(
+            f"Ajuste de Constantes PID [{name} - {control_code}]", color=[100, 255, 150]
+        )
 
         with dpg.group(horizontal=True):
             for i in range(len(default_values)):
@@ -85,10 +89,10 @@ class SettingsTab:
                     width=60,
                     default_value=str(default_values[i]),
                 )
-                dpg.add_button(
-                    label="Cargar PID",
-                    callback=self.cb_cargar_pid,
-                    user_data=control_code,
-                )
+            dpg.add_button(
+                label="Cargar PID",
+                callback=self.cb_cargar_pid,
+                user_data=control_code,
+            )
 
         dpg.add_separator()

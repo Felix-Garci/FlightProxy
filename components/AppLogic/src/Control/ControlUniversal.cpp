@@ -25,8 +25,7 @@ void ControlUniversal::init(std::shared_ptr<AlmacenFlexible> bb) {
   velSetter_ = bb->registrarProductor<Core::VelocityData>(ID_VEL_Data);
 
   // Controles
-  auto vvci =
-      bb->registrarConsumidor<Core::PidCtrlVertVelIn>(ID_CTRL_VERTVEL_IN);
+  auto vvci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_VERTVEL_IN);
   auto vvct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_VERTVEL_OUT);
   velocity_vertical_.init(vvci, vvct);
 
@@ -37,6 +36,10 @@ void ControlUniversal::init(std::shared_ptr<AlmacenFlexible> bb) {
   auto vfci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_FRNTVEL_IN);
   auto vfct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_FRNTVEL_OUT);
   velocity_frontal_.init(vfci, vfct);
+
+  auto vlci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_LATVEL_IN);
+  auto vlct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_LATVEL_OUT);
+  velocity_lateral_.init(vlci, vlct);
 }
 Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                         Core::RCNORMData rcNormData, float dt) {
@@ -66,6 +69,9 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
     position_vertical_.reset();
 
     velocity_frontal_.reset();
+
+    velocity_lateral_.reset();
+
     prevLevel_ = ctrlLevel;
   }
 
@@ -94,9 +100,12 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   case 2: // Relative vel + w
 
     // roll=lateral_vel(roll(-1,1),imu+gps)->roll(-1,1)
-    // pitch=frontal_vel(pitch(-1,1),imu+gps)->pitch(-1,1)
+    rcNormData.roll =
+        velocity_lateral_.step(rcNormData.roll, velData_.v_rel_y, dt);
 
-    rcNormData.pitch = velocity_frontal_.step(rcNormData.pitch, vx, dt);
+    // pitch=frontal_vel(pitch(-1,1),imu+gps)->pitch(-1,1)
+    rcNormData.pitch =
+        velocity_frontal_.step(rcNormData.pitch, velData_.v_rel_x, dt);
 
     // throttle = vertical_vel(throttle(-1,1),realvel)->throttle(0,1)
     rcNormData.throttle = velocity_vertical_.step(rcNormData.throttle,
@@ -121,8 +130,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
     break;
   }
   // FP_LOG_D("Universal", "x=%.4f y=%.4f", vx, vy);
-  //   FP_LOG_D("Universal", "r=%8.4f p=%8.4f y=%8.4f", attitudeData_.roll,
-  //           attitudeData_.pitch, attitudeData_.yaw);
+  // FP_LOG_D("Universal", "r=%8.4f p=%8.4f y=%8.4f", attitudeData_.roll,
+  //          attitudeData_.pitch, attitudeData_.yaw);
 
   return rcNormData;
 }

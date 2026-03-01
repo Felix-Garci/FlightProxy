@@ -107,15 +107,9 @@ REGISTER_FP_STRUCT(VelocityData, VELOCITY_DATA_FIELDS)
 #define PID_CTRL_IN(X)                                                         \
   X(float, p)                                                                  \
   X(float, i)                                                                  \
-  X(float, d)
-REGISTER_FP_STRUCT(PidCtrlIn, PID_CTRL_IN)
-
-#define PID_CTRL_VERTVEL_IN(X)                                                 \
-  X(float, p)                                                                  \
-  X(float, i)                                                                  \
   X(float, d)                                                                  \
-  X(float, hover)
-REGISTER_FP_STRUCT(PidCtrlVertVelIn, PID_CTRL_VERTVEL_IN)
+  X(float, offset)
+REGISTER_FP_STRUCT(PidCtrlIn, PID_CTRL_IN)
 
 #define PID_CTRL_OUT(X)                                                        \
   X(float, ref)                                                                \
