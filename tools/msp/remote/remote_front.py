@@ -22,6 +22,58 @@ class RemoteTab:
                 label="ARM", tag=self.btn_arm_tag, callback=self.toggle_arm, width=200
             )
 
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    dpg.add_slider_float(
+                        tag="slider_1",
+                        callback=self.update_remote_values,
+                        min_value=1000,
+                        max_value=2000,
+                        default_value=1500,
+                        vertical=True,
+                        height=200,
+                        width=50,
+                    )
+                    dpg.add_text("roll")
+
+                with dpg.group():
+                    dpg.add_slider_float(
+                        tag="slider_2",
+                        callback=self.update_remote_values,
+                        min_value=1000,
+                        max_value=2000,
+                        default_value=1500,
+                        vertical=True,
+                        height=200,
+                        width=50,
+                    )
+                    dpg.add_text("pitch")
+
+                with dpg.group():
+                    dpg.add_slider_float(
+                        tag="slider_3",
+                        callback=self.update_remote_values,
+                        min_value=1000,
+                        max_value=2000,
+                        default_value=1500,
+                        vertical=True,
+                        height=200,
+                        width=50,
+                    )
+                    dpg.add_text("throttle")
+                with dpg.group():
+                    dpg.add_slider_float(
+                        tag="slider_4",
+                        callback=self.update_remote_values,
+                        min_value=1000,
+                        max_value=2000,
+                        default_value=1500,
+                        vertical=True,
+                        height=200,
+                        width=50,
+                    )
+                    dpg.add_text("yaw")
+
             # --- SECCIÓN: STEP TEST ---
             dpg.add_spacer(height=10)
             dpg.add_text("STEP TEST CONFIG", color=(100, 200, 255))
@@ -77,6 +129,16 @@ class RemoteTab:
 
     def update_ui_state(self):
         """Sincroniza visualmente ambos botones de test con el estado global de secuencia"""
+        # sliders.
+        mis_sliders = ["slider_1", "slider_2", "slider_3", "slider_4"]
+        ref_values = [1500, 1500, 1500, 1500]
+
+        for i, slider_id in enumerate(mis_sliders):
+            if not dpg.is_item_active(slider_id):
+                if dpg.get_value(slider_id) != ref_values[i]:
+                    dpg.set_value(slider_id, ref_values[i])
+                    self.update_remote_values(slider_id, ref_values[i])
+
         # 1. Sistema corriendo (Start/Stop)
         if self.remote.running:
             dpg.configure_item(self.btn_run_tag, label="STOP SYSTEM")
@@ -126,6 +188,11 @@ class RemoteTab:
         else:
             self.remote.unarm()
         self.update_ui_state()
+
+    def update_remote_values(self, sender, app_data):
+        channel = int(sender.split("_")[1]) - 1
+        value = int(app_data)
+        self.remote.update_channel(channel, value)
 
     def toggle_step_test(self):
         if not self.remote.armed:

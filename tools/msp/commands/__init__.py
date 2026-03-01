@@ -9,7 +9,34 @@ def init(ip, port, callbacks) -> CommandsMgr:
 
     cmdMgr = CommandsMgr(client)
 
-    for cmd in [1, 2, 3, 11, 19, 20, 21, 22, 23, 24, 25, 26, 27]:
+    for cmd in [
+        1,
+        2,
+        3,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        # 30,
+        # 31,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+    ]:
         cmdMgr.add(cmd)
 
     return cmdMgr

@@ -10,6 +10,7 @@
 
 // incluimos tipos
 #include "FlightProxy/Core/FlightProxyTypes.h"
+#include "FlightProxy/Core/Protocol/GpsProtocol.h"
 #include "FlightProxy/Core/Protocol/I2CProtocol.h"
 #include "FlightProxy/Core/Protocol/IbusProtocol.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
@@ -42,6 +43,8 @@
 #include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
 
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Emision_RC.h"
+#include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Reccepcion_Mag.h"
+#include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Attitude.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Baro.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_IMU.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Recepcion_Status.h"
@@ -240,19 +243,23 @@ void FlightApplication::setupGPSchannel_in() {
           this->droneIp.c_str(), this->droneGpsPort);
 
   auto uart_transport_encoder =
-      std::make_shared<FlightProxy::Core::Protocol::I2CEncoder>();
+      std::make_shared<FlightProxy::Core::Protocol::GPSEncoder>();
   auto uart_transport_decoder =
-      std::make_shared<FlightProxy::Core::Protocol::I2CDecoder>();
+      std::make_shared<FlightProxy::Core::Protocol::GPSDecoder>();
 
-  auto channelUart = std::make_shared<
-      FlightProxy::Channel::ChannelT<FlightProxy::Core::Packet>>(
+  this->channelUart = std::make_shared<
+      FlightProxy::Channel::ChannelT<FlightProxy::Core::GPSData>>(
       uart_transport, uart_transport_encoder, uart_transport_decoder);
 
-  this->channelDisgregatorI2C = std::make_shared<
-      FlightProxy::Channel::ChannelDisgregatorT<FlightProxy::Core::I2CPacket>>(
-      channelUart,
-      [](const FlightProxy::Core::I2CPacket &pkt)
-          -> FlightProxy::Channel::CommandId { return pkt.device_addr; });
+  auto gpsWriter =
+      this->blackboard->registrarProductor<FlightProxy::Core::GPSData>(
+          FlightProxy::AppLogic::ID_GPS_Data);
+
+  this->channelUart->onPacket =
+      [gpsWriter](std::unique_ptr<const FlightProxy::Core::GPSData> gpsData) {
+        gpsWriter(*gpsData);
+        return;
+      };
 
   channelUart->open();
 }
@@ -268,9 +275,12 @@ void FlightApplication::setupCommandSystem() {
   cmdFactory.produceCMD<RCData>(ID_RC_Output, 1, 0);
   cmdFactory.produceCMD<RCNORMData>(ID_RC_InputNorm, 1, 0);
 
+  cmdFactory.produceCMD<IMUData>(ID_IMU_Data, 1, 0);
   cmdFactory.produceCMD<BaroData>(ID_BARO_Data, 1, 0);
-  // IMU
-  // GPS
+  cmdFactory.produceCMD<GPSData>(ID_GPS_Data, 1, 0);
+  cmdFactory.produceCMD<AttitudeData>(ID_ATTITUDE_Data, 1, 0);
+  cmdFactory.produceCMD<MagData>(ID_MAG_Data, 1, 0);
+  cmdFactory.produceCMD<VelocityData>(ID_VEL_Data, 1, 0);
 
   cmdFactory.produceCMD<uint8_t>(ID_CTRL_LVL, 0, 1, "ctrlLevel");
 
@@ -292,32 +302,10 @@ void FlightApplication::setupCommandSystem() {
   cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_VERTPOS_IN, 0, 1);
   cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_VERTPOS_OUT, 1, 0);
 
+  cmdFactory.produceCMD<PidCtrlIn>(ID_CTRL_ANGPOS_IN, 0, 1);
+  cmdFactory.produceCMD<PidCtrlOut>(ID_CTRL_ANGPOS_OUT, 1, 0);
+
   cmdFactory.loadCMDS(this->commandManager);
-
-  /*
-    Setup::registerProductorCommand<MSP_Set_InputRCData<Packet>, RCData,
-    Packet>( this->commandManager, this->blackboard, ID_RC_Input);
-
-    Setup::registerProductorCommand<MSP_Set_Hover<Packet>, uint16_t, Packet>(
-        this->commandManager, this->blackboard, ID_HOVER);
-
-    Setup::registerProductorCommand<MSP_Set_CtrActive<Packet>, std::string,
-                                    Packet>(this->commandManager,
-                                            this->blackboard, ID_ACTIVE_CTR);
-
-    Setup::registerProductorCommand<MSP_Set_CtrSampPeriod<Packet>, uint64_t,
-                                    Packet>(this->commandManager,
-                                            this->blackboard,
-    ID_SAMPPERIOID_CTR);
-
-    Setup::registerProductorCommand<MSP_Set_PIDCts<Packet>, ControlPIDCts,
-                                    Packet>(this->commandManager,
-                                            this->blackboard, ID_PIDCST_CTR);
-
-    Setup::registerConsumerCommand<MSP_Get_PIDVals<Packet>, ControlPIDVals,
-                                   Packet>(this->commandManager,
-    this->blackboard, ID_PIDVALS_CTR);
-          */
 }
 
 void FlightApplication::setupDataNodes() {
@@ -337,9 +325,18 @@ void FlightApplication::setupDataNodes() {
       this->dataNodesManager, this->channelDisgregatorTCP_out,
       Protocol::MSP_IMU_DATA, this->blackboard, ID_IMU_Data, 500);
 
+  Setup::addReceptionNode<Nodo_Recepcion_Attitude, AttitudeData, MspPacket>(
+      this->dataNodesManager, this->channelDisgregatorTCP_out,
+      Protocol::MSP_ATTITUDE_DATA, this->blackboard, ID_ATTITUDE_Data, 100);
+
   Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, I2CPacket>(
       this->dataNodesManager, this->channelDisgregatorI2C,
       Nodo_Recepcion_Baro::BMP390_I2C_ADDR, this->blackboard, ID_BARO_Data,
+      100);
+
+  Setup::addReceptionNode<Nodo_Recepcion_Mag, MagData, I2CPacket>(
+      this->dataNodesManager, this->channelDisgregatorI2C,
+      Nodo_Recepcion_Mag::QMC5883L_I2C_ADDR, this->blackboard, ID_MAG_Data,
       100);
 }
 
@@ -354,9 +351,13 @@ void FlightApplication::start() {
   // controlManager->start();
   controlMaster_->start();
   while (true) {
-    FP_LOG_D(
-        "MAIN", "RC recived %.2f",
-        this->blackboard->getFrequency(FlightProxy::AppLogic::ID_BARO_Data));
+    // FP_LOG_D(
+    //     "MAIN", "Mag recived %.2f",
+    //     this->blackboard->getFrequency(FlightProxy::AppLogic::ID_MAG_Data));
+    // FP_LOG_D(
+    //     "MAIN", "Baro recived %.2f",
+    //     this->blackboard->getFrequency(FlightProxy::AppLogic::ID_BARO_Data));
+
     FlightProxy::Core::OSAL::OSALFactory::sleep(1000);
   }
 }

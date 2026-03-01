@@ -86,10 +86,23 @@ REGISTER_FP_STRUCT(MagData, MAG_DATA_FIELDS)
 REGISTER_FP_STRUCT(BaroData, BARO_DATA_FIELDS)
 
 #define IMU_DATA_FIELDS(X)                                                     \
-  X(int16_t, accel_x)                                                          \
-  X(int16_t, accel_y)                                                          \
-  X(int16_t, accel_z) X(int16_t, gyro_x) X(int16_t, gyro_y) X(int16_t, gyro_z)
+  X(float, accel_x)                                                            \
+  X(float, accel_y)                                                            \
+  X(float, accel_z) X(float, gyro_x) X(float, gyro_y) X(float, gyro_z)
 REGISTER_FP_STRUCT(IMUData, IMU_DATA_FIELDS)
+
+#define ATTITUDE_DATA_FIELDS(X)                                                \
+  X(float, roll)                                                               \
+  X(float, pitch)                                                              \
+  X(float, yaw)
+REGISTER_FP_STRUCT(AttitudeData, ATTITUDE_DATA_FIELDS)
+
+#define VELOCITY_DATA_FIELDS(X)                                                \
+  X(float, v_abs_x)                                                            \
+  X(float, v_abs_y)                                                            \
+  X(float, v_rel_x)                                                            \
+  X(float, v_rel_y)
+REGISTER_FP_STRUCT(VelocityData, VELOCITY_DATA_FIELDS)
 
 #define PID_CTRL_IN(X)                                                         \
   X(float, p)                                                                  \

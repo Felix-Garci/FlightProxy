@@ -1,22 +1,12 @@
 import socket
 import struct
-from gzproces import leer_presion_gazebo
+from gztopicextractor import GazeboTopicLector
 
 # --- CONFIGURACIÓN ---
 HOST = "0.0.0.0"
 PORT = 5800
 
 temperatura_real = 25.0  # °C
-presion_real = 101001.0  # Pa
-
-
-class dato:
-    def __init__(self):
-        self.temperatura_real = 25.0
-        self.presion_real = 101001.0
-
-    def get_tem(self):
-        pass
 
 
 def empaquetar_24bit(valor):
@@ -31,7 +21,7 @@ def empaquetar_24bit(valor):
     return bytes([b0, b1, b2])
 
 
-def manejar_cliente(conn, addr):
+def manejar_cliente(conn, addr, get_data):
     print(f"[+] Cliente conectado: {addr}")
     try:
         while True:
@@ -54,7 +44,7 @@ def manejar_cliente(conn, addr):
                     payload_respuesta = bytearray(21)  # enviamos ceros
 
                 elif reg_addr == 0x04:
-                    raw_pres = empaquetar_24bit(leer_presion_gazebo())
+                    raw_pres = empaquetar_24bit(get_data()["pressure"])
                     raw_temp = empaquetar_24bit(temperatura_real)
 
                     payload_respuesta = raw_pres + raw_temp
@@ -97,6 +87,11 @@ def manejar_cliente(conn, addr):
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    topic = "/world/empty_betaflight_world/model/iris_with_Betaflight/model/iris_with_standoffs/link/imu_link/sensor/air_pressure_sensor/air_pressure"
+    names = ["pressure"]
+    gz = GazeboTopicLector(topic, names)
+
+    gz.conectar()
 
     try:
         server.bind((HOST, PORT))
@@ -105,7 +100,7 @@ def main():
 
         while True:
             conn, addr = server.accept()
-            manejar_cliente(conn, addr)
+            manejar_cliente(conn, addr, gz.leer)
     except KeyboardInterrupt:
         print("\nApagando...")
     finally:

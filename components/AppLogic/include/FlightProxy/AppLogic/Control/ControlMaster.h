@@ -27,7 +27,7 @@ public:
 private:
   std::unique_ptr<Core::OSAL::ITask> task_;
   std::atomic<bool> isRunning_{false};
-  uint32_t periodCicleMS_ = 10;
+  uint32_t periodCicleMS_ = 20;
 
   std::function<Core::RCData(void)> inRcGetter_;
   std::function<void(Core::RCNORMData)> outRcNormSetter_;

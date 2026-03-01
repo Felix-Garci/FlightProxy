@@ -47,7 +47,13 @@ void ControlMaster::eventLoop() {
   Core::RCData rcData;
   Core::RCNORMData rcNormData;
   uint8_t ctrlLevel = 1;
+  auto lastTime = Core::OSAL::OSALFactory::getSystemTimeMs();
+
   while (isRunning_) {
+    auto currentTime = Core::OSAL::OSALFactory::getSystemTimeMs();
+    float dt = (currentTime - lastTime) / 1000.0;
+    lastTime = currentTime;
+
     rcData = inRcGetter_();
     rcNormData = this->normalizer_.norm(rcData);
     // FP_LOG_D("ControlMaster", "%d ,r: %.2f,p: %.2f,t: %.2f,y: %.2f",
@@ -57,7 +63,7 @@ void ControlMaster::eventLoop() {
 
     ctrlLevel = this->state_.step(rcNormData);
     // FP_LOG_D("ControlMaster", "Nivel de control: %d", ctrlLevel);
-    rcNormData = this->control_.step(ctrlLevel, rcNormData);
+    rcNormData = this->control_.step(ctrlLevel, rcNormData, dt);
 
     rcData = this->normalizer_.de_norm(rcNormData);
     // FP_LOG_D("ControlMaster", "%d ,r: %d,p: %d,t: %d,y: %d", rcData.aux1,
@@ -65,7 +71,12 @@ void ControlMaster::eventLoop() {
 
     outRcSetter_(rcData);
 
-    Core::OSAL::OSALFactory::sleep(this->periodCicleMS_);
+    auto elapsed = Core::OSAL::OSALFactory::getSystemTimeMs() - lastTime;
+    int32_t sleep_ms = (int32_t)this->periodCicleMS_ - (int32_t)elapsed;
+    if (sleep_ms < 0)
+      sleep_ms = 0;
+
+    Core::OSAL::OSALFactory::sleep(sleep_ms);
   }
   FP_LOG_E("ControlMaster", "salimos de event loop");
 }

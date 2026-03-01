@@ -11,6 +11,9 @@ enum DataIDs : DataID {
   ID_IMU_Data = 10,
   ID_BARO_Data = 11,
   ID_GPS_Data = 12,
+  ID_ATTITUDE_Data = 13,
+  ID_MAG_Data = 14,
+  ID_VEL_Data = 15,
 
   // Ctrl level selector
   ID_CTRL_LVL = 19,
@@ -30,5 +33,7 @@ enum DataIDs : DataID {
   ID_CTRL_HORPOS_OUT = 41,
   ID_CTRL_VERTPOS_IN = 42,
   ID_CTRL_VERTPOS_OUT = 43,
+  ID_CTRL_ANGPOS_IN = 44,
+  ID_CTRL_ANGPOS_OUT = 45,
 };
 }

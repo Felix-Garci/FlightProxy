@@ -9,6 +9,7 @@ namespace Core {
 class MspPacket;
 class IBUSPacket;
 class I2CPacket;
+struct GPSData;
 } // namespace Core
 //
 namespace AppLogic {
@@ -74,23 +75,22 @@ private:
   // Salida tcp al dron ( MSP to dron)
   std::string droneIp = "127.0.0.1";
   // int dronePort = 15762;
-  int dronePort = 5762;
-  int droneI2CPort = 5800;
-  int droneGpsPort = 5810;
 
+  int dronePort = 5762;
   std::shared_ptr<FlightProxy::Channel::ChannelDisgregatorT<Packet>>
       channelDisgregatorTCP_out;
+
+  int droneI2CPort = 5800;
   std::shared_ptr<
       FlightProxy::Channel::ChannelDisgregatorT<FlightProxy::Core::I2CPacket>>
       channelDisgregatorI2C;
 
+  int droneGpsPort = 5801;
+  std::shared_ptr<FlightProxy::Channel::ChannelT<FlightProxy::Core::GPSData>>
+      channelUart;
+
+  std::shared_ptr<FlightProxy::AppLogic::AlmacenFlexible> blackboard;
+  std::shared_ptr<FlightProxy::AppLogic::Control::ControlMaster> controlMaster_;
   std::shared_ptr<FlightProxy::AppLogic::DataNode::DataNodesManager>
       dataNodesManager;
-
-  // Almacen
-  std::shared_ptr<FlightProxy::AppLogic::AlmacenFlexible> blackboard;
-  // Ctrl Mgr
-  std::shared_ptr<FlightProxy::AppLogic::Control::ControlMaster> controlMaster_;
-  // std::shared_ptr<FlightProxy::AppLogic::Control::ControlManager>
-  // controlManager;
 };

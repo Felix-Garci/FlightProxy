@@ -65,7 +65,7 @@ uint8_t ControlStateMachin::outputDecision_() {
     break;
 
   case Estado::ARMADO_BUELO:
-    ret = 2;
+    ret = 5;
     break;
   }
   return ret;

@@ -37,15 +37,17 @@ RUN . /opt/ros/humble/setup.sh && \
 # Asegúrate de tener el archivo custom_world.sdf en la misma carpeta que este Dockerfile
 COPY betaflight_iris_aruco.sdf /root/ros2_ws/install/share/vehicle_gateway/worlds/betaflight_iris_aruco.sdf
 
+	 
 RUN echo '#!/bin/bash' > /entrypoint_gateway.sh && \
     echo 'source /opt/ros/humble/setup.bash' >> /entrypoint_gateway.sh && \
     echo 'source /root/ros2_ws/install/local_setup.bash' >> /entrypoint_gateway.sh && \
-    echo 'echo "================================================="' >> /entrypoint_gateway.sh && \
-    echo 'echo "🔍 BUSCANDO LIBRERIAS DISPONIBLES EN /install/lib:"' >> /entrypoint_gateway.sh && \
-    echo 'find /root/ros2_ws/install/lib -name "*.so"' >> /entrypoint_gateway.sh && \
-    echo 'echo "================================================="' >> /entrypoint_gateway.sh && \
+	echo 'python3 -u /root/ros2_ws/gzExtractor/simulador_gps.py 1> /dev/null &' >> /entrypoint_gateway.sh && \
+    echo 'python3 -u /root/ros2_ws/gzExtractor/I2CSim.py 1> /dev/null &' >> /entrypoint_gateway.sh && \
     echo 'exec "$@"' >> /entrypoint_gateway.sh && \
     chmod +x /entrypoint_gateway.sh
+
+RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc && \
+    echo "source /root/ros2_ws/install/local_setup.bash" >> /root/.bashrc
 
 ENTRYPOINT ["/entrypoint_gateway.sh"]
 CMD ["bash"]

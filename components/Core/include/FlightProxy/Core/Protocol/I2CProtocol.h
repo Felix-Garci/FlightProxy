@@ -51,7 +51,7 @@ public:
     packet->is_read = static_cast<bool>(data[2]);
     packet->payload_len = data[3];
 
-    if (len >= 4 + packet->payload_len) {
+    if (len >= static_cast<size_t>(4 + packet->payload_len)) {
       packet->payload.assign(data + 4, data + 4 + packet->payload_len);
     }
 

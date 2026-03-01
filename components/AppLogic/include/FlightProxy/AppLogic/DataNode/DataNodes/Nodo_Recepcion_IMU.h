@@ -3,6 +3,7 @@
 #include "FlightProxy/AppLogic/DataNode/IDataNodeBase.h"
 #include "FlightProxy/Core/Channel/IChannelT.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
+#include "FlightProxy/Core/Protocol/MspProtocol.h"
 
 #include <memory>
 
@@ -25,19 +26,37 @@ private:
     // 18 ya que son 9 valores de 2 bytes cada uno
     // aunque los ultimos 3 no los usamos
     if (pkt->payload.size() >= 18) {
-      datos_imu.accel_x =
+      // Constantes basadas en tus pruebas y el estándar MSP
+      const float ACC_SCALE = 255.0f;
+      const float ACC_Z_OFFSET = 510.0f;
+      const float GYRO_SCALE = 16.4f;
+      const float GRAVITY_MS2 = 9.80665f;
+
+      int16_t raw_ax =
           static_cast<int16_t>(pkt->payload[0] | (pkt->payload[1] << 8));
-      datos_imu.accel_y =
+      int16_t raw_ay =
           static_cast<int16_t>(pkt->payload[2] | (pkt->payload[3] << 8));
-      datos_imu.accel_z =
+      int16_t raw_az =
           static_cast<int16_t>(pkt->payload[4] | (pkt->payload[5] << 8));
 
-      datos_imu.gyro_x =
+      datos_imu.accel_x =
+          (static_cast<float>(raw_ax) / ACC_SCALE) * GRAVITY_MS2;
+      datos_imu.accel_y =
+          (static_cast<float>(raw_ay) / ACC_SCALE) * GRAVITY_MS2;
+      datos_imu.accel_z =
+          ((static_cast<float>(raw_az) - ACC_Z_OFFSET) / ACC_SCALE) *
+          GRAVITY_MS2;
+
+      int16_t raw_gx =
           static_cast<int16_t>(pkt->payload[6] | (pkt->payload[7] << 8));
-      datos_imu.gyro_y =
+      int16_t raw_gy =
           static_cast<int16_t>(pkt->payload[8] | (pkt->payload[9] << 8));
-      datos_imu.gyro_z =
+      int16_t raw_gz =
           static_cast<int16_t>(pkt->payload[10] | (pkt->payload[11] << 8));
+
+      datos_imu.gyro_x = static_cast<float>(raw_gx) / GYRO_SCALE;
+      datos_imu.gyro_y = static_cast<float>(raw_gy) / GYRO_SCALE;
+      datos_imu.gyro_z = static_cast<float>(raw_gz) / GYRO_SCALE;
 
       m_productor(datos_imu);
     }

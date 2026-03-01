@@ -10,24 +10,24 @@ namespace AppLogic {
 namespace Control {
 namespace Controls {
 
-class velocity_vertical {
+class position_vertical {
 private:
-  std::function<Core::PidCtrlVertVelIn(void)> paramGetter_;
+  std::function<Core::PidCtrlIn(void)> paramGetter_;
   std::function<void(Core::PidCtrlOut)> telSetter_;
 
-  Core::PidCtrlVertVelIn ctrlParams_;
+  Core::PidCtrlIn ctrlParams_;
   Core::PidCtrlOut ctrlTel_;
 
-  float integral_ = 0;
-  float prevError_ = 0;
+  float targetH_ = 0.0f;
+  bool initialized_ = false;
 
 public:
-  velocity_vertical();
+  position_vertical();
 
-  void init(std::function<Core::PidCtrlVertVelIn(void)> paramGetter,
+  void init(std::function<Core::PidCtrlIn(void)> paramGetter,
             std::function<void(Core::PidCtrlOut)> telSetter);
   void reset();
-  float step(float v_ref, float v_real, float dt);
+  float step(float h_ref, float h_real, float dt);
 };
 
 } // namespace Controls

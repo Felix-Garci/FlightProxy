@@ -11,20 +11,11 @@ namespace FlightProxy {
 namespace Core {
 namespace Protocol {
 // Comandos MSP
-const uint16_t MSP_IMU_DATA = 105;    // Get imu data from FC
-const uint16_t MSP_STATUS_DATA = 150; // Get status data from FC
-const uint16_t MSP_RC_DATA = 200;     // Set RC data to FC
-const uint16_t MSP_BARO_DATA = 109;   // Get Baro from FC
-
-const uint16_t MSP_SET_CTRLACTIVE = 200;  // Set Active CTRL to Transponder
-const uint16_t MSP_SET_SAMPLPERIMS = 201; // Set SampTime to Ctrl Transponder
-const uint16_t MSP_GET_DINAMICSTELEMETRY = 250; // get telemetri
-
-const uint16_t MSP_SET_INPUTRC = 270; // set input remote data to Transpnder
-
-const uint16_t MSP_SET_PIDCST = 300;
-const uint16_t MSP_GET_PIDVALS = 301; // Pedir telemetria de control activo
-const uint16_t MSP_SET_HOVER = 302;   // valor de hover ( velocidad vertical 0)
+const uint16_t MSP_IMU_DATA = 102;      // Get imu data from FC
+const uint16_t MSP_STATUS_DATA = 150;   // Get status data from FC
+const uint16_t MSP_RC_DATA = 200;       // Set RC data to FC
+const uint16_t MSP_BARO_DATA = 109;     // Get Baro from FC
+const uint16_t MSP_ATTITUDE_DATA = 108; // get attitude from fc
 
 // --- Detalle de implementación de MSP V2 (CRC8) ---
 namespace Detail {
