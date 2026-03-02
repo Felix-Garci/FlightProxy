@@ -12,12 +12,14 @@ class SettingsTab:
         # for pids in [20, 22, 24, 26, 40, 42, 44]:
         #    self.map_pids[pids] = commander.get_cmd(pids)
 
-        self.pid_setup(24, [0.4, 0.2, 0, 0.54], "vertical velocity")
-        self.pid_setup(42, [0.5, 0, 0, 0], "vertical position")
+        self.pid_setup(20, [0.5, 0.05, 0, 0], "lateral velocity")
 
         self.pid_setup(22, [0.5, 0.05, 0, -0.12], "frontal velocity")
 
-        self.pid_setup(20, [0.5, 0.05, 0, 0], "lateral velocity")
+        self.pid_setup(42, [0.5, 0, 0, 0], "vertical position")
+        self.pid_setup(24, [0.4, 0.2, 0, 0.54], "vertical velocity")
+
+        self.pid_setup(26, [0.5, 0.05, 0, 0], "angular velocity")
 
     def create(self, tab_bar):
         with dpg.tab(label="Settings", parent=tab_bar):

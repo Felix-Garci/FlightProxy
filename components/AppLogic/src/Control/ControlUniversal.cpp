@@ -25,21 +25,24 @@ void ControlUniversal::init(std::shared_ptr<AlmacenFlexible> bb) {
   velSetter_ = bb->registrarProductor<Core::VelocityData>(ID_VEL_Data);
 
   // Controles
-  auto vvci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_VERTVEL_IN);
-  auto vvct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_VERTVEL_OUT);
-  velocity_vertical_.init(vvci, vvct);
-
-  auto pvci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_VERTPOS_IN);
-  auto pvct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_VERTPOS_OUT);
-  position_vertical_.init(pvci, pvct);
+  auto vlci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_LATVEL_IN);
+  auto vlct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_LATVEL_OUT);
+  velocity_lateral_.init(vlci, vlct);
 
   auto vfci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_FRNTVEL_IN);
   auto vfct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_FRNTVEL_OUT);
   velocity_frontal_.init(vfci, vfct);
 
-  auto vlci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_LATVEL_IN);
-  auto vlct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_LATVEL_OUT);
-  velocity_lateral_.init(vlci, vlct);
+  auto pvci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_VERTPOS_IN);
+  auto pvct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_VERTPOS_OUT);
+  position_vertical_.init(pvci, pvct);
+  auto vvci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_VERTVEL_IN);
+  auto vvct = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_VERTVEL_OUT);
+  velocity_vertical_.init(vvci, vvct);
+
+  auto vaci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_ANGVEL_IN);
+  auto vact = bb->registrarProductor<Core::PidCtrlOut>(ID_CTRL_ANGVEL_OUT);
+  velocity_angular_.init(vaci, vact);
 }
 Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                         Core::RCNORMData rcNormData, float dt) {
@@ -51,11 +54,7 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   imuData_ = imuGetter_();
   eulerProyection(dt);
   gpsData_ = gpsGetter_();
-  float vx, vy = 0;
-  vGps2DroneRef(vx, vy);
-  velData_.v_rel_x = vx;
-  velData_.v_rel_y = vy;
-  velSetter_(velData_);
+  vGps2DroneRef();
 
   baroData_ = baroGetter_();
 
@@ -65,12 +64,14 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
     FP_LOG_D("ControlUniversal", "ctrl lvl from %d => %d", prevLevel_,
              ctrlLevel);
 
-    velocity_vertical_.reset();
-    position_vertical_.reset();
+    velocity_lateral_.reset();
 
     velocity_frontal_.reset();
 
-    velocity_lateral_.reset();
+    velocity_vertical_.reset();
+    position_vertical_.reset();
+
+    velocity_angular_.reset();
 
     prevLevel_ = ctrlLevel;
   }
@@ -112,6 +113,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                                   baroData_.vertical_vel, dt);
 
     // yaw = angular_vel(yaw(-1,1),brujula)->yaw(-1,1)
+    rcNormData.yaw =
+        velocity_angular_.step(rcNormData.yaw, attitudeData_.yaw_rate, dt);
 
     [[fallthrough]];
   case 1: // Pass Throw
@@ -129,7 +132,7 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
     rcNormData.armed = false;
     break;
   }
-  // FP_LOG_D("Universal", "x=%.4f y=%.4f", vx, vy);
+  // FP_LOG_D("Universal", "x=%.4f y=%.4f", velData_.v_rel_x, velData_.v_rel_y);
   // FP_LOG_D("Universal", "r=%8.4f p=%8.4f y=%8.4f", attitudeData_.roll,
   //          attitudeData_.pitch, attitudeData_.yaw);
 
@@ -162,9 +165,13 @@ void ControlUniversal::eulerProyection(float dt) {
   float gyroY_rad = imuData_.gyro_y * (std::numbers::pi / 180.0f);
   float gyroZ_rad = imuData_.gyro_z * (std::numbers::pi / 180.0f);
 
-  float yawRate = (gyroY_rad * sin(roll) + gyroZ_rad * cos(roll)) / cos(pitch);
+  attitudeData_.yaw_rate =
+      ((gyroY_rad * sin(roll) + gyroZ_rad * cos(roll)) / cos(pitch)) *
+      std::numbers::pi / 180.0;
+  ;
+  // FP_LOG_D("UNIV", "wpto = %.4f", attitudeData_.yaw_rate);
 
-  this->yawRealRad_ += yawRate * dt;
+  this->yawRealRad_ += attitudeData_.yaw_rate * dt;
 
   float yawMagRad = attitudeData_.yaw * std::numbers::pi / 180.0;
 
@@ -185,14 +192,19 @@ void ControlUniversal::eulerProyection(float dt) {
   attitudeData_.yaw = yawRealRad_ * 180.0 / std::numbers::pi;
 }
 
-void ControlUniversal::vGps2DroneRef(float &vx, float &vy) {
+void ControlUniversal::vGps2DroneRef() {
   float yawRad = attitudeData_.yaw * std::numbers::pi / 180.0;
   float headingRad = gpsData_.heading * std::numbers::pi / 180.0;
 
   float diffAngle = headingRad - yawRad;
 
-  vx = gpsData_.speed * sin(diffAngle);
-  vy = -1.0f * gpsData_.speed * cos(diffAngle);
+  velData_.v_abs_x = gpsData_.speed * sin(headingRad);
+  velData_.v_abs_y = gpsData_.speed * cos(headingRad);
+
+  velData_.v_rel_x = gpsData_.speed * sin(diffAngle);
+  velData_.v_rel_y = -1.0f * gpsData_.speed * cos(diffAngle);
+
+  velSetter_(velData_);
 }
 
 } // namespace Control

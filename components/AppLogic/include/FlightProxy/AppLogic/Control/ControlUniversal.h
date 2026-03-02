@@ -1,10 +1,12 @@
 #pragma once
-#include "Controls/position_vertical.h"
-#include "Controls/velocity_vertical.h"
+#include "Controls/velocity_lateral.h"
 
 #include "Controls/velocity_frontal.h"
 
-#include "Controls/velocity_lateral.h"
+#include "Controls/position_vertical.h"
+#include "Controls/velocity_vertical.h"
+
+#include "Controls/velocity_angular.h"
 
 #include "FlightProxy/AppLogic/AlmacenFlexible.h"
 #include "FlightProxy/Core/FlightProxyTypes.h"
@@ -45,21 +47,26 @@ private:
 
   float yawRealRad_ = 0;
 
-  // COntroles
+  // Controles
+  // LATERAL
+  Controls::velocity_lateral velocity_lateral_ = Controls::velocity_lateral();
+
+  // FRONTAL
+  Controls::velocity_frontal velocity_frontal_ = Controls::velocity_frontal();
+
+  // VERTICAL
+  Controls::position_vertical position_vertical_ =
+      Controls::position_vertical();
   Controls::velocity_vertical velocity_vertical_ =
       Controls::velocity_vertical();
 
-  Controls::position_vertical position_vertical_ =
-      Controls::position_vertical();
-
-  Controls::velocity_frontal velocity_frontal_ = Controls::velocity_frontal();
-
-  Controls::velocity_lateral velocity_lateral_ = Controls::velocity_lateral();
+  // ANGULAR
+  Controls::velocity_angular velocity_angular_ = Controls::velocity_angular();
 
   // Math funcions
   void magCompensation();
   void eulerProyection(float dt);
-  void vGps2DroneRef(float &vx, float &vy);
+  void vGps2DroneRef();
 };
 } // namespace Control
 } // namespace AppLogic

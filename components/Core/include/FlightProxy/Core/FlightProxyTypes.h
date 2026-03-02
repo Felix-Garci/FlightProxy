@@ -94,7 +94,8 @@ REGISTER_FP_STRUCT(IMUData, IMU_DATA_FIELDS)
 #define ATTITUDE_DATA_FIELDS(X)                                                \
   X(float, roll)                                                               \
   X(float, pitch)                                                              \
-  X(float, yaw)
+  X(float, yaw)                                                                \
+  X(float, yaw_rate)
 REGISTER_FP_STRUCT(AttitudeData, ATTITUDE_DATA_FIELDS)
 
 #define VELOCITY_DATA_FIELDS(X)                                                \
