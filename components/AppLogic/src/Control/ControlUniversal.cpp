@@ -152,7 +152,7 @@ void ControlUniversal::magCompensation() {
   magData_.mag_x = xh;
   magData_.mag_y = yh;
 
-  float yawMag = atan2(-yh, xh);
+  float yawMag = atan2(xh, -yh);
   float yawGrados = yawMag * 180.0 / std::numbers::pi;
 
   attitudeData_.yaw = yawGrados;
@@ -170,7 +170,7 @@ void ControlUniversal::eulerProyection(float dt) {
   ;
   // FP_LOG_D("UNIV", "wpto = %.4f", attitudeData_.yaw_rate);
 
-  this->yawRealRad_ += attitudeData_.yaw_rate * dt;
+  this->yawRealRad_ -= attitudeData_.yaw_rate * dt;
 
   float yawMagRad = attitudeData_.yaw * std::numbers::pi / 180.0;
 
@@ -193,17 +193,18 @@ void ControlUniversal::eulerProyection(float dt) {
 
 void ControlUniversal::vGps2DroneRef() {
   float yawRad = attitudeData_.yaw * std::numbers::pi / 180.0;
-  float headingRad = gpsData_.heading * std::numbers::pi / 180.0;
+  float gpsHeadingCorrection = 90.0 - gpsData_.heading;
+  float headingRad = gpsHeadingCorrection * std::numbers::pi / 180.0;
 
   float diffAngle = headingRad - yawRad;
 
-  velData_.v_abs_x = gpsData_.speed * sin(headingRad);
-  velData_.v_abs_y = gpsData_.speed * cos(headingRad);
+  velData_.v_abs_x = gpsData_.speed * cos(headingRad);
+  velData_.v_abs_y = gpsData_.speed * sin(headingRad);
 
   // velData_.v_rel_x = gpsData_.speed * sin(diffAngle);
   // velData_.v_rel_y = -1.0f * gpsData_.speed * cos(diffAngle);
   velData_.v_rel_x = gpsData_.speed * cos(diffAngle);
-  velData_.v_rel_y = gpsData_.speed * sin(diffAngle);
+  velData_.v_rel_y = -gpsData_.speed * sin(diffAngle);
 
   velSetter_(velData_);
 }
