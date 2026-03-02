@@ -101,8 +101,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   case 2: // Relative vel + w
 
     // roll=lateral_vel(roll(-1,1),imu+gps)->roll(-1,1)
-    rcNormData.roll =
-        velocity_lateral_.step(rcNormData.roll, velData_.v_rel_y, dt);
+    // rcNormData.roll =
+    //    velocity_lateral_.step(rcNormData.roll, velData_.v_rel_y, dt);
 
     // pitch=frontal_vel(pitch(-1,1),imu+gps)->pitch(-1,1)
     rcNormData.pitch =
@@ -113,8 +113,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                                   baroData_.vertical_vel, dt);
 
     // yaw = angular_vel(yaw(-1,1),brujula)->yaw(-1,1)
-    rcNormData.yaw =
-        velocity_angular_.step(rcNormData.yaw, attitudeData_.yaw_rate, dt);
+    rcNormData.yaw = -1.0 * velocity_angular_.step(-rcNormData.yaw,
+                                                   attitudeData_.yaw_rate, dt);
 
     [[fallthrough]];
   case 1: // Pass Throw
@@ -166,8 +166,7 @@ void ControlUniversal::eulerProyection(float dt) {
   float gyroZ_rad = imuData_.gyro_z * (std::numbers::pi / 180.0f);
 
   attitudeData_.yaw_rate =
-      ((gyroY_rad * sin(roll) + gyroZ_rad * cos(roll)) / cos(pitch)) *
-      std::numbers::pi / 180.0;
+      (gyroY_rad * sin(roll) + gyroZ_rad * cos(roll)) / cos(pitch);
   ;
   // FP_LOG_D("UNIV", "wpto = %.4f", attitudeData_.yaw_rate);
 
@@ -201,8 +200,10 @@ void ControlUniversal::vGps2DroneRef() {
   velData_.v_abs_x = gpsData_.speed * sin(headingRad);
   velData_.v_abs_y = gpsData_.speed * cos(headingRad);
 
-  velData_.v_rel_x = gpsData_.speed * sin(diffAngle);
-  velData_.v_rel_y = -1.0f * gpsData_.speed * cos(diffAngle);
+  // velData_.v_rel_x = gpsData_.speed * sin(diffAngle);
+  // velData_.v_rel_y = -1.0f * gpsData_.speed * cos(diffAngle);
+  velData_.v_rel_x = gpsData_.speed * cos(diffAngle);
+  velData_.v_rel_y = gpsData_.speed * sin(diffAngle);
 
   velSetter_(velData_);
 }
