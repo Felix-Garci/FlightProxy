@@ -16,7 +16,9 @@ class Nodo_Recepcion_IMU
       public std::enable_shared_from_this<Nodo_Recepcion_IMU> {
 private:
   std::shared_ptr<Core::Channel::IChannelT<Core::MspPacket>> m_channelIMUData;
+  std::function<void(Core::IMUData)> m_productor_raw;
   std::function<void(Core::IMUData)> m_productor;
+
   bool m_esperandoRespuesta = false;
 
   void onRespuestaRecibida(std::unique_ptr<const Core::MspPacket> pkt) {
@@ -58,7 +60,8 @@ private:
       datos_imu.gyro_y = static_cast<float>(raw_gy) / GYRO_SCALE;
       datos_imu.gyro_z = static_cast<float>(raw_gz) / GYRO_SCALE;
 
-      m_productor(datos_imu);
+      m_productor_raw(datos_imu);
+      m_productor(alineador->alignIMU(datos_imu));
     }
   }
 
@@ -67,8 +70,10 @@ private:
 public:
   Nodo_Recepcion_IMU(std::shared_ptr<Core::Channel::IChannelT<Core::MspPacket>>
                          virtualChannelIMUData,
+                     std::function<void(Core::IMUData)> productorIMUData_raw,
                      std::function<void(Core::IMUData)> productorIMUData)
-      : m_channelIMUData(virtualChannelIMUData), m_productor(productorIMUData) {
+      : m_channelIMUData(virtualChannelIMUData),
+        m_productor_raw(productorIMUData_raw), m_productor(productorIMUData) {
     m_channelIMUData->onPacket =
         [this](std::unique_ptr<const Core::MspPacket> pkt) {
           this->onRespuestaRecibida(std::move(pkt));

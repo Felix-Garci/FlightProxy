@@ -275,11 +275,18 @@ void FlightApplication::setupCommandSystem() {
   cmdFactory.produceCMD<RCData>(ID_RC_Output, 1, 0);
   cmdFactory.produceCMD<RCNORMData>(ID_RC_InputNorm, 1, 0);
 
-  cmdFactory.produceCMD<IMUData>(ID_IMU_Data, 1, 0);
-  cmdFactory.produceCMD<BaroData>(ID_BARO_Data, 1, 0);
-  cmdFactory.produceCMD<GPSData>(ID_GPS_Data, 1, 0);
+  cmdFactory.produceCMD<AttitudeData>(ID_ATTITUDE_Data_RAW, 1, 0);
+  cmdFactory.produceCMD<IMUData>(ID_IMU_Data_RAW, 1, 0);
+  cmdFactory.produceCMD<MagData>(ID_MAG_Data_RAW, 1, 0);
+  cmdFactory.produceCMD<GPSData>(ID_GPS_Data_RAW, 1, 0);
+  cmdFactory.produceCMD<BaroData>(ID_BARO_Data_RAW, 1, 0);
+
   cmdFactory.produceCMD<AttitudeData>(ID_ATTITUDE_Data, 1, 0);
+  cmdFactory.produceCMD<IMUData>(ID_IMU_Data, 1, 0);
   cmdFactory.produceCMD<MagData>(ID_MAG_Data, 1, 0);
+  cmdFactory.produceCMD<GPSData>(ID_GPS_Data, 1, 0);
+  cmdFactory.produceCMD<BaroData>(ID_BARO_Data, 1, 0);
+
   cmdFactory.produceCMD<VelocityData>(ID_VEL_Data, 1, 0);
 
   cmdFactory.produceCMD<uint8_t>(ID_CTRL_LVL, 0, 1, "ctrlLevel");
@@ -323,21 +330,23 @@ void FlightApplication::setupDataNodes() {
 
   Setup::addReceptionNode<Nodo_Recepcion_IMU, IMUData, MspPacket>(
       this->dataNodesManager, this->channelDisgregatorTCP_out,
-      Protocol::MSP_IMU_DATA, this->blackboard, ID_IMU_Data, 500);
+      Protocol::MSP_IMU_DATA, this->blackboard, ID_IMU_Data_RAW, ID_IMU_Data,
+      500);
 
   Setup::addReceptionNode<Nodo_Recepcion_Attitude, AttitudeData, MspPacket>(
       this->dataNodesManager, this->channelDisgregatorTCP_out,
-      Protocol::MSP_ATTITUDE_DATA, this->blackboard, ID_ATTITUDE_Data, 100);
+      Protocol::MSP_ATTITUDE_DATA, this->blackboard, ID_ATTITUDE_Data_RAW,
+      ID_ATTITUDE_Data, 100);
 
   Setup::addReceptionNode<Nodo_Recepcion_Baro, BaroData, I2CPacket>(
       this->dataNodesManager, this->channelDisgregatorI2C,
-      Nodo_Recepcion_Baro::BMP390_I2C_ADDR, this->blackboard, ID_BARO_Data,
-      100);
+      Nodo_Recepcion_Baro::BMP390_I2C_ADDR, this->blackboard, ID_BARO_Data_RAW,
+      ID_BARO_Data, 100);
 
   Setup::addReceptionNode<Nodo_Recepcion_Mag, MagData, I2CPacket>(
       this->dataNodesManager, this->channelDisgregatorI2C,
-      Nodo_Recepcion_Mag::QMC5883L_I2C_ADDR, this->blackboard, ID_MAG_Data,
-      100);
+      Nodo_Recepcion_Mag::QMC5883L_I2C_ADDR, this->blackboard, ID_MAG_Data_RAW,
+      ID_MAG_Data, 100);
 }
 
 void FlightApplication::setupControlSystem() {

@@ -50,6 +50,7 @@ private:
   };
 
   std::shared_ptr<Core::Channel::IChannelT<Core::I2CPacket>> m_channelBaroData;
+  std::function<void(Core::BaroData)> m_productor_raw;
   std::function<void(Core::BaroData)> m_productor;
 
   Estado state_ = Nodo_Recepcion_Baro::Estado::INIT;
@@ -105,7 +106,9 @@ private:
       uint32_t temp_raw =
           (pkt->payload[5] << 16) | (pkt->payload[4] << 8) | pkt->payload[3];
 
-      m_productor(processRawData(presion_raw, temp_raw));
+      Core::BaroData barodata_raw = processRawData(presion_raw, temp_raw);
+      m_productor_raw(barodata_raw);
+      m_productor(alineador->alignBaro(barodata_raw));
 
       break;
     }
@@ -202,9 +205,10 @@ private:
 public:
   Nodo_Recepcion_Baro(std::shared_ptr<Core::Channel::IChannelT<Core::I2CPacket>>
                           virtualChannelBaroData,
+                      std::function<void(Core::BaroData)> productorBaroData_raw,
                       std::function<void(Core::BaroData)> productorBaroData)
       : m_channelBaroData(virtualChannelBaroData),
-        m_productor(productorBaroData) {
+        m_productor_raw(productorBaroData_raw), m_productor(productorBaroData) {
     m_channelBaroData->onPacket =
         [this](std::unique_ptr<const Core::I2CPacket> pkt) {
           this->onRespuestaRecibida(std::move(pkt));

@@ -35,6 +35,7 @@ private:
   };
 
   std::shared_ptr<Core::Channel::IChannelT<Core::I2CPacket>> m_channelMagData;
+  std::function<void(Core::MagData)> m_productor_raw;
   std::function<void(Core::MagData)> m_productor;
 
   Estado state_ = Estado::INIT;
@@ -85,7 +86,9 @@ private:
         int16_t y_raw = (int16_t)((pkt->payload[3] << 8) | pkt->payload[2]);
         int16_t z_raw = (int16_t)((pkt->payload[5] << 8) | pkt->payload[4]);
 
-        m_productor(processRawData(x_raw, y_raw, z_raw));
+        Core::MagData mag_raw = processRawData(x_raw, y_raw, z_raw);
+        m_productor_raw(mag_raw);
+        m_productor(alineador->alignMag(mag_raw));
       }
       break;
     }
@@ -111,8 +114,10 @@ private:
 public:
   Nodo_Recepcion_Mag(std::shared_ptr<Core::Channel::IChannelT<Core::I2CPacket>>
                          virtualChannelMagData,
+                     std::function<void(Core::MagData)> productorMagData_raw,
                      std::function<void(Core::MagData)> productorMagData)
-      : m_channelMagData(virtualChannelMagData), m_productor(productorMagData) {
+      : m_channelMagData(virtualChannelMagData),
+        m_productor_raw(productorMagData_raw), m_productor(productorMagData) {
     m_channelMagData->onPacket =
         [this](std::unique_ptr<const Core::I2CPacket> pkt) {
           this->onRespuestaRecibida(std::move(pkt));

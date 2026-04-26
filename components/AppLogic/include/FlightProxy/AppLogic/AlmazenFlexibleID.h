@@ -8,11 +8,18 @@ enum DataIDs : DataID {
   ID_RC_Output = 2,
   ID_RC_InputNorm = 3,
 
-  ID_IMU_Data = 10,
-  ID_BARO_Data = 11,
-  ID_GPS_Data = 12,
-  ID_ATTITUDE_Data = 13,
-  ID_MAG_Data = 14,
+  ID_ATTITUDE_Data_RAW = 5,
+  ID_IMU_Data_RAW = 6,
+  ID_MAG_Data_RAW = 7,
+  ID_GPS_Data_RAW = 8,
+  ID_BARO_Data_RAW = 9,
+
+  ID_ATTITUDE_Data = 10,
+  ID_IMU_Data = 11,
+  ID_MAG_Data = 12,
+  ID_GPS_Data = 13,
+  ID_BARO_Data = 14,
+
   ID_VEL_Data = 15,
 
   // Ctrl level selector

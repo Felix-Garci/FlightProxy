@@ -40,6 +40,19 @@ void addReceptionNode(
 }
 
 template <typename NodeT, typename DataT, typename PacketT>
+void addReceptionNode(
+    std::shared_ptr<DataNode::DataNodesManager> nodeMgr,
+    std::shared_ptr<Channel::ChannelDisgregatorT<PacketT>> disgregator,
+    uint32_t mspCommandId, std::shared_ptr<AlmacenFlexible> bb, uint32_t id_raw,
+    uint32_t id, uint32_t periodMs) {
+  auto vChannel = disgregator->createVirtualChannel(mspCommandId);
+  auto productor_raw = bb->registrarProductor<DataT>(id_raw);
+  auto productor = bb->registrarProductor<DataT>(id);
+  auto nodo = std::make_shared<NodeT>(vChannel, productor_raw, productor);
+  nodeMgr->addDataNode(nodo, periodMs);
+}
+
+template <typename NodeT, typename DataT, typename PacketT>
 void addEmissionNode(
     std::shared_ptr<DataNode::DataNodesManager> nodeMgr,
     std::shared_ptr<Channel::ChannelDisgregatorT<PacketT>> disgregator,

@@ -17,6 +17,7 @@ class Nodo_Recepcion_Attitude
 private:
   std::shared_ptr<Core::Channel::IChannelT<Core::MspPacket>>
       m_channelAttitudData;
+  std::function<void(Core::AttitudeData)> m_productor_raw;
   std::function<void(Core::AttitudeData)> m_productor;
   bool m_esperandoRespuesta = false;
 
@@ -36,7 +37,8 @@ private:
       attdata.pitch = pitch_raw / 10.0f;
       attdata.yaw = static_cast<float>(yaw_raw);
 
-      m_productor(attdata);
+      m_productor_raw(attdata);
+      m_productor(alineador->alignAttitude(attdata));
     }
   }
 
@@ -46,8 +48,10 @@ public:
   Nodo_Recepcion_Attitude(
       std::shared_ptr<Core::Channel::IChannelT<Core::MspPacket>>
           virtualChannelAttitudData,
+      std::function<void(Core::AttitudeData)> productorAttitudData_raw,
       std::function<void(Core::AttitudeData)> productorAttitudData)
       : m_channelAttitudData(virtualChannelAttitudData),
+        m_productor_raw(productorAttitudData_raw),
         m_productor(productorAttitudData) {
     m_channelAttitudData->onPacket =
         [this](std::unique_ptr<const Core::MspPacket> pkt) {

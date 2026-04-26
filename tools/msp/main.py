@@ -28,11 +28,17 @@ class DroneApp:
         self.telemetry.add_cmd(self.c.get_cmd(2))
         self.telemetry.add_cmd(self.c.get_cmd(3))
 
+        self.telemetry.add_cmd(self.c.get_cmd(5))
+        self.telemetry.add_cmd(self.c.get_cmd(6))
+        self.telemetry.add_cmd(self.c.get_cmd(7))
+        self.telemetry.add_cmd(self.c.get_cmd(8))
+        self.telemetry.add_cmd(self.c.get_cmd(9))
         self.telemetry.add_cmd(self.c.get_cmd(10))
         self.telemetry.add_cmd(self.c.get_cmd(11))
         self.telemetry.add_cmd(self.c.get_cmd(12))
         self.telemetry.add_cmd(self.c.get_cmd(13))
         self.telemetry.add_cmd(self.c.get_cmd(14))
+
         self.telemetry.add_cmd(self.c.get_cmd(15))
 
         self.telemetry.add_cmd(self.c.get_cmd(21))

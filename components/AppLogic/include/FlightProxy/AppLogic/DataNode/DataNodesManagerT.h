@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FlightProxy/AppLogic/DataNode/IDataNodeBase.h"
+#include "FlightProxy/AppLogic/DataNode/IHwAlignment.h"
 #include "FlightProxy/Core/OSAL/OSALFactory.h"
 #include "FlightProxy/Core/Utils/Logger.h"
 
@@ -24,13 +25,25 @@ private:
 
   std::unique_ptr<Core::OSAL::ITask> eventTask_;
 
+  std::shared_ptr<IHwAlignment> alineador_;
+
 public:
   DataNodesManager() {}
 
+  void addAlineador(std::shared_ptr<IHwAlignment> alineador) {
+    alineador_ = alineador;
+  }
+
   void addDataNode(std::shared_ptr<IDataNodeBase> dataNode,
                    uint64_t samplingPeriodMs) {
+    if (alineador_ == nullptr) {
+      FP_LOG_E("DataNodesManager", "No hay alineador seleccionado");
+      return;
+    }
+
     Job newJob;
     newJob.task = dataNode;
+    newJob.task->alineador = alineador_;
     newJob.period_ms = samplingPeriodMs;
     newJob.next_run =
         Core::OSAL::OSALFactory::getSystemTimeMs() + samplingPeriodMs;
