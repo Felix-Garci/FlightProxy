@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <model name='iris_with_standoffs'>
-    <pose>0 0 0.194923 0 0 0</pose>
+    <pose>0 0 0.194923 0 0 1.5708</pose>
     <link name='base_link'>
       <velocity_decay>
         <linear>0.0</linear>

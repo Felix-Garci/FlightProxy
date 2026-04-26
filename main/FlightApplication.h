@@ -21,7 +21,10 @@ namespace Commands {}
 } // namespace Command
 namespace DataNode {
 class DataNodesManager;
+namespace HwAlignment {
+class SimuladorAlignment;
 }
+} // namespace DataNode
 namespace Control {
 // class ControlManager;
 class ControlMaster;
@@ -93,4 +96,7 @@ private:
   std::shared_ptr<FlightProxy::AppLogic::Control::ControlMaster> controlMaster_;
   std::shared_ptr<FlightProxy::AppLogic::DataNode::DataNodesManager>
       dataNodesManager;
+  std::shared_ptr<
+      FlightProxy::AppLogic::DataNode::HwAlignment::SimuladorAlignment>
+      alineador_;
 };

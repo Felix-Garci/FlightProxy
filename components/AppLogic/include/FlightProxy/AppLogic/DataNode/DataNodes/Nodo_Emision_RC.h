@@ -5,6 +5,8 @@
 #include "FlightProxy/Core/FlightProxyTypes.h"
 #include "FlightProxy/Core/Protocol/MspProtocol.h"
 
+#include "FlightProxy/Core/Utils/Logger.h"
+
 #include <memory>
 
 namespace FlightProxy {
@@ -63,6 +65,7 @@ public:
       auto packet = std::make_unique<const Core::MspPacket>(
           '<', Core::Protocol::MSP_RC_DATA, std::move(payload));
 
+      // FP_LOG_D("EMisionRC", "emitiendo");
       m_channelRCData->sendPacket(std::move(packet));
       m_esperandoRespuesta = true;
     }

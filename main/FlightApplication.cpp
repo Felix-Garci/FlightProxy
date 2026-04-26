@@ -41,6 +41,7 @@
 
 // App Logic - Data Nodes
 #include "FlightProxy/AppLogic/DataNode/DataNodesManagerT.h"
+#include "FlightProxy/AppLogic/DataNode/HwAlignments/SimuladorAlignment.h"
 
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Emision_RC.h"
 #include "FlightProxy/AppLogic/DataNode/DataNodes/Nodo_Reccepcion_Mag.h"
@@ -65,6 +66,9 @@ FlightApplication::FlightApplication() {
       std::make_shared<FlightProxy::AppLogic::DataNode::DataNodesManager>();
   controlMaster_ =
       std::make_shared<FlightProxy::AppLogic::Control::ControlMaster>();
+
+  alineador_ = std::make_shared<
+      FlightProxy::AppLogic::DataNode::HwAlignment::SimuladorAlignment>();
 }
 
 void FlightApplication::initialize() {
@@ -251,13 +255,19 @@ void FlightApplication::setupGPSchannel_in() {
       FlightProxy::Channel::ChannelT<FlightProxy::Core::GPSData>>(
       uart_transport, uart_transport_encoder, uart_transport_decoder);
 
+  auto gpsWriter_raw =
+      this->blackboard->registrarProductor<FlightProxy::Core::GPSData>(
+          FlightProxy::AppLogic::ID_GPS_Data_RAW);
+
   auto gpsWriter =
       this->blackboard->registrarProductor<FlightProxy::Core::GPSData>(
           FlightProxy::AppLogic::ID_GPS_Data);
 
   this->channelUart->onPacket =
-      [gpsWriter](std::unique_ptr<const FlightProxy::Core::GPSData> gpsData) {
-        gpsWriter(*gpsData);
+      [gpsWriter_raw, gpsWriter,
+       this](std::unique_ptr<const FlightProxy::Core::GPSData> gpsData) {
+        gpsWriter_raw(*gpsData);
+        gpsWriter(this->alineador_->alignGPS(*gpsData));
         return;
       };
 
@@ -319,6 +329,8 @@ void FlightApplication::setupDataNodes() {
   using namespace FlightProxy::AppLogic;
   using namespace FlightProxy::AppLogic::DataNode::DataNodes;
   using namespace FlightProxy::Core;
+
+  this->dataNodesManager->addAlineador(this->alineador_);
 
   Setup::addReceptionNode<Nodo_Recepcion_Status, StatusData, MspPacket>(
       this->dataNodesManager, this->channelDisgregatorTCP_out,

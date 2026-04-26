@@ -48,15 +48,27 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                         Core::RCNORMData rcNormData, float dt) {
   levelData_ = levelGetter_();
 
+  // paso 1
   attitudeData_ = attitudeGetter_();
   magData_ = magGetter_();
-  magCompensation();
-  imuData_ = imuGetter_();
-  eulerProyection(dt);
-  gpsData_ = gpsGetter_();
-  vGps2DroneRef();
 
+  attitudeData_.yaw = tilt_compensation(attitudeData_, magData_);
+
+  // paso 2
+  imuData_ = imuGetter_();
+
+  attitudeData_.yaw_rate = yaw_rate_transformation(attitudeData_, imuData_);
+
+  // paso 3
+  attitudeData_.yaw = sensor_fusion_realyaw(attitudeData_, dt);
+
+  // paso 4
+  gpsData_ = gpsGetter_();
   baroData_ = baroGetter_();
+
+  velData_ = velocity_transform(attitudeData_, gpsData_, baroData_);
+
+  velSetter_(velData_);
 
   ctrlLevel = ctrlLevel > levelData_ ? levelData_ : ctrlLevel;
 
@@ -72,6 +84,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
     position_vertical_.reset();
 
     velocity_angular_.reset();
+
+    cold_start_yaw_estimate_ = true;
 
     prevLevel_ = ctrlLevel;
   }
@@ -113,8 +127,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                                   baroData_.vertical_vel, dt);
 
     // yaw = angular_vel(yaw(-1,1),brujula)->yaw(-1,1)
-    rcNormData.yaw = -1.0 * velocity_angular_.step(-rcNormData.yaw,
-                                                   attitudeData_.yaw_rate, dt);
+    rcNormData.yaw =
+        velocity_angular_.step(rcNormData.yaw, attitudeData_.yaw_rate, dt);
 
     [[fallthrough]];
   case 1: // Pass Throw
@@ -139,74 +153,113 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   return rcNormData;
 }
 
-void ControlUniversal::magCompensation() {
-  float pitch = attitudeData_.pitch * std::numbers::pi / 180.0;
-  float roll = attitudeData_.roll * std::numbers::pi / 180.0;
+// Devuelve: yaw_mag absoluto en radianes
+float ControlUniversal::tilt_compensation(Core::AttitudeData attitudeData,
+                                          Core::MagData magData) {
+  float pitch = attitudeData.pitch;
+  float roll = attitudeData.roll;
 
-  float xh = magData_.mag_x * cos(pitch) +
-             magData_.mag_y * sin(roll) * sin(pitch) +
-             magData_.mag_z * cos(roll) * sin(pitch);
+  float xh = magData.mag_x * std::cos(pitch) +
+             magData.mag_y * std::sin(roll) * std::sin(pitch) +
+             magData.mag_z * std::cos(roll) * std::sin(pitch);
 
-  float yh = magData_.mag_y * cos(roll) - magData_.mag_z * sin(roll);
+  float yh = magData.mag_y * std::cos(roll) - magData.mag_z * std::sin(roll);
 
-  magData_.mag_x = xh;
-  magData_.mag_y = yh;
-
-  float yawMag = atan2(xh, -yh);
-  float yawGrados = yawMag * 180.0 / std::numbers::pi;
-
-  attitudeData_.yaw = yawGrados;
+  return std::atan2(-yh, xh);
 }
 
-void ControlUniversal::eulerProyection(float dt) {
-  float pitch = attitudeData_.pitch * std::numbers::pi / 180.0;
-  float roll = attitudeData_.roll * std::numbers::pi / 180.0;
+// Devuelve: yaw_rate (derivada pura de Euler) en radianes/segundo
+float ControlUniversal::yaw_rate_transformation(Core::AttitudeData attitudeData,
+                                                Core::IMUData imuData) {
+  float pitch = attitudeData.pitch;
+  float roll = attitudeData.roll;
 
-  float gyroY_rad = imuData_.gyro_y * (std::numbers::pi / 180.0f);
-  float gyroZ_rad = imuData_.gyro_z * (std::numbers::pi / 180.0f);
-
-  attitudeData_.yaw_rate =
-      (gyroY_rad * sin(roll) + gyroZ_rad * cos(roll)) / cos(pitch);
-  ;
-  // FP_LOG_D("UNIV", "wpto = %.4f", attitudeData_.yaw_rate);
-
-  this->yawRealRad_ -= attitudeData_.yaw_rate * dt;
-
-  float yawMagRad = attitudeData_.yaw * std::numbers::pi / 180.0;
-
-  float error = yawMagRad - yawRealRad_;
-
-  if (error > std::numbers::pi)
-    error -= 2.0 * std::numbers::pi;
-  if (error < -std::numbers::pi)
-    error += 2.0 * std::numbers::pi;
-
-  yawRealRad_ += 4.0f * error * dt;
-
-  if (yawRealRad_ > std::numbers::pi)
-    yawRealRad_ -= 2.0 * std::numbers::pi;
-  else if (yawRealRad_ < -std::numbers::pi)
-    yawRealRad_ += 2.0 * std::numbers::pi;
-
-  attitudeData_.yaw = yawRealRad_ * 180.0 / std::numbers::pi;
+  return (imuData.gyro_y * std::sin(roll) + imuData.gyro_z * std::cos(roll)) /
+         std::cos(pitch);
 }
 
-void ControlUniversal::vGps2DroneRef() {
-  float yawRad = attitudeData_.yaw * std::numbers::pi / 180.0;
-  float gpsHeadingCorrection = 90.0 - gpsData_.heading;
-  float headingRad = gpsHeadingCorrection * std::numbers::pi / 180.0;
+// Devuelve: yaw_real (Yaw absoluto sin ruido) en radianes
+float ControlUniversal::sensor_fusion_realyaw(Core::AttitudeData attitudeData,
+                                              float dt) {
+  if (cold_start_yaw_estimate_) {
+    yaw_estimate_ = attitudeData_.yaw; // Forzamos la convergencia instantánea
+    cold_start_yaw_estimate_ = false;
+  }
 
-  float diffAngle = headingRad - yawRad;
+  // 1. Predicción rápida (Giroscopio)
+  yaw_estimate_ += (attitudeData.yaw_rate * dt);
 
-  velData_.v_abs_x = gpsData_.speed * cos(headingRad);
-  velData_.v_abs_y = gpsData_.speed * sin(headingRad);
+  //  Mantener estimación entre -PI y PI
+  if (yaw_estimate_ > M_PI)
+    yaw_estimate_ -= 2.0 * M_PI;
+  if (yaw_estimate_ < -M_PI)
+    yaw_estimate_ += 2.0 * M_PI;
 
-  // velData_.v_rel_x = gpsData_.speed * sin(diffAngle);
-  // velData_.v_rel_y = -1.0f * gpsData_.speed * cos(diffAngle);
-  velData_.v_rel_x = gpsData_.speed * cos(diffAngle);
-  velData_.v_rel_y = -gpsData_.speed * sin(diffAngle);
+  // 2. Cálculo del Error (Magnetómetro - Predicción)
+  // Se asume que attitudeData.yaw ya trae el valor de tilt_compensation()
+  float e = attitudeData.yaw - yaw_estimate_;
 
-  velSetter_(velData_);
+  // Forzamos el error a tomar el camino más corto
+  if (e > M_PI)
+    e -= 2.0 * M_PI;
+  if (e < -M_PI)
+    e += 2.0 * M_PI;
+
+  // 3. Corrección lenta (Magnetómetro).
+  yaw_estimate_ += (1.0 * e * dt);
+
+  return yaw_estimate_;
+}
+
+// Devuelve: Velocidades en el Marco del Dron (FRD)
+Core::VelocityData
+ControlUniversal::velocity_transform(Core::AttitudeData attitudeData,
+                                     Core::GPSData gpsData,
+                                     Core::BaroData baroData) {
+  // FP_LOG_D("DEBUG_MATRIX",
+  //          "Angulos IN: R=%.3f, P=%.3f, Y=%.3f | GPS_H=%.3f, GPS_S=%.3f",
+  //          attitudeData.roll, attitudeData.pitch, attitudeData.yaw,
+  //          gpsData.heading, gpsData.speed);
+
+  // 1. Preparación de variables trigonométricas
+  float cp = std::cos(attitudeData.pitch);
+  float sp = std::sin(attitudeData.pitch);
+  float cr = std::cos(attitudeData.roll);
+  float sr = std::sin(attitudeData.roll);
+  float cy = std::cos(attitudeData.yaw); // Usamos el Yaw Real ya filtrado
+  float sy = std::sin(attitudeData.yaw);
+
+  // 2. Construcción del Vector de Velocidad Inercial (NED)
+  float vn = 0.0f;
+  float ve = 0.0f;
+
+  if (gpsData.speed > 0.3f) {
+    vn = gpsData.speed * std::cos(gpsData.heading);
+    ve = gpsData.speed * std::sin(gpsData.heading);
+  }
+
+  // Invertimos la velocidad vertical
+  // (si baroData asume UP positivo)
+  float vd = -baroData.vertical_vel;
+
+  // 3. Multiplicación Matricial 3D (R_I^B * V_I)
+  Core::VelocityData velData;
+  velData.v_abs_x = vn;
+  velData.v_abs_y = ve;
+  velData.v_abs_z = baroData.vertical_vel;
+
+  // Eje X (Morro): v_x = VN(cosT*cosY) + VE(cosT*sinY) - VD(sinT)
+  velData.v_rel_x = vn * (cp * cy) + ve * (cp * sy) - vd * sp;
+
+  // Eje Y (Ala Derecha)
+  velData.v_rel_y = vn * (sr * sp * cy - cr * sy) +
+                    ve * (sr * sp * sy + cr * cy) + vd * (sr * cp);
+
+  // Eje Z (Panza)
+  velData.v_rel_z = vn * (cr * sp * cy + sr * sy) +
+                    ve * (cr * sp * sy - sr * cy) + vd * (cr * cp);
+
+  return velData;
 }
 
 } // namespace Control

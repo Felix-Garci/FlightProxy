@@ -45,7 +45,8 @@ private:
   std::function<void(Core::VelocityData)> velSetter_;
   Core::VelocityData velData_;
 
-  float yawRealRad_ = 0;
+  float yaw_estimate_ = 0;
+  bool cold_start_yaw_estimate_ = true;
 
   // Controles
   // LATERAL
@@ -63,10 +64,22 @@ private:
   // ANGULAR
   Controls::velocity_angular velocity_angular_ = Controls::velocity_angular();
 
-  // Math funcions
-  void magCompensation();
-  void eulerProyection(float dt);
-  void vGps2DroneRef();
+  // math calculos
+  // yaw_mag
+  float tilt_compensation(Core::AttitudeData attitudeData,
+                          Core::MagData magData);
+
+  // yawRate_imu
+  float yaw_rate_transformation(Core::AttitudeData attitudeData,
+                                Core::IMUData imuData);
+
+  // yawReal
+  float sensor_fusion_realyaw(Core::AttitudeData attitudeData, float dt);
+
+  // Attitudedata con yaw real
+  Core::VelocityData velocity_transform(Core::AttitudeData attitudeData,
+                                        Core::GPSData gpsData,
+                                        Core::BaroData baroData);
 };
 } // namespace Control
 } // namespace AppLogic

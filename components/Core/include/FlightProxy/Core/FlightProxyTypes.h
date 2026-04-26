@@ -101,8 +101,10 @@ REGISTER_FP_STRUCT(AttitudeData, ATTITUDE_DATA_FIELDS)
 #define VELOCITY_DATA_FIELDS(X)                                                \
   X(float, v_abs_x)                                                            \
   X(float, v_abs_y)                                                            \
+  X(float, v_abs_z)                                                            \
   X(float, v_rel_x)                                                            \
-  X(float, v_rel_y)
+  X(float, v_rel_y)                                                            \
+  X(float, v_rel_z)
 REGISTER_FP_STRUCT(VelocityData, VELOCITY_DATA_FIELDS)
 
 #define PID_CTRL_IN(X)                                                         \
