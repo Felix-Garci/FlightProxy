@@ -45,6 +45,9 @@ private:
   std::function<void(Core::VelocityData)> velSetter_;
   Core::VelocityData velData_;
 
+  std::function<void(Core::YawData)> yawSetter_;
+  Core::YawData yawData_;
+
   float yaw_estimate_ = 0;
   bool cold_start_yaw_estimate_ = true;
 

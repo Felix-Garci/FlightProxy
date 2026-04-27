@@ -21,6 +21,7 @@ enum DataIDs : DataID {
   ID_BARO_Data = 14,
 
   ID_VEL_Data = 15,
+  ID_YAW_Data = 16,
 
   // Ctrl level selector
   ID_CTRL_LVL = 19,

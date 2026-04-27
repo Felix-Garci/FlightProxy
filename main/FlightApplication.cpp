@@ -298,6 +298,7 @@ void FlightApplication::setupCommandSystem() {
   cmdFactory.produceCMD<BaroData>(ID_BARO_Data, 1, 0);
 
   cmdFactory.produceCMD<VelocityData>(ID_VEL_Data, 1, 0);
+  cmdFactory.produceCMD<YawData>(ID_YAW_Data, 1, 0);
 
   cmdFactory.produceCMD<uint8_t>(ID_CTRL_LVL, 0, 1, "ctrlLevel");
 

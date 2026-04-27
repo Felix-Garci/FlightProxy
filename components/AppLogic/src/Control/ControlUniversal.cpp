@@ -23,6 +23,7 @@ void ControlUniversal::init(std::shared_ptr<AlmacenFlexible> bb) {
 
   // Data Setters
   velSetter_ = bb->registrarProductor<Core::VelocityData>(ID_VEL_Data);
+  yawSetter_ = bb->registrarProductor<Core::YawData>(ID_YAW_Data);
 
   // Controles
   auto vlci = bb->registrarConsumidor<Core::PidCtrlIn>(ID_CTRL_LATVEL_IN);
@@ -58,9 +59,11 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   imuData_ = imuGetter_();
 
   attitudeData_.yaw_rate = yaw_rate_transformation(attitudeData_, imuData_);
+  yawData_.yaw_rate = attitudeData_.yaw_rate;
 
   // paso 3
   attitudeData_.yaw = sensor_fusion_realyaw(attitudeData_, dt);
+  yawData_.yaw = attitudeData_.yaw;
 
   // paso 4
   gpsData_ = gpsGetter_();
@@ -69,6 +72,7 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   velData_ = velocity_transform(attitudeData_, gpsData_, baroData_);
 
   velSetter_(velData_);
+  yawSetter_(yawData_);
 
   ctrlLevel = ctrlLevel > levelData_ ? levelData_ : ctrlLevel;
 
@@ -115,8 +119,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   case 2: // Relative vel + w
 
     // roll=lateral_vel(roll(-1,1),imu+gps)->roll(-1,1)
-    // rcNormData.roll =
-    //    velocity_lateral_.step(rcNormData.roll, velData_.v_rel_y, dt);
+    rcNormData.roll =
+        velocity_lateral_.step(rcNormData.roll, velData_.v_rel_y, dt);
 
     // pitch=frontal_vel(pitch(-1,1),imu+gps)->pitch(-1,1)
     rcNormData.pitch =
@@ -127,8 +131,8 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
                                                   baroData_.vertical_vel, dt);
 
     // yaw = angular_vel(yaw(-1,1),brujula)->yaw(-1,1)
-    rcNormData.yaw =
-        velocity_angular_.step(rcNormData.yaw, attitudeData_.yaw_rate, dt);
+    // rcNormData.yaw =
+    //    velocity_angular_.step(rcNormData.yaw, attitudeData_.yaw_rate, dt);
 
     [[fallthrough]];
   case 1: // Pass Throw
@@ -233,7 +237,7 @@ ControlUniversal::velocity_transform(Core::AttitudeData attitudeData,
   float vn = 0.0f;
   float ve = 0.0f;
 
-  if (gpsData.speed > 0.3f) {
+  if (gpsData.speed > 0.01f) {
     vn = gpsData.speed * std::cos(gpsData.heading);
     ve = gpsData.speed * std::sin(gpsData.heading);
   }

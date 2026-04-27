@@ -24,6 +24,7 @@ def init(ip, port, callbacks) -> CommandsMgr:
         13,
         14,
         15,
+        16,
         19,
         20,
         21,

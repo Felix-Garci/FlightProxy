@@ -24,7 +24,7 @@ float velocity_frontal::step(float v_ref, float v_real, float dt) {
   if (dt > 0.5f || dt <= 0.0f)
     dt = 0.01f;
 
-  float V_MAX = 0.3;
+  float V_MAX = 1;
 
   ctrlTel_.ref = v_ref * V_MAX;
   ctrlTel_.real = v_real;
@@ -42,7 +42,7 @@ float velocity_frontal::step(float v_ref, float v_real, float dt) {
 
   float total = ctrlParams_.offset + ctrlTel_.p + ctrlTel_.i + ctrlTel_.d;
 
-  float max_out = 0.15;
+  float max_out = 0.5;
   if (total > max_out) {
     total = max_out;
     integral_ -= error * dt;

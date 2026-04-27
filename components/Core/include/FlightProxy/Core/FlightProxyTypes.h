@@ -107,6 +107,11 @@ REGISTER_FP_STRUCT(AttitudeData, ATTITUDE_DATA_FIELDS)
   X(float, v_rel_z)
 REGISTER_FP_STRUCT(VelocityData, VELOCITY_DATA_FIELDS)
 
+#define YAW_DATA_FIELDS(X)                                                     \
+  X(float, yaw)                                                                \
+  X(float, yaw_rate)
+REGISTER_FP_STRUCT(YawData, YAW_DATA_FIELDS)
+
 #define PID_CTRL_IN(X)                                                         \
   X(float, p)                                                                  \
   X(float, i)                                                                  \
