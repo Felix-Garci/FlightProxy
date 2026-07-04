@@ -25,6 +25,11 @@ private:
   static constexpr uint8_t REG_DATA = 0x04;
   static constexpr uint8_t CMD_NORMAL_MODE = 0x33;
   static constexpr float PRESION_NIVEL_MAR = 101325.0f;
+  // EMA sobre la derivada de altitud: con periodo de muestreo ~100ms, alpha=0.2
+  // da una constante de tiempo ~0.4s (corte ~0.4Hz), suficiente para tumbar el
+  // ruido de la derivada sin introducir un retardo relevante frente a la
+  // dinámica de la planta (vertical_vel).
+  static constexpr float ALPHA_VEL_FILTER = 0.2f;
 
   struct BMP3_Calib_Data {
     float T1;
@@ -59,6 +64,8 @@ private:
   bool m_esperandoRespuesta = false;
   uint64_t tiempo_anterior = 0;
   float altitud_anterior = 0;
+  float velocidad_filtrada = 0.0f;
+  bool vel_filtro_inicializado = false;
 
   void transactStateMachin() {
     auto pkt = std::make_unique<Core::I2CPacket>();
@@ -156,11 +163,19 @@ private:
     float dt = (now - tiempo_anterior) / 1000.0f;
     float velocidad_ms = (altitud_m - altitud_anterior) / dt;
 
+    if (!vel_filtro_inicializado) {
+      velocidad_filtrada = velocidad_ms;
+      vel_filtro_inicializado = true;
+    } else {
+      velocidad_filtrada = ALPHA_VEL_FILTER * velocidad_ms +
+                            (1.0f - ALPHA_VEL_FILTER) * velocidad_filtrada;
+    }
+
     altitud_anterior = altitud_m;
     tiempo_anterior = now;
 
     datos_baro.altitude = altitud_m;
-    datos_baro.vertical_vel = velocidad_ms;
+    datos_baro.vertical_vel = velocidad_filtrada;
     return datos_baro;
   }
 

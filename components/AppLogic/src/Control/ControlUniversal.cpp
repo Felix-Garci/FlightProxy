@@ -114,6 +114,15 @@ Core::RCNORMData ControlUniversal::step(uint8_t ctrlLevel,
   case 3: // Absolute vel + w
 
     // roll,pitch=reff_transform(roll(-1,1),pitch(-1,1),brujula)->(-1,1)(-1,1)/horizontal_rel_vel
+    {
+      float cy = std::cos(attitudeData_.yaw);
+      float sy = std::sin(attitudeData_.yaw);
+      float ref_n = rcNormData.pitch; // referencia de velocidad norte (-1,1)
+      float ref_e = rcNormData.roll;  // referencia de velocidad este (-1,1)
+
+      rcNormData.pitch = ref_n * cy + ref_e * sy;  // -> v_rel_x (frontal)
+      rcNormData.roll = -ref_n * sy + ref_e * cy;  // -> v_rel_y (lateral)
+    }
 
     [[fallthrough]];
   case 2: // Relative vel + w
